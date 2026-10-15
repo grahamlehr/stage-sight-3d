@@ -245,6 +245,7 @@ const TubChairPanelist: React.FC<TubChairPanelistProps> = ({
         color: '#475569', // Executive slate upholstery
         roughness: 0.45,
         metalness: 0.1,
+        side: THREE.DoubleSide, // Ensure both inner and outer bucket surfaces are rendered and lit
       }),
     []
   );
@@ -301,8 +302,8 @@ const TubChairPanelist: React.FC<TubChairPanelistProps> = ({
 
   return (
     <group position={position} rotation={[0, rotationY, 0]}>
-      {/* ================= 1. Modern Tub Chair ================= */}
-      <group position={[0, 0, 0]}>
+      {/* ================= 1. Modern Tub Chair (Facing Forward Toward Audience) ================= */}
+      <group position={[0, 0, 0]} rotation={[0, Math.PI, 0]}>
         {/* 4-Star Chrome Swivel Base */}
         <mesh position={[0, 0.18, 0]} material={chromeBaseMaterial} castShadow>
           <cylinderGeometry args={[0.035, 0.035, 0.32, 16]} />
@@ -330,7 +331,7 @@ const TubChairPanelist: React.FC<TubChairPanelistProps> = ({
           <cylinderGeometry args={[0.36, 0.36, 0.10, 24]} />
         </mesh>
 
-        {/* Curved Bucket Backrest & Wraparound Arms (Cylinder shell from 45 deg to 315 deg) */}
+        {/* Curved Bucket Backrest & Wraparound Arms (Solid back at -Z, open front at +Z) */}
         <mesh position={[0, 0.64, 0.02]} material={chairFabricMaterial} castShadow receiveShadow>
           <cylinderGeometry
             args={[0.42, 0.40, 0.36, 24, 1, true, -Math.PI * 0.75, Math.PI * 1.5]}
@@ -338,7 +339,12 @@ const TubChairPanelist: React.FC<TubChairPanelistProps> = ({
         </mesh>
 
         {/* Padded Top Rim of Tub Chair */}
-        <mesh position={[0, 0.81, 0.02]} material={chairFabricMaterial} castShadow>
+        <mesh
+          position={[0, 0.81, 0.02]}
+          rotation={[-Math.PI / 2, 0, -Math.PI * 0.75]}
+          material={chairFabricMaterial}
+          castShadow
+        >
           <torusGeometry args={[0.41, 0.035, 12, 24, Math.PI * 1.5]} />
         </mesh>
       </group>
