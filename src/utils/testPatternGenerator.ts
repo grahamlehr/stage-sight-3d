@@ -64,54 +64,9 @@ export function generateTestPatternCanvas(screenWidth: number, screenHeight: num
   ctx.lineTo(0, H);
   ctx.stroke();
 
-  // 16:9 Center-Cut Pillar Lines (if ultra-wide)
-  const standard16_9Aspect = 16 / 9;
-  if (aspect > standard16_9Aspect) {
-    const centerCutWidth = H * standard16_9Aspect;
-    const centerCutLeft = (W - centerCutWidth) / 2;
-    const centerCutRight = (W + centerCutWidth) / 2;
-
-    ctx.strokeStyle = '#f59e0b';
-    ctx.lineWidth = 3;
-    ctx.setLineDash([16, 12]);
-    ctx.beginPath();
-    ctx.moveTo(centerCutLeft, 0);
-    ctx.lineTo(centerCutLeft, H);
-    ctx.moveTo(centerCutRight, 0);
-    ctx.lineTo(centerCutRight, H);
-    ctx.stroke();
-    ctx.setLineDash([]);
-
-    // 16:9 label tags
-    ctx.fillStyle = '#f59e0b';
-    ctx.font = 'bold 24px monospace';
-    ctx.fillText('16:9 CENTER-CUT LEFT', centerCutLeft + 16, 48);
-    ctx.fillText('16:9 CENTER-CUT RIGHT', centerCutRight - 320, 48);
-  }
-
-  // 5% Action Safe and 10% Title Safe borders
-  const safe5X = W * 0.05;
-  const safe5Y = H * 0.05;
-  const safe10X = W * 0.10;
-  const safe10Y = H * 0.10;
-
-  // 5% Action Safe (Cyan)
-  ctx.strokeStyle = '#06b6d4';
-  ctx.lineWidth = 3;
-  ctx.strokeRect(safe5X, safe5Y, W - safe5X * 2, H - safe5Y * 2);
-  ctx.fillStyle = '#06b6d4';
-  ctx.font = 'bold 22px monospace';
-  ctx.fillText('95% ACTION SAFE BOUNDARY', safe5X + 16, safe5Y + 32);
-
-  // 10% Title Safe (Amber dashed)
-  ctx.strokeStyle = '#fbbf24';
-  ctx.lineWidth = 2.5;
-  ctx.setLineDash([12, 10]);
-  ctx.strokeRect(safe10X, safe10Y, W - safe10X * 2, H - safe10Y * 2);
-  ctx.setLineDash([]);
-  ctx.fillStyle = '#fbbf24';
-  ctx.font = 'bold 22px monospace';
-  ctx.fillText('90% TITLE SAFE BOUNDARY', safe10X + 16, safe10Y + 32);
+  // Layout margins for ladder and color bars
+  const marginX = W * 0.08;
+  const marginY = H * 0.08;
 
   // Center Crosshair and Geometry Circle Check
   const cx = W / 2;
@@ -159,8 +114,8 @@ export function generateTestPatternCanvas(screenWidth: number, screenHeight: num
   ctx.fillText(`${screenWidth.toFixed(1)}m × ${screenHeight.toFixed(1)}m Physical LED | ${W} × ${H} Native Buffer | ${ratioLabel}`, cx, 138);
 
   // Legibility Ladder on Left Side
-  const ladderX = safe10X + 30;
-  let ladderY = safe10Y + 80;
+  const ladderX = marginX + 30;
+  let ladderY = marginY + 80;
 
   ctx.textAlign = 'left';
 
@@ -194,7 +149,7 @@ export function generateTestPatternCanvas(screenWidth: number, screenHeight: num
   ctx.fillText('DISCAS 18pt: Minimum Threshold Table Data (Requires High Acuity D/H < 4.0)', ladderX, ladderY);
 
   // SMPTE Color Bars along bottom
-  const barY = H - safe10Y - 110;
+  const barY = H - marginY - 110;
   const barH = 50;
   const barColors = [
     '#ffffff', // White
@@ -206,10 +161,10 @@ export function generateTestPatternCanvas(screenWidth: number, screenHeight: num
     '#0000ff', // Blue
     '#000000', // Black
   ];
-  const barW = (W - safe10X * 2) / barColors.length;
+  const barW = (W - marginX * 2) / barColors.length;
   for (let i = 0; i < barColors.length; i++) {
     ctx.fillStyle = barColors[i];
-    ctx.fillRect(safe10X + i * barW, barY, barW, barH);
+    ctx.fillRect(marginX + i * barW, barY, barW, barH);
   }
 
   // 10-Step Grayscale Ramp below Color Bars
@@ -218,7 +173,7 @@ export function generateTestPatternCanvas(screenWidth: number, screenHeight: num
   for (let i = 0; i < 10; i++) {
     const val = Math.round((i / 9) * 255);
     ctx.fillStyle = `rgb(${val}, ${val}, ${val})`;
-    ctx.fillRect(safe10X + i * ((W - safe10X * 2) / 10), grayY, (W - safe10X * 2) / 10, grayH);
+    ctx.fillRect(marginX + i * ((W - marginX * 2) / 10), grayY, (W - marginX * 2) / 10, grayH);
   }
 
   // Pixel Ruler Ticks along top and left

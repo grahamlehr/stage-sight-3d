@@ -13,7 +13,6 @@ import {
   Sparkles,
   Move,
   MousePointer,
-  Shield,
   RefreshCw,
   Sun,
   Users,
@@ -59,9 +58,6 @@ export const Sidebar: React.FC = () => {
   const isPickingMesh = useStageStore((s) => s.isPickingMesh);
   const setIsPickingMesh = useStageStore((s) => s.setIsPickingMesh);
   const boundMeshName = useStageStore((s) => s.boundMeshName);
-
-  const showSafeGuides = useStageStore((s) => s.showSafeGuides);
-  const setShowSafeGuides = useStageStore((s) => s.setShowSafeGuides);
 
   // 3 Occlusion Test Items
   const showPresenter = useStageStore((s) => s.showPresenter);
@@ -577,25 +573,6 @@ export const Sidebar: React.FC = () => {
                   </span>
                 )}
               </button>
-            </div>
-
-            {/* Safe Area Guides Toggle */}
-            <div className="p-3 rounded-xl bg-zinc-900/60 border border-zinc-800 space-y-2">
-              <div className="flex items-center justify-between">
-                <span className="font-semibold text-zinc-200 flex items-center gap-1.5">
-                  <Shield size={14} className="text-cyan-400" />
-                  Safe-Area Overlays
-                </span>
-                <input
-                  type="checkbox"
-                  checked={showSafeGuides}
-                  onChange={(e) => setShowSafeGuides(e.target.checked)}
-                  className="w-4 h-4 accent-cyan-400 rounded cursor-pointer"
-                />
-              </div>
-              <p className="text-[10px] text-zinc-400">
-                Renders 5% Action-Safe (Cyan), 10% Title-Safe (Amber dashed), and 16:9 Center-Cut boundary guides.
-              </p>
             </div>
 
             {/* ================= 3 Stage Occlusion Test Items ================= */}

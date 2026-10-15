@@ -104,8 +104,7 @@ export interface StageState {
   seatPosition: [number, number, number];
   fovMode: FovMode;
 
-  // Safe-Area & Occlusion Overlays
-  showSafeGuides: boolean;
+  // Stage Occlusion Overlays
   showPresenterSilhouette: boolean; // legacy alias
   showPresenter: boolean;
   presenterOffset: [number, number]; // [xOffsetAlongStage, zDistanceInFrontOfScreen]
@@ -154,7 +153,6 @@ export interface StageState {
   setFovMode: (mode: FovMode) => void;
   applySeatPreset: (presetId: string) => void;
 
-  setShowSafeGuides: (show: boolean) => void;
   setShowPresenterSilhouette: (show: boolean) => void;
   setPresenterOffset: (offset: [number, number]) => void;
   setShowPresenter: (show: boolean) => void;
@@ -205,8 +203,7 @@ export const useStageStore = create<StageState>((set) => ({
   seatPosition: [0, 0, 2], // Mid-House Center
   fovMode: 'room-context',
 
-  // Safe-Area & Occlusion
-  showSafeGuides: true,
+  // Stage Occlusion Defaults
   showPresenterSilhouette: true,
   showPresenter: true,
   presenterOffset: [-2.5, 2.0],
@@ -300,7 +297,6 @@ export const useStageStore = create<StageState>((set) => ({
     }
   },
 
-  setShowSafeGuides: (showSafeGuides) => set({ showSafeGuides }),
   setShowPresenterSilhouette: (showPresenterSilhouette) => set({ showPresenterSilhouette, showPresenter: showPresenterSilhouette }),
   setPresenterOffset: (presenterOffset) => set({ presenterOffset }),
   setShowPresenter: (showPresenter) => set({ showPresenter }),
