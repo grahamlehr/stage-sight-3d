@@ -16,6 +16,8 @@ import {
   Shield,
   RefreshCw,
   Sun,
+  Users,
+  Mic,
 } from 'lucide-react';
 import {
   useStageStore,
@@ -60,10 +62,22 @@ export const Sidebar: React.FC = () => {
 
   const showSafeGuides = useStageStore((s) => s.showSafeGuides);
   const setShowSafeGuides = useStageStore((s) => s.setShowSafeGuides);
-  const showPresenterSilhouette = useStageStore((s) => s.showPresenterSilhouette);
-  const setShowPresenterSilhouette = useStageStore((s) => s.setShowPresenterSilhouette);
+
+  // 3 Occlusion Test Items
+  const showPresenter = useStageStore((s) => s.showPresenter);
+  const setShowPresenter = useStageStore((s) => s.setShowPresenter);
   const presenterOffset = useStageStore((s) => s.presenterOffset);
   const setPresenterOffset = useStageStore((s) => s.setPresenterOffset);
+
+  const showLectern = useStageStore((s) => s.showLectern);
+  const setShowLectern = useStageStore((s) => s.setShowLectern);
+  const lecternOffset = useStageStore((s) => s.lecternOffset);
+  const setLecternOffset = useStageStore((s) => s.setLecternOffset);
+
+  const showPanel = useStageStore((s) => s.showPanel);
+  const setShowPanel = useStageStore((s) => s.setShowPanel);
+  const panelOffset = useStageStore((s) => s.panelOffset);
+  const setPanelOffset = useStageStore((s) => s.setPanelOffset);
 
   const venueSource = useStageStore((s) => s.venueSource);
   const setVenueSource = useStageStore((s) => s.setVenueSource);
@@ -584,63 +598,182 @@ export const Sidebar: React.FC = () => {
               </p>
             </div>
 
-            {/* Presenter Silhouette & Lectern Occlusion Controls */}
-            <div className="p-3 rounded-xl bg-zinc-900/60 border border-zinc-800 space-y-3">
-              <div className="flex items-center justify-between">
-                <span className="font-semibold text-zinc-200 flex items-center gap-1.5">
-                  <User size={14} className="text-cyan-400" />
-                  Presenter Occlusion Test
-                </span>
-                <input
-                  type="checkbox"
-                  checked={showPresenterSilhouette}
-                  onChange={(e) => setShowPresenterSilhouette(e.target.checked)}
-                  className="w-4 h-4 accent-cyan-400 rounded cursor-pointer"
-                />
-              </div>
-              <p className="text-[10px] text-zinc-400">
-                1.8m mannequin & 1.15m lectern positioned on stage to check lower screen obstruction from front row seats.
-              </p>
+            {/* ================= 3 Stage Occlusion Test Items ================= */}
+            <div className="space-y-2.5">
+              <label className="text-[11px] font-semibold text-zinc-400 uppercase tracking-wider block">
+                Stage Occlusion Items
+              </label>
 
-              {showPresenterSilhouette && (
-                <div className="space-y-2 pt-2 border-t border-zinc-800">
-                  <div>
-                    <div className="flex justify-between text-[11px] text-zinc-400 mb-1">
-                      <span>Stage X Position (Lateral)</span>
-                      <span className="font-mono">{presenterOffset[0].toFixed(1)}m</span>
-                    </div>
-                    <input
-                      type="range"
-                      min="-7.5"
-                      max="7.5"
-                      step="0.1"
-                      value={presenterOffset[0]}
-                      onChange={(e) =>
-                        setPresenterOffset([parseFloat(e.target.value), presenterOffset[1]])
-                      }
-                      className="w-full accent-cyan-400 h-1 bg-zinc-800 rounded"
-                    />
-                  </div>
-
-                  <div>
-                    <div className="flex justify-between text-[11px] text-zinc-400 mb-1">
-                      <span>Distance in Front of Screen (Z)</span>
-                      <span className="font-mono">{presenterOffset[1].toFixed(1)}m</span>
-                    </div>
-                    <input
-                      type="range"
-                      min="0.5"
-                      max="4.5"
-                      step="0.1"
-                      value={presenterOffset[1]}
-                      onChange={(e) =>
-                        setPresenterOffset([presenterOffset[0], parseFloat(e.target.value)])
-                      }
-                      className="w-full accent-cyan-400 h-1 bg-zinc-800 rounded"
-                    />
-                  </div>
+              {/* 1. Presenter (Standing Person) */}
+              <div className="p-3 rounded-xl bg-zinc-900/60 border border-zinc-800 space-y-2.5">
+                <div className="flex items-center justify-between">
+                  <span className="font-semibold text-zinc-200 flex items-center gap-1.5">
+                    <User size={14} className="text-cyan-400" />
+                    Presenter (1.8m)
+                  </span>
+                  <input
+                    type="checkbox"
+                    checked={showPresenter}
+                    onChange={(e) => setShowPresenter(e.target.checked)}
+                    className="w-4 h-4 accent-cyan-400 rounded cursor-pointer"
+                  />
                 </div>
-              )}
+
+                {showPresenter && (
+                  <div className="space-y-2 pt-2 border-t border-zinc-800/80">
+                    <div>
+                      <div className="flex justify-between text-[11px] text-zinc-400 mb-1">
+                        <span>Lateral Position (X)</span>
+                        <span className="font-mono text-cyan-300">{presenterOffset[0].toFixed(1)}m</span>
+                      </div>
+                      <input
+                        type="range"
+                        min="-7.5"
+                        max="7.5"
+                        step="0.1"
+                        value={presenterOffset[0]}
+                        onChange={(e) =>
+                          setPresenterOffset([parseFloat(e.target.value), presenterOffset[1]])
+                        }
+                        className="w-full accent-cyan-400 h-1 bg-zinc-800 rounded"
+                      />
+                    </div>
+
+                    <div>
+                      <div className="flex justify-between text-[11px] text-zinc-400 mb-1">
+                        <span>Distance in Front (Z)</span>
+                        <span className="font-mono text-cyan-300">{presenterOffset[1].toFixed(1)}m</span>
+                      </div>
+                      <input
+                        type="range"
+                        min="0.5"
+                        max="4.5"
+                        step="0.1"
+                        value={presenterOffset[1]}
+                        onChange={(e) =>
+                          setPresenterOffset([presenterOffset[0], parseFloat(e.target.value)])
+                        }
+                        className="w-full accent-cyan-400 h-1 bg-zinc-800 rounded"
+                      />
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* 2. Lectern / Podium */}
+              <div className="p-3 rounded-xl bg-zinc-900/60 border border-zinc-800 space-y-2.5">
+                <div className="flex items-center justify-between">
+                  <span className="font-semibold text-zinc-200 flex items-center gap-1.5">
+                    <Mic size={14} className="text-amber-400" />
+                    Lectern / Podium (1.15m)
+                  </span>
+                  <input
+                    type="checkbox"
+                    checked={showLectern}
+                    onChange={(e) => setShowLectern(e.target.checked)}
+                    className="w-4 h-4 accent-amber-400 rounded cursor-pointer"
+                  />
+                </div>
+
+                {showLectern && (
+                  <div className="space-y-2 pt-2 border-t border-zinc-800/80">
+                    <div>
+                      <div className="flex justify-between text-[11px] text-zinc-400 mb-1">
+                        <span>Lateral Position (X)</span>
+                        <span className="font-mono text-amber-300">{lecternOffset[0].toFixed(1)}m</span>
+                      </div>
+                      <input
+                        type="range"
+                        min="-7.5"
+                        max="7.5"
+                        step="0.1"
+                        value={lecternOffset[0]}
+                        onChange={(e) =>
+                          setLecternOffset([parseFloat(e.target.value), lecternOffset[1]])
+                        }
+                        className="w-full accent-amber-400 h-1 bg-zinc-800 rounded"
+                      />
+                    </div>
+
+                    <div>
+                      <div className="flex justify-between text-[11px] text-zinc-400 mb-1">
+                        <span>Distance in Front (Z)</span>
+                        <span className="font-mono text-amber-300">{lecternOffset[1].toFixed(1)}m</span>
+                      </div>
+                      <input
+                        type="range"
+                        min="0.5"
+                        max="4.5"
+                        step="0.1"
+                        value={lecternOffset[1]}
+                        onChange={(e) =>
+                          setLecternOffset([lecternOffset[0], parseFloat(e.target.value)])
+                        }
+                        className="w-full accent-amber-400 h-1 bg-zinc-800 rounded"
+                      />
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* 3. Four-Person Panel in Tub Chairs */}
+              <div className="p-3 rounded-xl bg-zinc-900/60 border border-zinc-800 space-y-2.5">
+                <div className="flex items-center justify-between">
+                  <span className="font-semibold text-zinc-200 flex items-center gap-1.5">
+                    <Users size={14} className="text-emerald-400" />
+                    Four-Person Panel (Tub Chairs)
+                  </span>
+                  <input
+                    type="checkbox"
+                    checked={showPanel}
+                    onChange={(e) => setShowPanel(e.target.checked)}
+                    className="w-4 h-4 accent-emerald-400 rounded cursor-pointer"
+                  />
+                </div>
+                <p className="text-[10px] text-zinc-400">
+                  4 seated panelists in modern curved club chairs with coffee tables on stage.
+                </p>
+
+                {showPanel && (
+                  <div className="space-y-2 pt-2 border-t border-zinc-800/80">
+                    <div>
+                      <div className="flex justify-between text-[11px] text-zinc-400 mb-1">
+                        <span>Center Position (X)</span>
+                        <span className="font-mono text-emerald-300">{panelOffset[0].toFixed(1)}m</span>
+                      </div>
+                      <input
+                        type="range"
+                        min="-5.0"
+                        max="5.0"
+                        step="0.1"
+                        value={panelOffset[0]}
+                        onChange={(e) =>
+                          setPanelOffset([parseFloat(e.target.value), panelOffset[1]])
+                        }
+                        className="w-full accent-emerald-400 h-1 bg-zinc-800 rounded"
+                      />
+                    </div>
+
+                    <div>
+                      <div className="flex justify-between text-[11px] text-zinc-400 mb-1">
+                        <span>Distance in Front (Z)</span>
+                        <span className="font-mono text-emerald-300">{panelOffset[1].toFixed(1)}m</span>
+                      </div>
+                      <input
+                        type="range"
+                        min="1.0"
+                        max="4.5"
+                        step="0.1"
+                        value={panelOffset[1]}
+                        onChange={(e) =>
+                          setPanelOffset([panelOffset[0], parseFloat(e.target.value)])
+                        }
+                        className="w-full accent-emerald-400 h-1 bg-zinc-800 rounded"
+                      />
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
           </>
         )}

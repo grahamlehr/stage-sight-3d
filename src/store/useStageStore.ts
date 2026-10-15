@@ -106,8 +106,13 @@ export interface StageState {
 
   // Safe-Area & Occlusion Overlays
   showSafeGuides: boolean;
-  showPresenterSilhouette: boolean;
+  showPresenterSilhouette: boolean; // legacy alias
+  showPresenter: boolean;
   presenterOffset: [number, number]; // [xOffsetAlongStage, zDistanceInFrontOfScreen]
+  showLectern: boolean;
+  lecternOffset: [number, number];
+  showPanel: boolean;
+  panelOffset: [number, number];
 
   // Telemetry HUD
   telemetry: DiscasTelemetry;
@@ -152,6 +157,11 @@ export interface StageState {
   setShowSafeGuides: (show: boolean) => void;
   setShowPresenterSilhouette: (show: boolean) => void;
   setPresenterOffset: (offset: [number, number]) => void;
+  setShowPresenter: (show: boolean) => void;
+  setShowLectern: (show: boolean) => void;
+  setLecternOffset: (offset: [number, number]) => void;
+  setShowPanel: (show: boolean) => void;
+  setPanelOffset: (offset: [number, number]) => void;
 
   setTelemetry: (telemetry: DiscasTelemetry) => void;
   setActiveSidebarTab: (tab: 'source' | 'screen' | 'venue') => void;
@@ -198,7 +208,12 @@ export const useStageStore = create<StageState>((set) => ({
   // Safe-Area & Occlusion
   showSafeGuides: true,
   showPresenterSilhouette: true,
-  presenterOffset: [0, 2.0],
+  showPresenter: true,
+  presenterOffset: [-2.5, 2.0],
+  showLectern: true,
+  lecternOffset: [2.5, 2.0],
+  showPanel: false,
+  panelOffset: [0.0, 2.2],
 
   // Live Telemetry Defaults
   telemetry: {
@@ -286,8 +301,13 @@ export const useStageStore = create<StageState>((set) => ({
   },
 
   setShowSafeGuides: (showSafeGuides) => set({ showSafeGuides }),
-  setShowPresenterSilhouette: (showPresenterSilhouette) => set({ showPresenterSilhouette }),
+  setShowPresenterSilhouette: (showPresenterSilhouette) => set({ showPresenterSilhouette, showPresenter: showPresenterSilhouette }),
   setPresenterOffset: (presenterOffset) => set({ presenterOffset }),
+  setShowPresenter: (showPresenter) => set({ showPresenter }),
+  setShowLectern: (showLectern) => set({ showLectern }),
+  setLecternOffset: (lecternOffset) => set({ lecternOffset }),
+  setShowPanel: (showPanel) => set({ showPanel }),
+  setPanelOffset: (panelOffset) => set({ panelOffset }),
 
   setTelemetry: (telemetry) => set({ telemetry }),
   setActiveSidebarTab: (activeSidebarTab) => set({ activeSidebarTab }),
