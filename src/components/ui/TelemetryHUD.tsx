@@ -7,6 +7,7 @@ import {
   PanelLeftClose,
   PanelLeftOpen,
   Info,
+  Sun,
 } from 'lucide-react';
 import { useStageStore, SEAT_PRESETS } from '../../store/useStageStore';
 
@@ -19,6 +20,10 @@ export const TelemetryHUD: React.FC = () => {
   const applySeatPreset = useStageStore((s) => s.applySeatPreset);
   const isSidebarOpen = useStageStore((s) => s.isSidebarOpen);
   const setIsSidebarOpen = useStageStore((s) => s.setIsSidebarOpen);
+  const lightingPreset = useStageStore((s) => s.lightingPreset);
+  const setLightingPreset = useStageStore((s) => s.setLightingPreset);
+  const houseLightsIntensity = useStageStore((s) => s.houseLightsIntensity);
+  const setHouseLightsIntensity = useStageStore((s) => s.setHouseLightsIntensity);
 
   // Badge color helpers
   const getDhColor = (status: string) => {
@@ -103,8 +108,85 @@ export const TelemetryHUD: React.FC = () => {
         </div>
       </div>
 
-      {/* Right: Camera Mode, Dual-FOV & Seat Presets */}
+      {/* Right: Camera Mode, Dual-FOV, Seat Presets & Lighting */}
       <div className="pointer-events-auto flex items-center gap-2">
+        {/* Venue Lighting Quick Selector */}
+        <div className="relative group">
+          <button
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-medium shadow-md backdrop-blur transition ${
+              lightingPreset === 'conference-bright'
+                ? 'bg-amber-500/20 text-amber-300 border-amber-500/50'
+                : 'bg-zinc-900/90 hover:bg-zinc-800 text-zinc-200 border-zinc-800'
+            }`}
+            title="Venue Lighting Rig & House Lights"
+          >
+            <Sun size={14} className={lightingPreset === 'conference-bright' ? 'text-amber-400' : 'text-zinc-400'} />
+            <span className="hidden sm:inline">
+              {lightingPreset === 'conference-bright'
+                ? 'Bright'
+                : lightingPreset === 'ballroom-standard'
+                ? 'Standard'
+                : 'Keynote Dark'}
+            </span>
+          </button>
+          <div className="absolute right-0 top-full mt-1.5 w-64 p-2.5 rounded-xl bg-zinc-900 border border-zinc-800 shadow-2xl backdrop-blur hidden group-hover:block transition animate-in fade-in duration-100 space-y-2.5">
+            <div className="text-[10px] font-semibold text-zinc-400 uppercase tracking-wider flex items-center gap-1">
+              <Sun size={11} className="text-amber-400" /> Room Lighting Rig
+            </div>
+
+            {/* Presets */}
+            <div className="grid grid-cols-3 gap-1">
+              <button
+                onClick={() => setLightingPreset('conference-bright')}
+                className={`py-1 px-1 rounded text-center text-[11px] font-medium transition ${
+                  lightingPreset === 'conference-bright'
+                    ? 'bg-amber-500/25 text-amber-300 border border-amber-500/40'
+                    : 'bg-zinc-950 text-zinc-400 hover:text-white border border-zinc-800'
+                }`}
+              >
+                Bright
+              </button>
+              <button
+                onClick={() => setLightingPreset('ballroom-standard')}
+                className={`py-1 px-1 rounded text-center text-[11px] font-medium transition ${
+                  lightingPreset === 'ballroom-standard'
+                    ? 'bg-cyan-500/25 text-cyan-300 border border-cyan-500/40'
+                    : 'bg-zinc-950 text-zinc-400 hover:text-white border border-zinc-800'
+                }`}
+              >
+                Standard
+              </button>
+              <button
+                onClick={() => setLightingPreset('keynote-dark')}
+                className={`py-1 px-1 rounded text-center text-[11px] font-medium transition ${
+                  lightingPreset === 'keynote-dark'
+                    ? 'bg-purple-500/25 text-purple-300 border border-purple-500/40'
+                    : 'bg-zinc-950 text-zinc-400 hover:text-white border border-zinc-800'
+                }`}
+              >
+                Dark
+              </button>
+            </div>
+
+            {/* House Lights Slider */}
+            <div className="pt-1.5 border-t border-zinc-800/80">
+              <div className="flex justify-between text-[10px] text-zinc-400 mb-1">
+                <span>Audience House Lights</span>
+                <span className="font-mono text-zinc-200">{Math.round(houseLightsIntensity * 100)}%</span>
+              </div>
+              <input
+                type="range"
+                min="0.1"
+                max="2.2"
+                step="0.05"
+                value={houseLightsIntensity}
+                onChange={(e) => setHouseLightsIntensity(parseFloat(e.target.value))}
+                className="w-full accent-amber-400 h-1 bg-zinc-800 rounded cursor-pointer"
+              />
+            </div>
+          </div>
+        </div>
+
         {/* Seat Presets Dropdown */}
         <div className="relative group">
           <button className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-zinc-900/90 hover:bg-zinc-800 text-zinc-200 border border-zinc-800 backdrop-blur text-xs font-medium shadow-md transition">

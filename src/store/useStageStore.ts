@@ -74,6 +74,10 @@ export interface StageState {
   stageHeight: number;
   venueLength: number;
   venueWidth: number;
+  houseLightsIntensity: number;
+  stageLightsIntensity: number;
+  lightingPreset: 'conference-bright' | 'ballroom-standard' | 'keynote-dark';
+  showCeilingFixtures: boolean;
 
   // Screen Mapping State
   screenMode: ScreenMode;
@@ -117,6 +121,10 @@ export interface StageState {
   setCustomGlbUrl: (url: string | null) => void;
   setStageHeight: (height: number) => void;
   setVenueDimensions: (width: number, length: number) => void;
+  setHouseLightsIntensity: (intensity: number) => void;
+  setStageLightsIntensity: (intensity: number) => void;
+  setLightingPreset: (preset: 'conference-bright' | 'ballroom-standard' | 'keynote-dark') => void;
+  setShowCeilingFixtures: (show: boolean) => void;
 
   setScreenMode: (mode: ScreenMode) => void;
   setIsPickingMesh: (picking: boolean) => void;
@@ -157,6 +165,10 @@ export const useStageStore = create<StageState>((set) => ({
   stageHeight: 1.0,
   venueLength: 30,
   venueWidth: 20,
+  houseLightsIntensity: 1.1,
+  stageLightsIntensity: 1.3,
+  lightingPreset: 'ballroom-standard',
+  showCeilingFixtures: true,
 
   // Screen Defaults (32:9 Super-Wide, 16m x 4.5m on stage deck)
   screenMode: 'procedural',
@@ -208,6 +220,34 @@ export const useStageStore = create<StageState>((set) => ({
   setCustomGlbUrl: (customGlbUrl) => set({ customGlbUrl }),
   setStageHeight: (stageHeight) => set({ stageHeight }),
   setVenueDimensions: (venueWidth, venueLength) => set({ venueWidth, venueLength }),
+  setHouseLightsIntensity: (houseLightsIntensity) => set({ houseLightsIntensity }),
+  setStageLightsIntensity: (stageLightsIntensity) => set({ stageLightsIntensity }),
+  setLightingPreset: (lightingPreset) => {
+    switch (lightingPreset) {
+      case 'conference-bright':
+        set({
+          lightingPreset,
+          houseLightsIntensity: 1.8,
+          stageLightsIntensity: 1.6,
+        });
+        break;
+      case 'ballroom-standard':
+        set({
+          lightingPreset,
+          houseLightsIntensity: 1.1,
+          stageLightsIntensity: 1.3,
+        });
+        break;
+      case 'keynote-dark':
+        set({
+          lightingPreset,
+          houseLightsIntensity: 0.35,
+          stageLightsIntensity: 1.5,
+        });
+        break;
+    }
+  },
+  setShowCeilingFixtures: (showCeilingFixtures) => set({ showCeilingFixtures }),
 
   setScreenMode: (screenMode) => set({ screenMode }),
   setIsPickingMesh: (isPickingMesh) => set({ isPickingMesh }),

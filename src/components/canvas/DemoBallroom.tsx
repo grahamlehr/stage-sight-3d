@@ -82,6 +82,8 @@ export const DemoBallroom: React.FC = () => {
   const stageDepth = 5.0;
   const stageCenterZ = -12.5;
 
+  const showCeilingFixtures = useStageStore((s) => s.showCeilingFixtures);
+
   return (
     <group>
       {/* ================= Venue Floor Plane ================= */}
@@ -93,26 +95,26 @@ export const DemoBallroom: React.FC = () => {
       >
         <planeGeometry args={[venueWidth, venueLength]} />
         <meshStandardMaterial
-          color="#0c0f17"
-          roughness={0.85}
-          metalness={0.15}
+          color="#161c28"
+          roughness={0.75}
+          metalness={0.2}
         />
       </mesh>
 
       {/* 1m Grid Helper on Floor */}
       <gridHelper
-        args={[venueLength, venueLength, 0x06b6d4, 0x1e293b]}
+        args={[venueLength, venueLength, 0x06b6d4, 0x334155]}
         position={[0, 0.005, 0]}
       />
 
       {/* Center Aisle Runway Accent Lines */}
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[-1.1, 0.01, 2]}>
         <planeGeometry args={[0.04, 26]} />
-        <meshBasicMaterial color="#06b6d4" transparent opacity={0.3} />
+        <meshBasicMaterial color="#06b6d4" transparent opacity={0.4} />
       </mesh>
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[1.1, 0.01, 2]}>
         <planeGeometry args={[0.04, 26]} />
-        <meshBasicMaterial color="#06b6d4" transparent opacity={0.3} />
+        <meshBasicMaterial color="#06b6d4" transparent opacity={0.4} />
       </mesh>
 
       {/* ================= Raised Stage Deck ================= */}
@@ -121,9 +123,9 @@ export const DemoBallroom: React.FC = () => {
         <mesh receiveShadow castShadow>
           <boxGeometry args={[stageWidth, stageHeight, stageDepth]} />
           <meshStandardMaterial
-            color="#131722"
+            color="#181e2b"
             roughness={0.4}
-            metalness={0.2}
+            metalness={0.25}
           />
         </mesh>
 
@@ -137,9 +139,9 @@ export const DemoBallroom: React.FC = () => {
         <mesh position={[0, stageHeight / 2 + 0.005, 0]} rotation={[-Math.PI / 2, 0, 0]}>
           <planeGeometry args={[stageWidth - 0.2, stageDepth - 0.2]} />
           <meshStandardMaterial
-            color="#1a202c"
-            roughness={0.3}
-            metalness={0.1}
+            color="#212838"
+            roughness={0.35}
+            metalness={0.15}
           />
         </mesh>
       </group>
@@ -172,7 +174,7 @@ export const DemoBallroom: React.FC = () => {
           }
         }}
       >
-        <meshStandardMaterial color="#1e2638" roughness={0.7} metalness={0.1} />
+        <meshStandardMaterial color="#2c374d" roughness={0.65} metalness={0.1} />
       </instancedMesh>
 
       {/* Seat Backrests */}
@@ -188,24 +190,60 @@ export const DemoBallroom: React.FC = () => {
           }
         }}
       >
-        <meshStandardMaterial color="#2d3748" roughness={0.6} metalness={0.1} />
+        <meshStandardMaterial color="#3a4863" roughness={0.55} metalness={0.1} />
       </instancedMesh>
 
       {/* Zone Floor Label Indicators */}
       <group position={[0, 0.02, 0]}>
         <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0, -8]}>
           <planeGeometry args={[1.8, 0.6]} />
-          <meshBasicMaterial color="#06b6d4" transparent opacity={0.15} />
+          <meshBasicMaterial color="#06b6d4" transparent opacity={0.25} />
         </mesh>
         <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0, 2]}>
           <planeGeometry args={[1.8, 0.6]} />
-          <meshBasicMaterial color="#38bdf8" transparent opacity={0.15} />
+          <meshBasicMaterial color="#38bdf8" transparent opacity={0.25} />
         </mesh>
         <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0, 12]}>
           <planeGeometry args={[1.8, 0.6]} />
-          <meshBasicMaterial color="#f59e0b" transparent opacity={0.15} />
+          <meshBasicMaterial color="#f59e0b" transparent opacity={0.25} />
         </mesh>
       </group>
+
+      {/* ================= Overhead Ceiling Lighting Rig & Fixtures ================= */}
+      {showCeilingFixtures && (
+        <group position={[0, 8.5, 0]}>
+          {[-8, 2, 11].map((trussZ, tIdx) => (
+            <group key={tIdx} position={[0, 0, trussZ]}>
+              {/* Main cross pipe */}
+              <mesh position={[0, 0, 0]} rotation={[0, 0, Math.PI / 2]}>
+                <cylinderGeometry args={[0.06, 0.06, venueWidth - 2, 12]} />
+                <meshStandardMaterial color="#1f293d" roughness={0.5} metalness={0.7} />
+              </mesh>
+              {/* Secondary parallel pipe */}
+              <mesh position={[0, 0.35, 0]} rotation={[0, 0, Math.PI / 2]}>
+                <cylinderGeometry args={[0.04, 0.04, venueWidth - 2, 12]} />
+                <meshStandardMaterial color="#1f293d" roughness={0.5} metalness={0.7} />
+              </mesh>
+
+              {/* Downlight Can Fixtures spaced across truss */}
+              {[-6, -3, 0, 3, 6].map((canX, cIdx) => (
+                <group key={cIdx} position={[canX, -0.15, 0]}>
+                  {/* Fixture Body */}
+                  <mesh>
+                    <cylinderGeometry args={[0.16, 0.22, 0.28, 16]} />
+                    <meshStandardMaterial color="#0f172a" roughness={0.3} metalness={0.8} />
+                  </mesh>
+                  {/* Glowing Lens Face */}
+                  <mesh position={[0, -0.141, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+                    <circleGeometry args={[0.18, 16]} />
+                    <meshBasicMaterial color="#f8fafc" />
+                  </mesh>
+                </group>
+              ))}
+            </group>
+          ))}
+        </group>
+      )}
     </group>
   );
 };

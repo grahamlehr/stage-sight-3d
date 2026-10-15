@@ -11,6 +11,17 @@ export const StageCanvas: React.FC = () => {
   const venueSource = useStageStore((s) => s.venueSource);
   const navigationMode = useStageStore((s) => s.navigationMode);
   const isPickingMesh = useStageStore((s) => s.isPickingMesh);
+  const houseLightsIntensity = useStageStore((s) => s.houseLightsIntensity);
+  const stageLightsIntensity = useStageStore((s) => s.stageLightsIntensity);
+  const lightingPreset = useStageStore((s) => s.lightingPreset);
+
+  // Background color subtle tone adjustment based on preset
+  const bgColor =
+    lightingPreset === 'conference-bright'
+      ? '#0f1422'
+      : lightingPreset === 'ballroom-standard'
+      ? '#0a0d17'
+      : '#05070c';
 
   return (
     <div
@@ -36,18 +47,40 @@ export const StageCanvas: React.FC = () => {
           far: 200,
         }}
       >
-        <color attach="background" args={['#07090e']} />
-        <fog attach="fog" args={['#07090e', 35, 75]} />
+        <color attach="background" args={[bgColor]} />
+        <fog attach="fog" args={[bgColor, 45, 100]} />
 
         {/* ================= Venue Lighting Rig ================= */}
-        {/* Soft Ambient Fill */}
-        <ambientLight intensity={0.4} color="#64748b" />
+        {/* Architectural Sky/Ground Hemispheric Fill (Lifts room out of darkness) */}
+        <hemisphereLight
+          args={['#e2e8f0', '#1e293b', houseLightsIntensity * 0.75]}
+        />
+
+        {/* Soft Ambient Base */}
+        <ambientLight intensity={houseLightsIntensity * 0.35} color="#94a3b8" />
+
+        {/* Audience House Downlights Rig (Front, Mid, Rear Seating) */}
+        <directionalLight
+          position={[0, 16, -2]}
+          intensity={houseLightsIntensity * 0.7}
+          color="#f1f5f9"
+        />
+        <directionalLight
+          position={[0, 16, 7]}
+          intensity={houseLightsIntensity * 0.8}
+          color="#f1f5f9"
+        />
+        <directionalLight
+          position={[0, 16, 16]}
+          intensity={houseLightsIntensity * 0.65}
+          color="#f1f5f9"
+        />
 
         {/* Overhead Truss Stage Key Light */}
         <directionalLight
           position={[0, 14, 2]}
-          intensity={1.0}
-          color="#f8fafc"
+          intensity={stageLightsIntensity * 1.2}
+          color="#ffffff"
           castShadow
           shadow-mapSize-width={2048}
           shadow-mapSize-height={2048}
@@ -61,18 +94,26 @@ export const StageCanvas: React.FC = () => {
 
         {/* Downstage Presenter Spotlight */}
         <spotLight
-          position={[0, 8, -6]}
+          position={[0, 9, -5]}
           target-position={[0, 1, -10]}
-          intensity={1.5}
-          angle={0.6}
-          penumbra={0.7}
+          intensity={stageLightsIntensity * 1.6}
+          angle={0.65}
+          penumbra={0.6}
           color="#ffffff"
           castShadow
         />
 
-        {/* Warm Side Kickers for Architectural Depth */}
-        <directionalLight position={[-15, 6, -5]} intensity={0.3} color="#38bdf8" />
-        <directionalLight position={[15, 6, -5]} intensity={0.3} color="#f59e0b" />
+        {/* Warm & Cool Side Kickers for Architectural Depth */}
+        <directionalLight
+          position={[-15, 8, -5]}
+          intensity={stageLightsIntensity * 0.5}
+          color="#38bdf8"
+        />
+        <directionalLight
+          position={[15, 8, -5]}
+          intensity={stageLightsIntensity * 0.5}
+          color="#f59e0b"
+        />
 
         {/* ================= 3D Scene Elements ================= */}
         <Suspense fallback={null}>

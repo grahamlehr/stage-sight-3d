@@ -15,6 +15,7 @@ import {
   MousePointer,
   Shield,
   RefreshCw,
+  Sun,
 } from 'lucide-react';
 import {
   useStageStore,
@@ -72,6 +73,14 @@ export const Sidebar: React.FC = () => {
   const venueLength = useStageStore((s) => s.venueLength);
   const venueWidth = useStageStore((s) => s.venueWidth);
   const setVenueDimensions = useStageStore((s) => s.setVenueDimensions);
+  const houseLightsIntensity = useStageStore((s) => s.houseLightsIntensity);
+  const setHouseLightsIntensity = useStageStore((s) => s.setHouseLightsIntensity);
+  const stageLightsIntensity = useStageStore((s) => s.stageLightsIntensity);
+  const setStageLightsIntensity = useStageStore((s) => s.setStageLightsIntensity);
+  const lightingPreset = useStageStore((s) => s.lightingPreset);
+  const setLightingPreset = useStageStore((s) => s.setLightingPreset);
+  const showCeilingFixtures = useStageStore((s) => s.showCeilingFixtures);
+  const setShowCeilingFixtures = useStageStore((s) => s.setShowCeilingFixtures);
 
   // Local UI State
   const [videoDevices, setVideoDevices] = useState<MediaDeviceInfo[]>([]);
@@ -742,6 +751,101 @@ export const Sidebar: React.FC = () => {
                 </button>
               </div>
             )}
+
+            {/* Venue Lighting Rig & Controls */}
+            <div className="p-3 rounded-xl bg-zinc-900/60 border border-zinc-800 space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="font-semibold text-zinc-200 flex items-center gap-1.5">
+                  <Sun size={14} className="text-amber-400" />
+                  Venue Lighting Rig
+                </span>
+                <span className="text-[10px] text-zinc-500 font-mono">Real-time</span>
+              </div>
+
+              {/* Lighting Presets */}
+              <div>
+                <span className="text-[10px] text-zinc-500 block mb-1">Atmosphere Preset</span>
+                <div className="grid grid-cols-3 gap-1.5">
+                  <button
+                    onClick={() => setLightingPreset('conference-bright')}
+                    className={`py-1.5 px-1 rounded-lg text-[11px] font-medium border text-center transition ${
+                      lightingPreset === 'conference-bright'
+                        ? 'bg-amber-500/20 text-amber-300 border-amber-500/50 font-semibold'
+                        : 'bg-zinc-950 border-zinc-800 text-zinc-400 hover:text-zinc-200'
+                    }`}
+                  >
+                    Bright
+                  </button>
+                  <button
+                    onClick={() => setLightingPreset('ballroom-standard')}
+                    className={`py-1.5 px-1 rounded-lg text-[11px] font-medium border text-center transition ${
+                      lightingPreset === 'ballroom-standard'
+                        ? 'bg-cyan-500/20 text-cyan-300 border-cyan-500/50 font-semibold'
+                        : 'bg-zinc-950 border-zinc-800 text-zinc-400 hover:text-zinc-200'
+                    }`}
+                  >
+                    Standard
+                  </button>
+                  <button
+                    onClick={() => setLightingPreset('keynote-dark')}
+                    className={`py-1.5 px-1 rounded-lg text-[11px] font-medium border text-center transition ${
+                      lightingPreset === 'keynote-dark'
+                        ? 'bg-purple-500/20 text-purple-300 border-purple-500/50 font-semibold'
+                        : 'bg-zinc-950 border-zinc-800 text-zinc-400 hover:text-zinc-200'
+                    }`}
+                  >
+                    Dark
+                  </button>
+                </div>
+              </div>
+
+              {/* House Lights Slider */}
+              <div>
+                <div className="flex justify-between text-[11px] text-zinc-400 mb-1">
+                  <span>Audience House Lights</span>
+                  <span className="font-mono">{Math.round(houseLightsIntensity * 100)}%</span>
+                </div>
+                <input
+                  type="range"
+                  min="0.1"
+                  max="2.2"
+                  step="0.05"
+                  value={houseLightsIntensity}
+                  onChange={(e) => setHouseLightsIntensity(parseFloat(e.target.value))}
+                  className="w-full accent-amber-400 h-1 bg-zinc-800 rounded"
+                />
+              </div>
+
+              {/* Stage Lights Slider */}
+              <div>
+                <div className="flex justify-between text-[11px] text-zinc-400 mb-1">
+                  <span>Stage Key & Spotlights</span>
+                  <span className="font-mono">{Math.round(stageLightsIntensity * 100)}%</span>
+                </div>
+                <input
+                  type="range"
+                  min="0.2"
+                  max="2.5"
+                  step="0.05"
+                  value={stageLightsIntensity}
+                  onChange={(e) => setStageLightsIntensity(parseFloat(e.target.value))}
+                  className="w-full accent-cyan-400 h-1 bg-zinc-800 rounded"
+                />
+              </div>
+
+              {/* Ceiling Fixtures Toggle */}
+              {venueSource === 'default-ballroom' && (
+                <div className="pt-2 border-t border-zinc-800 flex items-center justify-between">
+                  <span className="text-[11px] text-zinc-300">Ceiling Lighting Trusses</span>
+                  <input
+                    type="checkbox"
+                    checked={showCeilingFixtures}
+                    onChange={(e) => setShowCeilingFixtures(e.target.checked)}
+                    className="w-4 h-4 accent-amber-400 rounded cursor-pointer"
+                  />
+                </div>
+              )}
+            </div>
           </>
         )}
       </div>
