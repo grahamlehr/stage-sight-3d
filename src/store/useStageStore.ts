@@ -1,0 +1,255 @@
+import { create } from 'zustand';
+
+export type VenueSource = 'default-ballroom' | 'custom-glb';
+export type ScreenMode = 'procedural' | 'mesh-bind';
+export type SourceType = 'test-pattern' | 'pdf' | 'hdmi-capture' | 'screen-share';
+export type UvCropMode = 'auto-letterbox' | 'top-aligned' | 'fill-1-to-1' | 'manual';
+export type NavigationMode = 'orbit' | 'seated';
+export type FovMode = 'room-context' | 'eye-focus';
+
+export interface AspectRatioPreset {
+  id: string;
+  label: string;
+  width: number;
+  height: number;
+  ratioStr: string;
+}
+
+export const ASPECT_RATIO_PRESETS: AspectRatioPreset[] = [
+  { id: '16-9', label: '16:9 Standard', width: 8.0, height: 4.5, ratioStr: '16:9' },
+  { id: '21-9', label: '21:9 Ultra-Wide', width: 10.5, height: 4.5, ratioStr: '21:9' },
+  { id: '32-9', label: '32:9 Super-Wide', width: 16.0, height: 4.5, ratioStr: '32:9' },
+  { id: '3-1', label: '3:1 Banner', width: 13.5, height: 4.5, ratioStr: '3:1' },
+  { id: '4-1', label: '4:1 Ribbon', width: 18.0, height: 4.5, ratioStr: '4:1' },
+];
+
+export interface SeatPreset {
+  id: string;
+  name: string;
+  description: string;
+  position: [number, number, number]; // [x, y, z] floor position (eye height +1.2 will be added by camera)
+}
+
+export const SEAT_PRESETS: SeatPreset[] = [
+  {
+    id: 'front-center',
+    name: 'Front Row Center (4m)',
+    description: '4m from screen at stage centerline',
+    position: [0, 0, -8],
+  },
+  {
+    id: 'front-left',
+    name: 'Front Row Far Left (4m, ~48° Off-Axis)',
+    description: 'Extreme horizontal angle test',
+    position: [-6.5, 0, -8],
+  },
+  {
+    id: 'mid-center',
+    name: 'Mid House Center (14m)',
+    description: 'Ideal sweet-spot audience view',
+    position: [0, 0, 2],
+  },
+  {
+    id: 'rear-center',
+    name: 'Back of Room (25m)',
+    description: 'Worst-case legibility threshold',
+    position: [0, 0, 13],
+  },
+];
+
+export interface DiscasTelemetry {
+  viewingDistance: number;
+  dhRatio: number;
+  offAxisAngle: number;
+  dhStatus: 'detail' | 'reading' | 'marginal' | 'fail';
+  dhLabel: string;
+  angleStatus: 'optimal' | 'steep' | 'extreme';
+  angleLabel: string;
+}
+
+export interface StageState {
+  // Venue State
+  venueSource: VenueSource;
+  customGlbUrl: string | null;
+  stageHeight: number;
+  venueLength: number;
+  venueWidth: number;
+
+  // Screen Mapping State
+  screenMode: ScreenMode;
+  isPickingMesh: boolean;
+  boundMeshName: string | null;
+  screenWidth: number;
+  screenHeight: number;
+  screenPosition: [number, number, number];
+  screenRotation: [number, number, number];
+  showTransformGizmo: boolean;
+
+  // Content Source & UV Crop State
+  sourceType: SourceType;
+  slides: HTMLCanvasElement[];
+  currentSlideIndex: number;
+  activeVideoStream: MediaStream | null;
+  selectedVideoDeviceId: string;
+  uvCropMode: UvCropMode;
+  manualUvRepeatY: number;
+  manualUvOffsetY: number;
+
+  // Camera & Seating State
+  navigationMode: NavigationMode;
+  seatPosition: [number, number, number];
+  fovMode: FovMode;
+
+  // Safe-Area & Occlusion Overlays
+  showSafeGuides: boolean;
+  showPresenterSilhouette: boolean;
+  presenterOffset: [number, number]; // [xOffsetAlongStage, zDistanceInFrontOfScreen]
+
+  // Telemetry HUD
+  telemetry: DiscasTelemetry;
+
+  // UI State
+  activeSidebarTab: 'source' | 'screen' | 'venue';
+  isSidebarOpen: boolean;
+
+  // Actions
+  setVenueSource: (source: VenueSource) => void;
+  setCustomGlbUrl: (url: string | null) => void;
+  setStageHeight: (height: number) => void;
+  setVenueDimensions: (width: number, length: number) => void;
+
+  setScreenMode: (mode: ScreenMode) => void;
+  setIsPickingMesh: (picking: boolean) => void;
+  setBoundMeshName: (name: string | null) => void;
+  setScreenDimensions: (width: number, height: number) => void;
+  setScreenPreset: (presetId: string) => void;
+  setScreenPosition: (pos: [number, number, number]) => void;
+  setScreenRotation: (rot: [number, number, number]) => void;
+  setShowTransformGizmo: (show: boolean) => void;
+
+  setSourceType: (type: SourceType) => void;
+  setSlides: (slides: HTMLCanvasElement[]) => void;
+  setCurrentSlideIndex: (index: number) => void;
+  setActiveVideoStream: (stream: MediaStream | null) => void;
+  setSelectedVideoDeviceId: (id: string) => void;
+  setUvCropMode: (mode: UvCropMode) => void;
+  setManualUvRepeatY: (repeatY: number) => void;
+  setManualUvOffsetY: (offsetY: number) => void;
+
+  setNavigationMode: (mode: NavigationMode) => void;
+  setSeatPosition: (pos: [number, number, number]) => void;
+  setFovMode: (mode: FovMode) => void;
+  applySeatPreset: (presetId: string) => void;
+
+  setShowSafeGuides: (show: boolean) => void;
+  setShowPresenterSilhouette: (show: boolean) => void;
+  setPresenterOffset: (offset: [number, number]) => void;
+
+  setTelemetry: (telemetry: DiscasTelemetry) => void;
+  setActiveSidebarTab: (tab: 'source' | 'screen' | 'venue') => void;
+  setIsSidebarOpen: (open: boolean) => void;
+}
+
+export const useStageStore = create<StageState>((set) => ({
+  // Venue Defaults
+  venueSource: 'default-ballroom',
+  customGlbUrl: null,
+  stageHeight: 1.0,
+  venueLength: 30,
+  venueWidth: 20,
+
+  // Screen Defaults (32:9 Super-Wide, 16m x 4.5m on stage deck)
+  screenMode: 'procedural',
+  isPickingMesh: false,
+  boundMeshName: null,
+  screenWidth: 16.0,
+  screenHeight: 4.5,
+  screenPosition: [0, 3.4, -12],
+  screenRotation: [0, 0, 0],
+  showTransformGizmo: false,
+
+  // Content Source Defaults
+  sourceType: 'test-pattern',
+  slides: [],
+  currentSlideIndex: 0,
+  activeVideoStream: null,
+  selectedVideoDeviceId: '',
+  uvCropMode: 'auto-letterbox',
+  manualUvRepeatY: 1.0,
+  manualUvOffsetY: 0.0,
+
+  // Camera & Seating Defaults
+  navigationMode: 'orbit',
+  seatPosition: [0, 0, 2], // Mid-House Center
+  fovMode: 'room-context',
+
+  // Safe-Area & Occlusion
+  showSafeGuides: true,
+  showPresenterSilhouette: true,
+  presenterOffset: [0, 2.0],
+
+  // Live Telemetry Defaults
+  telemetry: {
+    viewingDistance: 14.0,
+    dhRatio: 3.11,
+    offAxisAngle: 0,
+    dhStatus: 'detail',
+    dhLabel: 'High Acuity / Analytical Detail',
+    angleStatus: 'optimal',
+    angleLabel: 'On-Axis',
+  },
+
+  // UI State
+  activeSidebarTab: 'source',
+  isSidebarOpen: true,
+
+  // Actions
+  setVenueSource: (venueSource) => set({ venueSource }),
+  setCustomGlbUrl: (customGlbUrl) => set({ customGlbUrl }),
+  setStageHeight: (stageHeight) => set({ stageHeight }),
+  setVenueDimensions: (venueWidth, venueLength) => set({ venueWidth, venueLength }),
+
+  setScreenMode: (screenMode) => set({ screenMode }),
+  setIsPickingMesh: (isPickingMesh) => set({ isPickingMesh }),
+  setBoundMeshName: (boundMeshName) => set({ boundMeshName }),
+  setScreenDimensions: (screenWidth, screenHeight) => set({ screenWidth, screenHeight }),
+  setScreenPreset: (presetId) => {
+    const preset = ASPECT_RATIO_PRESETS.find((p) => p.id === presetId);
+    if (preset) {
+      set({ screenWidth: preset.width, screenHeight: preset.height });
+    }
+  },
+  setScreenPosition: (screenPosition) => set({ screenPosition }),
+  setScreenRotation: (screenRotation) => set({ screenRotation }),
+  setShowTransformGizmo: (showTransformGizmo) => set({ showTransformGizmo }),
+
+  setSourceType: (sourceType) => set({ sourceType }),
+  setSlides: (slides) => set({ slides, currentSlideIndex: 0 }),
+  setCurrentSlideIndex: (currentSlideIndex) => set({ currentSlideIndex }),
+  setActiveVideoStream: (activeVideoStream) => set({ activeVideoStream }),
+  setSelectedVideoDeviceId: (selectedVideoDeviceId) => set({ selectedVideoDeviceId }),
+  setUvCropMode: (uvCropMode) => set({ uvCropMode }),
+  setManualUvRepeatY: (manualUvRepeatY) => set({ manualUvRepeatY }),
+  setManualUvOffsetY: (manualUvOffsetY) => set({ manualUvOffsetY }),
+
+  setNavigationMode: (navigationMode) => set({ navigationMode }),
+  setSeatPosition: (seatPosition) => set({ seatPosition }),
+  setFovMode: (fovMode) => set({ fovMode }),
+  applySeatPreset: (presetId) => {
+    const preset = SEAT_PRESETS.find((p) => p.id === presetId);
+    if (preset) {
+      set({
+        seatPosition: preset.position,
+        navigationMode: 'seated',
+      });
+    }
+  },
+
+  setShowSafeGuides: (showSafeGuides) => set({ showSafeGuides }),
+  setShowPresenterSilhouette: (showPresenterSilhouette) => set({ showPresenterSilhouette }),
+  setPresenterOffset: (presenterOffset) => set({ presenterOffset }),
+
+  setTelemetry: (telemetry) => set({ telemetry }),
+  setActiveSidebarTab: (activeSidebarTab) => set({ activeSidebarTab }),
+  setIsSidebarOpen: (isSidebarOpen) => set({ isSidebarOpen }),
+}));
