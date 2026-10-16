@@ -122,9 +122,13 @@ const PresenterMannequin: React.FC<PresenterMannequinProps> = ({ position }) => 
 // ================= Lectern / Podium Component =================
 interface LecternProps {
   position: [number, number, number];
+  rotation?: [number, number, number];
 }
 
-const LecternPodium: React.FC<LecternProps> = ({ position }) => {
+const LecternPodium: React.FC<LecternProps> = ({
+  position,
+  rotation = [0, Math.PI, 0],
+}) => {
   // Brushed titanium & aluminum materials for high specular lighting response
   const bodyMaterial = useMemo(
     () =>
@@ -165,7 +169,7 @@ const LecternPodium: React.FC<LecternProps> = ({ position }) => {
   );
 
   return (
-    <group position={position}>
+    <group position={position} rotation={rotation}>
       {/* Heavy base plate */}
       <mesh position={[0, 0.02, 0]} material={bodyMaterial} castShadow receiveShadow>
         <boxGeometry args={[0.65, 0.04, 0.50]} />

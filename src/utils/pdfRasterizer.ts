@@ -1,5 +1,6 @@
 import * as pdfjsLib from 'pdfjs-dist';
 import pdfWorkerUrl from 'pdfjs-dist/build/pdf.worker.mjs?url';
+import { drawStageSightMark } from './testPatternGenerator';
 
 // Initialize PDF.js worker using Vite's ?url bundler import
 pdfjsLib.GlobalWorkerOptions.workerSrc = pdfWorkerUrl;
@@ -140,10 +141,11 @@ export function generateSampleExecutiveDeck(): HTMLCanvasElement[] {
     ctx.lineTo(W - 120, 245);
     ctx.stroke();
 
-    // Footer Bar
+    // Footer Bar with StageSight 3D mark
+    drawStageSightMark(ctx, 136, H - 67, 30);
     ctx.fillStyle = '#64748b';
     ctx.font = '20px monospace';
-    ctx.fillText(`SLIDE 0${slideNumber} OF 05 // ULTRA-WIDE 32:9 STAGESIGHT MASTER`, 120, H - 60);
+    ctx.fillText(`SLIDE 0${slideNumber} OF 05 // ULTRA-WIDE 32:9 STAGESIGHT MASTER`, 164, H - 60);
 
     ctx.textAlign = 'right';
     ctx.fillText('AVIXA DISCAS COMPLIANT TYPOGRAPHY // MIN TEXT 24PT', W - 120, H - 60);

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   Eye,
   Maximize2,
@@ -8,10 +8,16 @@ import {
   PanelLeftOpen,
   Info,
   Sun,
+  Glasses,
+  RotateCcw,
 } from 'lucide-react';
 import { useStageStore, SEAT_PRESETS } from '../../store/useStageStore';
+import { Logo } from './Logo';
+import { AboutModal } from './AboutModal';
 
 export const TelemetryHUD: React.FC = () => {
+  const [isAboutOpen, setIsAboutOpen] = useState(false);
+  const [isVrHelpOpen, setIsVrHelpOpen] = useState(false);
   const telemetry = useStageStore((s) => s.telemetry);
   const navigationMode = useStageStore((s) => s.navigationMode);
   const setNavigationMode = useStageStore((s) => s.setNavigationMode);
@@ -24,6 +30,10 @@ export const TelemetryHUD: React.FC = () => {
   const setLightingPreset = useStageStore((s) => s.setLightingPreset);
   const houseLightsIntensity = useStageStore((s) => s.houseLightsIntensity);
   const setHouseLightsIntensity = useStageStore((s) => s.setHouseLightsIntensity);
+  const isVrSupported = useStageStore((s) => s.isVrSupported);
+  const isVrPresenting = useStageStore((s) => s.isVrPresenting);
+  const toggleVrSession = useStageStore((s) => s.toggleVrSession);
+  const triggerVrRecenter = useStageStore((s) => s.triggerVrRecenter);
 
   // Badge color helpers
   const getDhColor = (status: string) => {
@@ -64,15 +74,16 @@ export const TelemetryHUD: React.FC = () => {
           {isSidebarOpen ? <PanelLeftClose size={18} /> : <PanelLeftOpen size={18} />}
         </button>
 
-        <div className="flex items-center gap-2.5 px-3 py-1.5 rounded-lg bg-zinc-900/90 border border-zinc-800 backdrop-blur shadow-md">
-          <div className="w-2.5 h-2.5 rounded-full bg-cyan-400 shadow-[0_0_8px_rgba(6,182,212,0.8)]" />
+        <button
+          onClick={() => setIsAboutOpen(true)}
+          className="flex items-center gap-2.5 px-3 py-1.5 rounded-lg bg-zinc-900/90 hover:bg-zinc-800 border border-zinc-800 hover:border-zinc-700 backdrop-blur shadow-md transition group text-left"
+          title="About StageSight 3D (Click for details)"
+        >
+          <Logo variant="icon" className="w-5 h-5 group-hover:scale-110 transition-transform" glow />
           <span className="font-bold tracking-tight text-sm text-zinc-100">
             StageSight <span className="text-cyan-400">3D</span>
           </span>
-          <span className="text-[10px] px-1.5 py-0.5 rounded bg-zinc-800 text-zinc-400 font-mono">
-            MVP
-          </span>
-        </div>
+        </button>
       </div>
 
       {/* Center: Live DISCAS Telemetry Badges */}
@@ -250,7 +261,116 @@ export const TelemetryHUD: React.FC = () => {
           <Armchair size={14} />
           <span>{navigationMode === 'seated' ? 'Seated @ 1.2m' : 'Orbit Camera'}</span>
         </button>
+
+        {/* Meta Quest / PCVR WebXR Controls */}
+        <div className="relative flex items-center gap-1.5">
+          {isVrPresenting && (
+            <button
+              onClick={triggerVrRecenter}
+              className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-zinc-900/90 hover:bg-zinc-800 text-cyan-300 border border-cyan-500/40 backdrop-blur text-xs font-medium shadow-md transition"
+              title="Recenter VR Headset Forward Direction (Hotkey: R or B/Y on Quest controller)"
+            >
+              <RotateCcw size={13} />
+              <span className="hidden xl:inline">Recenter</span>
+            </button>
+          )}
+
+          <button
+            onClick={() => {
+              if (isVrSupported && toggleVrSession) {
+                toggleVrSession();
+              } else {
+                setIsVrHelpOpen(!isVrHelpOpen);
+              }
+            }}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-semibold shadow-md backdrop-blur transition ${
+              isVrPresenting
+                ? 'bg-emerald-500 text-zinc-950 border-emerald-400'
+                : isVrSupported
+                ? 'bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-300 border-cyan-500/50'
+                : 'bg-zinc-900/90 hover:bg-zinc-800 text-zinc-300 border-zinc-800'
+            }`}
+            title={
+              isVrPresenting
+                ? 'Exit Meta Quest VR Session'
+                : isVrSupported
+                ? 'Enter Meta Quest WebXR Immersive Preview'
+                : 'Meta Quest VR / PCVR Setup & Controls'
+            }
+          >
+            <Glasses size={15} className={isVrSupported && !isVrPresenting ? 'text-cyan-400' : ''} />
+            <span>
+              {isVrPresenting ? 'Exit VR' : isVrSupported ? 'Enter VR' : 'VR Preview'}
+            </span>
+            {isVrSupported && !isVrPresenting && (
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+            )}
+          </button>
+
+          {/* PCVR + HDMI Capture Setup & Controls Popover */}
+          {isVrHelpOpen && !isVrPresenting && (
+            <div className="absolute right-0 top-full mt-2 w-80 p-3.5 rounded-xl bg-zinc-900/95 border border-zinc-700/80 shadow-2xl backdrop-blur z-30 text-xs text-zinc-300 space-y-2.5">
+              <div className="flex items-center justify-between border-b border-zinc-800 pb-2">
+                <div className="flex items-center gap-1.5 font-semibold text-zinc-100">
+                  <Glasses size={14} className="text-cyan-400" />
+                  <span>Meta Quest PCVR + HDMI Workflow</span>
+                </div>
+                <button
+                  onClick={() => setIsVrHelpOpen(false)}
+                  className="text-zinc-400 hover:text-white text-[11px] px-1.5 py-0.5 rounded bg-zinc-800"
+                >
+                  Close
+                </button>
+              </div>
+
+              <div className="text-[11px] text-amber-300/90 bg-amber-500/10 border border-amber-500/30 rounded-lg p-2">
+                No active WebXR headset detected in this browser tab yet.
+              </div>
+
+              <ol className="list-decimal list-inside space-y-1.5 text-[11px] text-zinc-300 leading-relaxed">
+                <li>
+                  Connect your Meta Quest to your PC via <strong>Quest Link</strong> or <strong>Air Link</strong> (or open directly in Quest Browser).
+                </li>
+                <li>
+                  In the Meta Quest PC app, verify <strong>Settings &rarr; General &rarr; OpenXR Runtime</strong> is set as active.
+                </li>
+                <li>
+                  Open this page in <strong>Chrome</strong> or <strong>Edge</strong> on the PC, select your <strong>HDMI Capture</strong> card in the left sidebar, and click <strong>Enter VR</strong>.
+                </li>
+              </ol>
+
+              <div className="pt-2 border-t border-zinc-800 space-y-1 text-[11px]">
+                <div className="font-semibold text-zinc-200 uppercase tracking-wider text-[10px]">
+                  VR &amp; Desk Hotkeys
+                </div>
+                <div className="flex justify-between text-zinc-400">
+                  <span>Cycle Seat Presets</span>
+                  <span className="font-mono text-cyan-300">Keys 1–4 or A/X</span>
+                </div>
+                <div className="flex justify-between text-zinc-400">
+                  <span>Recenter Headset View</span>
+                  <span className="font-mono text-cyan-300">Key R or B/Y</span>
+                </div>
+                <div className="flex justify-between text-zinc-400">
+                  <span>Point &amp; Teleport Seat</span>
+                  <span className="font-mono text-cyan-300">Quest Trigger</span>
+                </div>
+                <div className="flex justify-between text-zinc-400">
+                  <span>Cycle Room Lighting</span>
+                  <span className="font-mono text-cyan-300">Key L or Grip</span>
+                </div>
+                <div className="flex justify-between text-zinc-400">
+                  <span>Toggle In-VR HUD</span>
+                  <span className="font-mono text-cyan-300">Key H or Stick Click</span>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
       </div>
+
+      {/* About StageSight 3D Modal */}
+      <AboutModal isOpen={isAboutOpen} onClose={() => setIsAboutOpen(false)} />
     </header>
   );
 };

@@ -1,0 +1,110 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="240 5 544 544" width="544" height="544">
+  <defs>
+    <!-- Background Top Arch Gradient -->
+    <linearGradient id="topArchGrad" x1="256" y1="140" x2="768" y2="140" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#1b45a8"/>
+      <stop offset="12%" stop-color="#1856bc"/>
+      <stop offset="28%" stop-color="#1475c4"/>
+      <stop offset="45%" stop-color="#11a0d6"/>
+      <stop offset="62%" stop-color="#0ccbe7"/>
+      <stop offset="80%" stop-color="#08ddf1"/>
+      <stop offset="100%" stop-color="#04ebfa"/>
+    </linearGradient>
+
+    <!-- Fold 1 Cyan Left Facet Gradient -->
+    <linearGradient id="cyanGrad1" x1="256" y1="167" x2="416" y2="167" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#00e5f7"/>
+      <stop offset="100%" stop-color="#09d7ee"/>
+    </linearGradient>
+
+    <!-- Fold 1 Cyan Right Facet Gradient -->
+    <linearGradient id="cyanGrad2" x1="416" y1="220" x2="674" y2="220" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#09d7ee"/>
+      <stop offset="100%" stop-color="#05e0f6"/>
+    </linearGradient>
+
+    <!-- Fold 1 Glowing Fold Transition -->
+    <linearGradient id="glowFold1" x1="522" y1="288" x2="660" y2="260" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#00cbf2" stop-opacity="0.2"/>
+      <stop offset="35%" stop-color="#80ecff" stop-opacity="0.8"/>
+      <stop offset="80%" stop-color="#ffffff" stop-opacity="0.98"/>
+      <stop offset="100%" stop-color="#ffffff"/>
+    </linearGradient>
+
+    <!-- Tier 2 Returning Fold Gradient -->
+    <linearGradient id="t2Grad" x1="385" y1="330" x2="492" y2="330" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#193daf"/>
+      <stop offset="50%" stop-color="#155ebc"/>
+      <stop offset="100%" stop-color="#1080ce"/>
+    </linearGradient>
+
+    <!-- Tier 3 Cyan Left Facet Gradient -->
+    <linearGradient id="cyanGrad3" x1="385" y1="346" x2="492" y2="346" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#00e5f7"/>
+      <stop offset="100%" stop-color="#0cc8eb"/>
+    </linearGradient>
+
+    <!-- Fold 3 Glowing Fold Transition -->
+    <linearGradient id="glowFold2" x1="491" y1="425" x2="586" y2="386" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#00cef4" stop-opacity="0.2"/>
+      <stop offset="40%" stop-color="#80ecff" stop-opacity="0.8"/>
+      <stop offset="85%" stop-color="#ffffff" stop-opacity="0.98"/>
+      <stop offset="100%" stop-color="#ffffff"/>
+    </linearGradient>
+
+    <!-- Tier 4 Returning Fold Gradient -->
+    <linearGradient id="t4Grad" x1="461" y1="450" x2="586" y2="440" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#1080ce"/>
+      <stop offset="40%" stop-color="#15b7e6"/>
+      <stop offset="80%" stop-color="#183ead"/>
+      <stop offset="100%" stop-color="#183ead"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Dark Rounded App Icon Container -->
+  <rect x="240" y="5" width="544" height="544" rx="108" fill="#000000"/>
+
+  <!-- TOP BACKGROUND ARCH -->
+  <path d="M 256 107 Q 512 73.2 768 107 L 768 226 Q 512 126 256 226 Z" fill="url(#topArchGrad)"/>
+
+  <!-- TIER 1 (Upper Forward Fold: Left to Right) -->
+  <g id="tier-1">
+    <polygon points="256,227 416,182 522,288" fill="#173fb0"/>
+    <polygon points="256,107 256,227 416,182" fill="url(#cyanGrad1)"/>
+    <polygon points="416,182 522,288 606,277 674,260 674,257" fill="url(#cyanGrad2)"/>
+    <polygon points="674,257 674,340 566,302 606,277 674,260" fill="#06e5f7"/>
+    <polygon points="522,288 606,277 674,260 674,274 566,302" fill="url(#glowFold1)" opacity="0.92"/>
+    <polygon points="522,288 606,277 674,260 674,264 606,280 522,291" fill="#ffffff" opacity="0.95"/>
+    <polygon points="256,107 416,182 674,257 674,261 416,186.5 256,112.5" fill="#ffffff"/>
+  </g>
+
+  <!-- TIER 2 (Back Return Fold: Right to Left) -->
+  <g id="tier-2">
+    <polygon points="566,302 674,340 492,352" fill="#193daf"/>
+    <polygon points="522,288 606,277 566,302 492,352 385,309" fill="url(#t2Grad)"/>
+  </g>
+
+  <!-- TIER 3 (Middle Forward Fold: Left to Right) -->
+  <g id="tier-3">
+    <polygon points="385,383 492,352 491,425" fill="#184db7"/>
+    <polygon points="385,309 385,383 492,352" fill="url(#cyanGrad3)"/>
+    <polygon points="492,352 491,425 546,405 586,386" fill="#09d3e9"/>
+    <polygon points="586,386 586,440 536,414 491,425 546,405" fill="#10dcf7"/>
+    <polygon points="491,425 546,405 586,386 586,400 536,414" fill="url(#glowFold2)" opacity="0.92"/>
+    <polygon points="491,425 546,405 586,386 586,389.5 546,408 491,428" fill="#ffffff" opacity="0.95"/>
+    <polygon points="385,309 492,352 586,386 586,389.5 492,356 385,313.5" fill="#ffffff"/>
+  </g>
+
+  <!-- TIER 4 (Lower Return Fold: Right to Left) -->
+  <g id="tier-4">
+    <polygon points="586,440 498,469 491,425" fill="#183ead"/>
+    <polygon points="491,425 498,469 461,437" fill="url(#t4Grad)"/>
+  </g>
+
+  <!-- TIER 5 (Bottom Tip & Spike) -->
+  <g id="tier-5">
+    <polygon points="461,437 461,481 482,460" fill="#0bd3f4"/>
+    <polygon points="461,481 482,460 498,469" fill="#183ead"/>
+    <polygon points="461,437.5 461,441.5 485,459.5 517,481 485,458" fill="#ffffff"/>
+  </g>
+</svg>

@@ -104,6 +104,13 @@ export interface StageState {
   seatPosition: [number, number, number];
   fovMode: FovMode;
 
+  // WebXR / Meta Quest VR State
+  isVrSupported: boolean;
+  isVrPresenting: boolean;
+  vrHudVisible: boolean;
+  vrRecenterCount: number;
+  toggleVrSession: (() => Promise<void>) | null;
+
   // Stage Occlusion Overlays
   showPresenterSilhouette: boolean; // legacy alias
   showPresenter: boolean;
@@ -128,6 +135,7 @@ export interface StageState {
   setHouseLightsIntensity: (intensity: number) => void;
   setStageLightsIntensity: (intensity: number) => void;
   setLightingPreset: (preset: 'conference-bright' | 'ballroom-standard' | 'keynote-dark') => void;
+  cycleLightingPreset: () => void;
   setShowCeilingFixtures: (show: boolean) => void;
 
   setScreenMode: (mode: ScreenMode) => void;
@@ -152,6 +160,13 @@ export interface StageState {
   setSeatPosition: (pos: [number, number, number]) => void;
   setFovMode: (mode: FovMode) => void;
   applySeatPreset: (presetId: string) => void;
+  cycleSeatPreset: (direction?: 1 | -1) => void;
+
+  setIsVrSupported: (supported: boolean) => void;
+  setIsVrPresenting: (presenting: boolean) => void;
+  setVrHudVisible: (visible: boolean) => void;
+  triggerVrRecenter: () => void;
+  setToggleVrSession: (fn: (() => Promise<void>) | null) => void;
 
   setShowPresenterSilhouette: (show: boolean) => void;
   setPresenterOffset: (offset: [number, number]) => void;
@@ -166,7 +181,7 @@ export interface StageState {
   setIsSidebarOpen: (open: boolean) => void;
 }
 
-export const useStageStore = create<StageState>((set) => ({
+export const useStageStore = create<StageState>((set, get) => ({
   // Venue Defaults
   venueSource: 'default-ballroom',
   customGlbUrl: null,
@@ -202,6 +217,13 @@ export const useStageStore = create<StageState>((set) => ({
   navigationMode: 'orbit',
   seatPosition: [0, 0, 2], // Mid-House Center
   fovMode: 'room-context',
+
+  // WebXR / Meta Quest VR Defaults
+  isVrSupported: false,
+  isVrPresenting: false,
+  vrHudVisible: true,
+  vrRecenterCount: 0,
+  toggleVrSession: null,
 
   // Stage Occlusion Defaults
   showPresenterSilhouette: true,
@@ -259,6 +281,16 @@ export const useStageStore = create<StageState>((set) => ({
         break;
     }
   },
+  cycleLightingPreset: () => {
+    const order: Array<'conference-bright' | 'ballroom-standard' | 'keynote-dark'> = [
+      'conference-bright',
+      'ballroom-standard',
+      'keynote-dark',
+    ];
+    const current = get().lightingPreset;
+    const next = order[(order.indexOf(current) + 1) % order.length];
+    get().setLightingPreset(next);
+  },
   setShowCeilingFixtures: (showCeilingFixtures) => set({ showCeilingFixtures }),
 
   setScreenMode: (screenMode) => set({ screenMode }),
@@ -296,6 +328,28 @@ export const useStageStore = create<StageState>((set) => ({
       });
     }
   },
+  cycleSeatPreset: (direction = 1) => {
+    const currentPos = get().seatPosition;
+    const currentIdx = SEAT_PRESETS.findIndex(
+      (p) =>
+        Math.abs(p.position[0] - currentPos[0]) < 0.25 &&
+        Math.abs(p.position[2] - currentPos[2]) < 0.25
+    );
+    const nextIdx =
+      currentIdx === -1
+        ? 0
+        : (currentIdx + direction + SEAT_PRESETS.length) % SEAT_PRESETS.length;
+    set({
+      seatPosition: SEAT_PRESETS[nextIdx].position,
+      navigationMode: 'seated',
+    });
+  },
+
+  setIsVrSupported: (isVrSupported) => set({ isVrSupported }),
+  setIsVrPresenting: (isVrPresenting) => set({ isVrPresenting }),
+  setVrHudVisible: (vrHudVisible) => set({ vrHudVisible }),
+  triggerVrRecenter: () => set((state) => ({ vrRecenterCount: state.vrRecenterCount + 1 })),
+  setToggleVrSession: (toggleVrSession) => set({ toggleVrSession }),
 
   setShowPresenterSilhouette: (showPresenterSilhouette) => set({ showPresenterSilhouette, showPresenter: showPresenterSilhouette }),
   setPresenterOffset: (presenterOffset) => set({ presenterOffset }),
