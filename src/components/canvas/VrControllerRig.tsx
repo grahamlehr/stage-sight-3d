@@ -29,8 +29,15 @@ export const VrControllerRig: React.FC = () => {
   const setSeatPosition = useStageStore((s) => s.setSeatPosition);
 
   const rigGroupRef = useRef<THREE.Group>(null);
+  const hudAnchorGroupRef = useRef<THREE.Group>(null);
   const reticleRef = useRef<THREE.Mesh>(null);
   const needsInitialRecenterRef = useRef(false);
+  const sessionStartFramesRef = useRef(0);
+
+  // Latest raw headset pose in the WebXR reference space
+  const latestRawPosRef = useRef(new THREE.Vector3(0, 0, 0));
+  const latestRawQuatRef = useRef(new THREE.Quaternion());
+  const hasValidPoseRef = useRef(false);
 
   // Calibrated head offset in rig space so neutral seated head pose maps to [sx, sy + 1.2, sz] facing -Z
   const calibratedYawRef = useRef(0);
@@ -44,32 +51,62 @@ export const VrControllerRig: React.FC = () => {
   const prevButtonStatesRef = useRef<Record<string, boolean>>({});
   const prevStickStatesRef = useRef<Record<string, boolean>>({});
 
-  // Helper to apply seat position + calibration offset to rigGroup
+  const SEATED_EYE_HEIGHT = 1.2; // Standard 1.20m sitting eye height
+
+  // Helper to apply seat position + calibration offset to rigGroup and HUD anchor
   const syncRigTransform = () => {
     const rig = rigGroupRef.current;
-    if (!rig) return;
     const [sx, sy, sz] = useStageStore.getState().seatPosition;
-    const eyeHeight = 1.2;
     const offset = calibratedOffsetRef.current;
 
-    rig.rotation.set(0, calibratedYawRef.current, 0);
-    rig.position.set(
-      sx - offset.x,
-      sy + eyeHeight - offset.y,
-      sz - offset.z
-    );
-    rig.updateMatrixWorld(true);
+    if (rig) {
+      rig.rotation.set(0, calibratedYawRef.current, 0);
+      rig.position.set(
+        sx - offset.x,
+        sy + SEATED_EYE_HEIGHT - offset.y,
+        sz - offset.z
+      );
+      rig.updateMatrixWorld(true);
+    }
+
+    if (hudAnchorGroupRef.current) {
+      hudAnchorGroupRef.current.position.set(sx, sy + SEATED_EYE_HEIGHT, sz);
+      hudAnchorGroupRef.current.rotation.set(0, 0, 0);
+      hudAnchorGroupRef.current.updateMatrixWorld(true);
+    }
   };
 
-  // Recenter calibration: aligns current headset yaw to ballroom -Z (stage forward) and eye position to [sx, sy + 1.2, sz]
+  // Recenter calibration using raw WebXR headset pose: aligns current headset yaw to ballroom -Z and resets height to 1.2m sitting eye level
   const calibrateHeadPose = () => {
-    const euler = new THREE.Euler().setFromQuaternion(camera.quaternion, 'YXZ');
+    if (!hasValidPoseRef.current) {
+      calibratedYawRef.current = 0;
+      calibratedOffsetRef.current.set(0, 0, 0);
+      syncRigTransform();
+      return;
+    }
+
+    const euler = new THREE.Euler().setFromQuaternion(latestRawQuatRef.current, 'YXZ');
     const newYaw = -euler.y;
     calibratedYawRef.current = newYaw;
 
-    const localPos = camera.position.clone().applyAxisAngle(new THREE.Vector3(0, 1, 0), newYaw);
-    calibratedOffsetRef.current.copy(localPos);
+    const rotatedPos = latestRawPosRef.current
+      .clone()
+      .applyAxisAngle(new THREE.Vector3(0, 1, 0), newYaw);
+    calibratedOffsetRef.current.copy(rotatedPos);
 
+    syncRigTransform();
+  };
+
+  // Reset only vertical eye height to 1.2m sitting height (used when switching seats or if height drifts)
+  const resetVerticalSittingHeight = () => {
+    if (hasValidPoseRef.current) {
+      const rotatedPos = latestRawPosRef.current
+        .clone()
+        .applyAxisAngle(new THREE.Vector3(0, 1, 0), calibratedYawRef.current);
+      calibratedOffsetRef.current.y = rotatedPos.y;
+    } else {
+      calibratedOffsetRef.current.y = 0;
+    }
     syncRigTransform();
   };
 
@@ -92,7 +129,7 @@ export const VrControllerRig: React.FC = () => {
 
     checkXrSupport();
 
-    // Re-check if Quest Link / OpenXR runtime is connected while page is open
+    // Re-check if Quest Link / Virtual Desktop VDXR runtime is connected while page is open
     const xrNav = typeof navigator !== 'undefined' ? navigator.xr : undefined;
     xrNav?.addEventListener?.('devicechange', checkXrSupport);
 
@@ -115,7 +152,7 @@ export const VrControllerRig: React.FC = () => {
       } catch (err) {
         console.error('Failed to start WebXR immersive-vr session:', err);
         alert(
-          'Could not start Meta Quest VR session. Make sure Quest Link / Air Link is connected and Meta Quest Link is set as the active OpenXR runtime.'
+          'Could not start Meta Quest VR session. Make sure Virtual Desktop (VDXR) or Quest Link is connected and set as the active OpenXR runtime.'
         );
       }
     };
@@ -188,19 +225,32 @@ export const VrControllerRig: React.FC = () => {
     const handleSessionStart = () => {
       setIsVrPresenting(true);
       setNavigationMode('seated');
+
+      // Clear desktop Orbit/Seated camera local transform before parenting to VR rig
+      // so leftover desktop Y height (e.g. 5m) never offsets the VR rig below the floor
+      camera.position.set(0, 0, 0);
+      camera.quaternion.identity();
+      camera.updateMatrix();
       rig.add(camera);
+
+      hasValidPoseRef.current = false;
+      latestRawPosRef.current.set(0, 0, 0);
+      latestRawQuatRef.current.identity();
       calibratedYawRef.current = 0;
       calibratedOffsetRef.current.set(0, 0, 0);
       syncRigTransform();
+
       needsInitialRecenterRef.current = true;
+      sessionStartFramesRef.current = 0;
     };
 
     const handleSessionEnd = () => {
       setIsVrPresenting(false);
+      hasValidPoseRef.current = false;
       scene.add(camera);
       camera.position.set(
-         useStageStore.getState().seatPosition[0],
-        useStageStore.getState().seatPosition[1] + 1.2,
+        useStageStore.getState().seatPosition[0],
+        useStageStore.getState().seatPosition[1] + SEATED_EYE_HEIGHT,
         useStageStore.getState().seatPosition[2]
       );
       camera.lookAt(...useStageStore.getState().screenPosition);
@@ -225,14 +275,14 @@ export const VrControllerRig: React.FC = () => {
     };
   }, [gl, camera, scene, setIsVrPresenting, setNavigationMode, setSeatPosition]);
 
-  // 3. Update rig position whenever seatPosition changes
+  // 3. Update rig position and reset sitting height to 1.2m whenever seatPosition changes
   useEffect(() => {
     if (isVrPresenting) {
-      syncRigTransform();
+      resetVerticalSittingHeight();
     }
   }, [seatPosition, isVrPresenting]);
 
-  // 4. Recenter VR view when vrRecenterCount increments
+  // 4. Recenter VR view (and reset 1.2m sitting height) when vrRecenterCount increments
   useEffect(() => {
     if (isVrPresenting && vrRecenterCount > 0) {
       calibrateHeadPose();
@@ -406,23 +456,41 @@ export const VrControllerRig: React.FC = () => {
     hudTexture,
   ]);
 
-  // 6. Frame Loop: Initial VR recenter, Controller Floor Raycasting & Gamepad Polling
+  // 6. Frame Loop: Initial VR recenter, 1.2m Seated Height Lock, Controller Floor Raycasting & Gamepad Polling
   const raycaster = useMemo(() => new THREE.Raycaster(), []);
   const tempMatrix = useMemo(() => new THREE.Matrix4(), []);
   const hitPoint = useMemo(() => new THREE.Vector3(), []);
 
-  useFrame(() => {
+  useFrame((_state, _delta, xrFrame?: XRFrame) => {
     if (!gl.xr.isPresenting) return;
 
-    // Perform initial recenter once XR pose is non-zero
-    if (needsInitialRecenterRef.current) {
-      if (
-        camera.position.lengthSq() > 0.00001 ||
-        Math.abs(camera.quaternion.x) > 0.0001 ||
-        Math.abs(camera.quaternion.y) > 0.0001
-      ) {
-        needsInitialRecenterRef.current = false;
-        calibrateHeadPose();
+    // Read raw hardware headset pose directly from WebXR frame & reference space
+    const frame = xrFrame || gl.xr.getFrame();
+    const refSpace = gl.xr.getReferenceSpace();
+    if (frame && refSpace) {
+      const viewerPose = frame.getViewerPose(refSpace);
+      if (viewerPose) {
+        const p = viewerPose.transform.position;
+        const o = viewerPose.transform.orientation;
+        latestRawPosRef.current.set(p.x, p.y, p.z);
+        latestRawQuatRef.current.set(o.x, o.y, o.z, o.w);
+        hasValidPoseRef.current = true;
+
+        // Calibrate to 1.2m sitting eye height & stage-forward yaw across initial entry frames
+        if (needsInitialRecenterRef.current || sessionStartFramesRef.current < 20) {
+          needsInitialRecenterRef.current = false;
+          sessionStartFramesRef.current += 1;
+          calibrateHeadPose();
+        } else {
+          // Guardrail: keep vertical eye level anchored around 1.2m sitting height (±0.18m natural head nod)
+          // Prevents ever sinking toward or below the floor plane if headset is picked up or OpenXR floor shifts
+          const targetEyeY = useStageStore.getState().seatPosition[1] + SEATED_EYE_HEIGHT;
+          const currentEyeY =
+            (rigGroupRef.current?.position.y ?? targetEyeY) + latestRawPosRef.current.y;
+          if (Math.abs(currentEyeY - targetEyeY) > 0.18) {
+            resetVerticalSittingHeight();
+          }
+        }
       }
     }
 
@@ -476,7 +544,7 @@ export const VrControllerRig: React.FC = () => {
       }
       prevButtonStatesRef.current[keyA] = btnA;
 
-      // Button 5 = B (Right) / Y (Left) -> Recenter VR View
+      // Button 5 = B (Right) / Y (Left) -> Recenter VR View & Reset 1.2m Sitting Height
       const btnB = gp.buttons[5]?.pressed ?? false;
       const keyB = `${hand}-btn5`;
       if (btnB && !prevButtonStatesRef.current[keyB]) {
@@ -520,8 +588,10 @@ export const VrControllerRig: React.FC = () => {
   return (
     <>
       {/* VR Seated Camera & Controller Rig */}
-      <group ref={rigGroupRef}>
-        {/* In-VR Floating Sightline Telemetry Console */}
+      <group ref={rigGroupRef} />
+
+      {/* Seat-Anchored In-VR Floating Sightline Telemetry Console (Always at 1.2m Seated Reference) */}
+      <group ref={hudAnchorGroupRef} position={[seatPosition[0], seatPosition[1] + 1.2, seatPosition[2]]}>
         {isVrPresenting && vrHudVisible && (
           <mesh position={[0, -0.44, -1.35]} rotation={[-0.36, 0, 0]}>
             <planeGeometry args={[1.15, 0.34]} />
