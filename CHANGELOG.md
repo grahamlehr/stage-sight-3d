@@ -8,6 +8,7 @@ No release has been tagged yet. `main` deploys continuously to GitHub Pages, and
 
 ### Added
 
+- **Realistic default ballroom.** Theatre-style conference seating with center, side and cross aisles; upholstered banquet chairs on steel frames; paneled walls with walnut wainscot, pilasters and sconces; double doors with exit signs; an acoustic tile ceiling with downlights; a skirted stage with carpeted stairs, handrails and a velour drape; and procedural carpet, fabric, wood and tile textures. Clicking a chair sits in it (2026-10-19).
 - **First-run tour.** A six-step guide that spotlights the sidebar, navigation, telemetry, FOV and lighting, and VR controls, with buttons to try each one live. It can be dismissed for good and reopened from the About panel (2026-10-19).
 - **Docs.** A docs folder covering architecture, sightline telemetry, content sources, custom venues and VR preview, plus a contributing guide, this changelog and an archive policy (2026-10-19).
 - **Tooling.** CI on every pull request: ESLint (zero warnings), Vitest and the typechecked build. Node 24 is pinned in `.nvmrc` (2026-10-19).
