@@ -322,17 +322,17 @@ export const VrControllerRig: React.FC = () => {
     ctx.clearRect(0, 0, W, H);
 
     // CueSmith Backstage palette: ink on ground, signal colors for health, red only for live
-    const INK = '#f3f2f2';
-    const MUTED = 'rgba(243, 242, 242, 0.62)';
-    const RULE = 'rgba(243, 242, 242, 0.2)';
-    const GROUND = '#161514';
-    const SURFACE = '#201e1d';
+    const INK = '#f2f5f9';
+    const MUTED = 'rgba(242, 245, 249, 0.62)';
+    const RULE = 'rgba(242, 245, 249, 0.2)';
+    const GROUND = '#0d121b';
+    const SURFACE = '#151c28';
     const SIGNAL = { go: '#399d57', warn: '#f0b135' };
     const LIVE = '#ec3013';
     const font = (weight: 400 | 600 | 800, size: number) => `${weight} ${size}px Archivo, system-ui, sans-serif`;
 
     // Square panel with a hairline edge
-    ctx.fillStyle = 'rgba(22, 21, 20, 0.94)';
+    ctx.fillStyle = 'rgba(13, 18, 27, 0.94)';
     ctx.fillRect(8, 8, W - 16, H - 16);
     ctx.strokeStyle = RULE;
     ctx.lineWidth = 2;

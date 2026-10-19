@@ -3,25 +3,26 @@
 @tailwind utilities;
 
 /* CueSmith design language, Backstage (dark) theme: ink on ground with one red.
-   Ground #161514 is derived from neutral-900; the red is the same in every theme.
+   Ground, surface and ink are cooled from CueSmith's warm neutrals to a dark
+   blue and a cool white; the red and signal colors are CueSmith's own.
    Tokens are RGB channels so Tailwind opacity modifiers work (see tailwind.config.js). */
 :root {
   color-scheme: dark;
 
-  --ground: 22 21 20; /* #161514 */
-  --surface: 32 30 29; /* #201e1d */
-  --ink: 243 242 242; /* #f3f2f2 */
+  --ground: 13 18 27; /* #0d121b */
+  --surface: 21 28 40; /* #151c28 */
+  --ink: 242 245 249; /* #f2f5f9 */
 
   --accent: 236 48 19; /* #ec3013 */
   --accent-400: 255 151 131; /* #ff9783, accent text on dark */
   --accent-600: 221 43 15; /* #dd2b0f */
   --accent-700: 174 24 0; /* #ae1800 */
 
-  --standby: 51 39 26; /* #33271a */
+  --standby: 30 44 68; /* #1e2c44 */
 
   --signal-go: 57 157 87; /* oklch(0.62 0.14 150) */
   --signal-warn: 240 177 53; /* oklch(0.8 0.15 80) */
-  --signal-warn-fg: 32 30 29;
+  --signal-warn-fg: 21 28 40;
 }
 
 @layer base {
