@@ -26,6 +26,8 @@ D/H is the 3D distance from the viewer's eye to the screen center, divided by th
 
 ## Controls
 
+A short tour walks through these on first visit. Tick **Don't show again** to stop it appearing, and reopen it any time from the StageSight 3D logo → **Take the tour**.
+
 ### Desktop
 
 | Input | Action |

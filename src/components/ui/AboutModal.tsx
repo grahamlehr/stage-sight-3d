@@ -1,13 +1,14 @@
 import React, { useEffect } from 'react';
-import { X, ExternalLink, ShieldCheck, Compass, Eye, Monitor } from 'lucide-react';
+import { X, ExternalLink, ShieldCheck, Compass, Eye, Monitor, PlayCircle } from 'lucide-react';
 import { Logo } from './Logo';
 
 export interface AboutModalProps {
   isOpen: boolean;
   onClose: () => void;
+  onStartTour: () => void;
 }
 
-export const AboutModal: React.FC<AboutModalProps> = ({ isOpen, onClose }) => {
+export const AboutModal: React.FC<AboutModalProps> = ({ isOpen, onClose, onStartTour }) => {
   // Close on Escape key
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -105,15 +106,24 @@ export const AboutModal: React.FC<AboutModalProps> = ({ isOpen, onClose }) => {
           {/* Footer Info */}
           <div className="flex items-center justify-between pt-2 border-t border-zinc-800 text-[11px] text-zinc-500">
             <span>StageSight 3D Production Suite</span>
-            <a
-              href="./logo.svg"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center gap-1 text-cyan-400 hover:text-cyan-300 transition"
-            >
-              <span>Vector Logo</span>
-              <ExternalLink size={11} />
-            </a>
+            <div className="flex items-center gap-3">
+              <button
+                onClick={onStartTour}
+                className="flex items-center gap-1 text-cyan-400 hover:text-cyan-300 transition"
+              >
+                <PlayCircle size={11} />
+                <span>Take the tour</span>
+              </button>
+              <a
+                href="./logo.svg"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-1 text-cyan-400 hover:text-cyan-300 transition"
+              >
+                <span>Vector Logo</span>
+                <ExternalLink size={11} />
+              </a>
+            </div>
           </div>
         </div>
       </div>
