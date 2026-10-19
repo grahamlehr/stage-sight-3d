@@ -27,8 +27,8 @@ export function computeDiscasTelemetry({
   const h = Math.max(0.1, screenHeight);
   const dhRatio = viewingDistance / h;
 
-  let dhStatus: DiscasTelemetry['dhStatus'] = 'detail';
-  let dhLabel = 'High Acuity / Analytical Detail';
+  let dhStatus: DiscasTelemetry['dhStatus'];
+  let dhLabel: string;
 
   if (dhRatio < 4.0) {
     dhStatus = 'detail';
@@ -64,8 +64,8 @@ export function computeDiscasTelemetry({
     offAxisAngle = (rad * 180) / Math.PI;
   }
 
-  let angleStatus: DiscasTelemetry['angleStatus'] = 'optimal';
-  let angleLabel = 'On-Axis';
+  let angleStatus: DiscasTelemetry['angleStatus'];
+  let angleLabel: string;
 
   if (offAxisAngle < 30) {
     angleStatus = 'optimal';

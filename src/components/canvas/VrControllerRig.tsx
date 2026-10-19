@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import * as THREE from 'three';
 import { useFrame, useThree } from '@react-three/fiber';
 import { useStageStore, SEAT_PRESETS } from '../../store/useStageStore';
@@ -57,8 +57,10 @@ export const VrControllerRig: React.FC = () => {
   const prevButtonStatesRef = useRef<Record<string, boolean>>({});
   const prevStickStatesRef = useRef<Record<string, boolean>>({});
 
-  // Helper to apply seat position + calibration offset to rigGroup and HUD anchor
-  const syncRigTransform = () => {
+  // Helper to apply seat position + calibration offset to rigGroup and HUD anchor.
+  // The calibration helpers only touch refs and read the store imperatively, so they
+  // are stable for the component's lifetime and safe to list as effect dependencies.
+  const syncRigTransform = useCallback(() => {
     const rig = rigGroupRef.current;
     const [sx, sy, sz] = useStageStore.getState().seatPosition;
     const offset = calibratedOffsetRef.current;
@@ -78,10 +80,10 @@ export const VrControllerRig: React.FC = () => {
       hudAnchorGroupRef.current.rotation.set(0, 0, 0);
       hudAnchorGroupRef.current.updateMatrixWorld(true);
     }
-  };
+  }, []);
 
   // Recenter calibration using raw WebXR headset pose: aligns current headset yaw to ballroom -Z and resets height to 1.2m sitting eye level
-  const calibrateHeadPose = () => {
+  const calibrateHeadPose = useCallback(() => {
     if (!hasValidPoseRef.current) {
       calibratedYawRef.current = 0;
       calibratedOffsetRef.current.set(0, 0, 0);
@@ -99,16 +101,16 @@ export const VrControllerRig: React.FC = () => {
     calibratedOffsetRef.current.copy(rotatedPos);
 
     syncRigTransform();
-  };
+  }, [syncRigTransform]);
 
   // Reset only vertical eye height to 1.2m sitting height (used when switching seats or if height drifts).
   // No yaw rotation needed: the rig only ever rotates about Y, which leaves the y component unchanged.
-  const resetVerticalSittingHeight = () => {
+  const resetVerticalSittingHeight = useCallback(() => {
     calibratedOffsetRef.current.y = hasValidPoseRef.current
       ? latestRawPosRef.current.y
       : 0;
     syncRigTransform();
-  };
+  }, [syncRigTransform]);
 
   // 1. Check WebXR 'immersive-vr' support & register session toggle action
   useEffect(() => {
@@ -280,21 +282,21 @@ export const VrControllerRig: React.FC = () => {
       gl.xr.removeEventListener('sessionstart', handleSessionStart);
       gl.xr.removeEventListener('sessionend', handleSessionEnd);
     };
-  }, [gl, camera, scene, setIsVrPresenting, setNavigationMode, setSeatPosition]);
+  }, [gl, camera, scene, setIsVrPresenting, setNavigationMode, setSeatPosition, syncRigTransform]);
 
   // 3. Update rig position and reset sitting height to 1.2m whenever seatPosition changes
   useEffect(() => {
     if (isVrPresenting) {
       resetVerticalSittingHeight();
     }
-  }, [seatPosition, isVrPresenting]);
+  }, [seatPosition, isVrPresenting, resetVerticalSittingHeight]);
 
   // 4. Recenter VR view (and reset 1.2m sitting height) when vrRecenterCount increments
   useEffect(() => {
     if (isVrPresenting && vrRecenterCount > 0) {
       calibrateHeadPose();
     }
-  }, [vrRecenterCount, isVrPresenting]);
+  }, [vrRecenterCount, isVrPresenting, calibrateHeadPose]);
 
   // 5. Build In-VR 3D Telemetry HUD Canvas & Texture
   const { hudCanvas, hudTexture } = useMemo(() => {

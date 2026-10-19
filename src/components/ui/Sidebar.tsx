@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   Layers,
   Monitor,
@@ -100,7 +100,7 @@ export const Sidebar: React.FC = () => {
   const glbInputRef = useRef<HTMLInputElement>(null);
 
   // Enumerate video capture devices
-  const refreshDevices = async () => {
+  const refreshDevices = useCallback(async () => {
     try {
       if (navigator.mediaDevices && navigator.mediaDevices.enumerateDevices) {
         const devices = await navigator.mediaDevices.enumerateDevices();
@@ -113,11 +113,12 @@ export const Sidebar: React.FC = () => {
     } catch (err) {
       console.warn('Unable to enumerate video devices:', err);
     }
-  };
+  }, [selectedVideoDeviceId, setSelectedVideoDeviceId]);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- syncing with an external system: the device list comes from an async browser API, not from render inputs
     refreshDevices();
-  }, [selectedVideoDeviceId, setSelectedVideoDeviceId]);
+  }, [refreshDevices]);
 
   // Handle PDF / Image file upload
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
