@@ -1,248 +1,151 @@
-import React, { useMemo } from 'react';
+import React, { useEffect, useMemo } from 'react';
 import * as THREE from 'three';
+import { ThreeEvent, useThree } from '@react-three/fiber';
+import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js';
 import { useStageStore } from '../../store/useStageStore';
-import { ThreeEvent } from '@react-three/fiber';
+import { computeSeatingLayout, SeatPlacement } from '../../utils/seatingLayout';
+import {
+  CEILING_HEIGHT,
+  computeRoomBounds,
+  computeStairs,
+  computeWalls,
+  FRONT_ROW_Z,
+  REAR_AISLE,
+} from './venue/roomLayout';
+import { createVenueTextures, disposeVenueTextures } from './venue/venueTextures';
+import { RoomShell } from './venue/RoomShell';
+import { StageDeck } from './venue/StageDeck';
+import { ConferenceSeating } from './venue/ConferenceSeating';
+
+/** Clearance kept between the stairs and the nearest chair. */
+const STAIR_CLEARANCE = 0.5;
 
 export const DemoBallroom: React.FC = () => {
+  const gl = useThree((s) => s.gl);
   const venueWidth = useStageStore((s) => s.venueWidth);
   const venueLength = useStageStore((s) => s.venueLength);
   const stageHeight = useStageStore((s) => s.stageHeight);
-  const navigationMode = useStageStore((s) => s.navigationMode);
+  const houseLightsIntensity = useStageStore((s) => s.houseLightsIntensity);
+  const showCeilingFixtures = useStageStore((s) => s.showCeilingFixtures);
   const setSeatPosition = useStageStore((s) => s.setSeatPosition);
   const setNavigationMode = useStageStore((s) => s.setNavigationMode);
 
-  // Instanced seating layout: generate transform matrices for chairs across 3 zones
-  const { chairTransforms, chairCount } = useMemo(() => {
-    const transforms: THREE.Matrix4[] = [];
-    const dummy = new THREE.Object3D();
+  const room = useMemo(() => computeRoomBounds(venueWidth, venueLength), [venueWidth, venueLength]);
+  const stairs = useMemo(() => computeStairs(stageHeight), [stageHeight]);
 
-    const zones = [
-      // Front zone
-      [-8.0, -6.8, -5.6],
-      // Mid zone
-      [0.0, 1.4, 2.8, 4.2],
-      // Rear zone
-      [10.0, 11.4, 12.8, 14.2],
-    ];
+  // Theatre-style conference seating, kept clear of the stage stairs
+  const layout = useMemo(
+    () =>
+      computeSeatingLayout({
+        roomMinX: room.minX,
+        roomMaxX: room.maxX,
+        frontRowZ: FRONT_ROW_Z,
+        lastRowLimitZ: room.backZ - REAR_AISLE - 0.3,
+        keepOut: stairs.map((f) => ({
+          minX: f.x - f.width / 2 - STAIR_CLEARANCE,
+          maxX: f.x + f.width / 2 + STAIR_CLEARANCE,
+          minZ: -Infinity,
+          maxZ: f.bottomZ + STAIR_CLEARANCE,
+        })),
+      }),
+    [room, stairs],
+  );
+  const walls = useMemo(() => computeWalls(room, layout.crossAisleZ, layout.rowZ), [room, layout]);
 
-    // Chair spacing: 0.7m seat width, center aisle 2.0m wide (from -1.0 to 1.0)
-    const leftSeatCols = [-7.0, -6.3, -5.6, -4.9, -4.2, -3.5, -2.8, -2.1, -1.4];
-    const rightSeatCols = [1.4, 2.1, 2.8, 3.5, 4.2, 4.9, 5.6, 6.3, 7.0];
-    const allCols = [...leftSeatCols, ...rightSeatCols];
+  const textures = useMemo(() => createVenueTextures(), []);
+  useEffect(() => () => disposeVenueTextures(textures), [textures]);
 
-    zones.forEach((rowZList) => {
-      rowZList.forEach((z) => {
-        allCols.forEach((x) => {
-          dummy.position.set(x, 0, z);
-          dummy.rotation.set(0, 0, 0); // Face stage (-Z)
-          dummy.scale.set(1, 1, 1);
-          dummy.updateMatrix();
-          transforms.push(dummy.matrix.clone());
-        });
-      });
-    });
+  // A procedural studio environment for reflections on chrome and steel only.
+  // Without one, metallic materials render nearly black.
+  const envTarget = useMemo(() => {
+    const pmrem = new THREE.PMREMGenerator(gl);
+    const scene = new RoomEnvironment();
+    const target = pmrem.fromScene(scene, 0.04);
+    scene.dispose();
+    pmrem.dispose();
+    return target;
+  }, [gl]);
+  useEffect(() => () => envTarget.dispose(), [envTarget]);
 
-    return { chairTransforms: transforms, chairCount: transforms.length };
-  }, []);
+  // House lights run 0.1–2.2; normalize for the practical fixtures in the room
+  const houseLevel = THREE.MathUtils.clamp(houseLightsIntensity / 1.8, 0, 1);
 
-  // Chair parts, each rendered as its own instanced draw call
-  const chairGeometry = useMemo(() => {
-    // Single chair model: seat base + backrest + central pedestal leg
-    const seatGeo = new THREE.BoxGeometry(0.52, 0.08, 0.48);
-    seatGeo.translate(0, 0.42, 0);
-
-    const backGeo = new THREE.BoxGeometry(0.50, 0.48, 0.06);
-    backGeo.translate(0, 0.70, 0.22);
-
-    const legsGeo = new THREE.CylinderGeometry(0.018, 0.015, 0.40, 8);
-    legsGeo.translate(0, 0.20, 0);
-
-    return { seatGeo, backGeo, legsGeo };
-  }, []);
-
-  // Floor click handler: click-to-sit
-  const handleFloorClick = (e: ThreeEvent<PointerEvent>) => {
-    if (navigationMode === 'seated' || e.shiftKey) {
-      e.stopPropagation();
-      const point = e.point;
-      // Clamp to venue boundaries
-      const clampedX = Math.max(-venueWidth / 2 + 1, Math.min(venueWidth / 2 - 1, point.x));
-      const clampedZ = Math.max(-venueLength / 2 + 1, Math.min(venueLength / 2 - 1, point.z));
-      setSeatPosition([clampedX, 0, clampedZ]);
-      if (navigationMode !== 'seated') {
-        setNavigationMode('seated');
-      }
+  const sitAt = (x: number, z: number) => {
+    const clampedX = THREE.MathUtils.clamp(x, room.minX + 1, room.maxX - 1);
+    const clampedZ = THREE.MathUtils.clamp(z, room.frontZ + 1, room.backZ - 1);
+    setSeatPosition([clampedX, 0, clampedZ]);
+    if (useStageStore.getState().navigationMode !== 'seated') {
+      setNavigationMode('seated');
     }
   };
 
-  // Keep the square floor grid inside the venue footprint, with 1m cells
-  const floorGridSize = Math.max(1, Math.round(Math.min(venueWidth, venueLength)));
+  // Floor click handler: click-to-sit
+  const handleFloorClick = (e: ThreeEvent<PointerEvent>) => {
+    if (useStageStore.getState().navigationMode === 'seated' || e.shiftKey) {
+      e.stopPropagation();
+      sitAt(e.point.x, e.point.z);
+    }
+  };
 
-  // Stage dimensions: 18m wide, 5m deep, centered at z = -12.5m (front edge at z = -10m)
-  const stageWidth = 18.0;
-  const stageDepth = 5.0;
-  const stageCenterZ = -12.5;
+  // Clicking a chair sits in exactly that chair
+  const handleSeatPick = (seat: SeatPlacement, e: ThreeEvent<PointerEvent>) => {
+    if (useStageStore.getState().navigationMode === 'seated' || e.shiftKey) {
+      e.stopPropagation();
+      sitAt(seat.x, seat.z);
+    }
+  };
 
-  const showCeilingFixtures = useStageStore((s) => s.showCeilingFixtures);
+  const trussLength = room.width - 2;
 
   return (
     <group>
-      {/* ================= Venue Floor Plane ================= */}
-      <mesh
-        rotation={[-Math.PI / 2, 0, 0]}
-        position={[0, 0, 0]}
-        receiveShadow
-        onPointerDown={handleFloorClick}
-      >
-        <planeGeometry args={[venueWidth, venueLength]} />
-        <meshStandardMaterial
-          color="#161c28"
-          roughness={0.75}
-          metalness={0.2}
-        />
-      </mesh>
-
-      {/* 1m Grid Helper on Floor. gridHelper is always square, so size it to the
-          shorter venue axis — a grid sized to the longer one would float past the
-          side walls into empty space. */}
-      <gridHelper
-        args={[floorGridSize, floorGridSize, 0x06b6d4, 0x334155]}
-        position={[0, 0.005, 0]}
+      <RoomShell
+        room={room}
+        walls={walls}
+        textures={textures}
+        envMap={envTarget.texture}
+        houseLevel={houseLevel}
+        onFloorPointerDown={handleFloorClick}
       />
 
-      {/* Center Aisle Runway Accent Lines */}
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[-1.1, 0.01, 2]}>
-        <planeGeometry args={[0.04, 26]} />
-        <meshBasicMaterial color="#06b6d4" transparent opacity={0.4} />
-      </mesh>
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[1.1, 0.01, 2]}>
-        <planeGeometry args={[0.04, 26]} />
-        <meshBasicMaterial color="#06b6d4" transparent opacity={0.4} />
-      </mesh>
+      <StageDeck
+        stageHeight={stageHeight}
+        stairs={stairs}
+        room={room}
+        textures={textures}
+        envMap={envTarget.texture}
+      />
 
-      {/* ================= Raised Stage Deck ================= */}
-      <group position={[0, stageHeight / 2, stageCenterZ]}>
-        {/* Stage Deck Box */}
-        <mesh receiveShadow castShadow>
-          <boxGeometry args={[stageWidth, stageHeight, stageDepth]} />
-          <meshStandardMaterial
-            color="#181e2b"
-            roughness={0.4}
-            metalness={0.25}
-          />
-        </mesh>
+      <ConferenceSeating
+        seats={layout.seats}
+        textures={textures}
+        envMap={envTarget.texture}
+        onSeatPick={handleSeatPick}
+      />
 
-        {/* Stage Front Lip Accent Glow */}
-        <mesh position={[0, stageHeight / 2 - 0.02, stageDepth / 2 + 0.01]}>
-          <boxGeometry args={[stageWidth, 0.04, 0.02]} />
-          <meshBasicMaterial color="#06b6d4" />
-        </mesh>
-
-        {/* Stage Deck Top Surface Border Trim */}
-        <mesh position={[0, stageHeight / 2 + 0.005, 0]} rotation={[-Math.PI / 2, 0, 0]}>
-          <planeGeometry args={[stageWidth - 0.2, stageDepth - 0.2]} />
-          <meshStandardMaterial
-            color="#212838"
-            roughness={0.35}
-            metalness={0.15}
-          />
-        </mesh>
-      </group>
-
-      {/* Stage Access Steps (Left and Right) */}
-      {[-stageWidth / 2 - 0.6, stageWidth / 2 + 0.6].map((stepX, idx) => (
-        <group key={idx} position={[stepX, 0, stageCenterZ + 1.0]}>
-          <mesh position={[0, stageHeight * 0.33 / 2, 0]}>
-            <boxGeometry args={[1.0, stageHeight * 0.33, 1.2]} />
-            <meshStandardMaterial color="#1e293b" />
-          </mesh>
-          <mesh position={[0, stageHeight * 0.66 / 2, -0.4]}>
-            <boxGeometry args={[1.0, stageHeight * 0.66, 1.2]} />
-            <meshStandardMaterial color="#1e293b" />
-          </mesh>
-        </group>
-      ))}
-
-      {/* ================= Instanced Seating Blocks ================= */}
-      {/* Seat Cushions */}
-      <instancedMesh
-        args={[chairGeometry.seatGeo, undefined, chairCount]}
-        receiveShadow
-        castShadow
-        onPointerDown={handleFloorClick}
-        ref={(inst) => {
-          if (inst) {
-            chairTransforms.forEach((matrix, i) => inst.setMatrixAt(i, matrix));
-            inst.instanceMatrix.needsUpdate = true;
-          }
-        }}
-      >
-        <meshStandardMaterial color="#2c374d" roughness={0.65} metalness={0.1} />
-      </instancedMesh>
-
-      {/* Seat Backrests */}
-      <instancedMesh
-        args={[chairGeometry.backGeo, undefined, chairCount]}
-        receiveShadow
-        castShadow
-        onPointerDown={handleFloorClick}
-        ref={(inst) => {
-          if (inst) {
-            chairTransforms.forEach((matrix, i) => inst.setMatrixAt(i, matrix));
-            inst.instanceMatrix.needsUpdate = true;
-          }
-        }}
-      >
-        <meshStandardMaterial color="#3a4863" roughness={0.55} metalness={0.1} />
-      </instancedMesh>
-
-      {/* Seat Pedestal Legs — part of the seated-height occlusion profile */}
-      <instancedMesh
-        args={[chairGeometry.legsGeo, undefined, chairCount]}
-        receiveShadow
-        castShadow
-        onPointerDown={handleFloorClick}
-        ref={(inst) => {
-          if (inst) {
-            chairTransforms.forEach((matrix, i) => inst.setMatrixAt(i, matrix));
-            inst.instanceMatrix.needsUpdate = true;
-          }
-        }}
-      >
-        <meshStandardMaterial color="#242c3c" roughness={0.45} metalness={0.5} />
-      </instancedMesh>
-
-      {/* Zone Floor Label Indicators */}
-      <group position={[0, 0.02, 0]}>
-        <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0, -8]}>
-          <planeGeometry args={[1.8, 0.6]} />
-          <meshBasicMaterial color="#06b6d4" transparent opacity={0.25} />
-        </mesh>
-        <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0, 2]}>
-          <planeGeometry args={[1.8, 0.6]} />
-          <meshBasicMaterial color="#38bdf8" transparent opacity={0.25} />
-        </mesh>
-        <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0, 12]}>
-          <planeGeometry args={[1.8, 0.6]} />
-          <meshBasicMaterial color="#f59e0b" transparent opacity={0.25} />
-        </mesh>
-      </group>
-
-      {/* ================= Overhead Ceiling Lighting Rig & Fixtures ================= */}
+      {/* ================= Overhead Lighting Truss & Fixtures ================= */}
       {showCeilingFixtures && (
         <group position={[0, 8.5, 0]}>
           {[-8, 2, 11].map((trussZ, tIdx) => (
             <group key={tIdx} position={[0, 0, trussZ]}>
               {/* Main cross pipe */}
               <mesh position={[0, 0, 0]} rotation={[0, 0, Math.PI / 2]}>
-                <cylinderGeometry args={[0.06, 0.06, venueWidth - 2, 12]} />
-                <meshStandardMaterial color="#1f293d" roughness={0.5} metalness={0.7} />
+                <cylinderGeometry args={[0.06, 0.06, trussLength, 12]} />
+                <meshStandardMaterial color="#1f293d" roughness={0.5} metalness={0.7} envMap={envTarget.texture} envMapIntensity={0.4} />
               </mesh>
               {/* Secondary parallel pipe */}
               <mesh position={[0, 0.35, 0]} rotation={[0, 0, Math.PI / 2]}>
-                <cylinderGeometry args={[0.04, 0.04, venueWidth - 2, 12]} />
-                <meshStandardMaterial color="#1f293d" roughness={0.5} metalness={0.7} />
+                <cylinderGeometry args={[0.04, 0.04, trussLength, 12]} />
+                <meshStandardMaterial color="#1f293d" roughness={0.5} metalness={0.7} envMap={envTarget.texture} envMapIntensity={0.4} />
               </mesh>
+
+              {/* Rigging cables up to the ceiling */}
+              {[-trussLength / 2 + 0.5, 0, trussLength / 2 - 0.5].map((cableX) => (
+                <mesh key={cableX} position={[cableX, (CEILING_HEIGHT - 8.5) / 2, 0]}>
+                  <cylinderGeometry args={[0.006, 0.006, CEILING_HEIGHT - 8.5, 4]} />
+                  <meshStandardMaterial color="#8a9099" metalness={0.8} roughness={0.4} />
+                </mesh>
+              ))}
 
               {/* Downlight Can Fixtures spaced across truss */}
               {[-6, -3, 0, 3, 6].map((canX, cIdx) => (
@@ -250,10 +153,10 @@ export const DemoBallroom: React.FC = () => {
                   {/* Fixture Body */}
                   <mesh>
                     <cylinderGeometry args={[0.16, 0.22, 0.28, 16]} />
-                    <meshStandardMaterial color="#0f172a" roughness={0.3} metalness={0.8} />
+                    <meshStandardMaterial color="#0f172a" roughness={0.3} metalness={0.8} envMap={envTarget.texture} envMapIntensity={0.4} />
                   </mesh>
                   {/* Glowing Lens Face */}
-                  <mesh position={[0, -0.141, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+                  <mesh position={[0, -0.141, 0]} rotation={[Math.PI / 2, 0, 0]}>
                     <circleGeometry args={[0.18, 16]} />
                     <meshBasicMaterial color="#f8fafc" />
                   </mesh>

@@ -66,7 +66,7 @@ Store actions do the work that has to happen whenever a value changes. For examp
 
 | Component | Responsibility |
 | --- | --- |
-| [`DemoBallroom`](../src/components/canvas/DemoBallroom.tsx) | Procedural room: floor, walls, the 18m × 5m stage deck, instanced chairs and optional ceiling fixtures. Clicking the floor picks a seat. |
+| [`DemoBallroom`](../src/components/canvas/DemoBallroom.tsx) | Procedural conference ballroom, built from the parts in [`venue/`](../src/components/canvas/venue): carpeted floor, paneled walls with doors and exit signs, a tiled ceiling, the skirted 18m × 5m stage with stairs and drape, theatre-style banquet seating ([`seatingLayout`](../src/utils/seatingLayout.ts)) and optional ceiling trusses. Textures are painted on canvases at startup, so there are no image assets. Clicking the floor picks a spot; clicking a chair sits in it. |
 | [`CustomGlbVenue`](../src/components/canvas/CustomGlbVenue.tsx) | Loads the uploaded model with `GLTFLoader` inside an error boundary. If loading fails, the app falls back to the ballroom and releases the blob. Handles click-to-sit and click-to-bind for the screen mesh. |
 | [`ScreenSurface`](../src/components/canvas/ScreenSurface.tsx) | The screen: bezel, unlit display plane and underglow. Builds the texture for the active content source and attaches the translate gizmo. |
 | [`PresenterSilhouette`](../src/components/canvas/PresenterSilhouette.tsx) | Occlusion props: standing presenter, lectern and four-person seated panel. |
