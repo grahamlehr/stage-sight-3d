@@ -25,3 +25,9 @@ dist-ssr
 
 # Local test decks — large binaries that the app never loads
 StageSightTest.pptx
+
+# --- repo kit additions ---
+.env*
+!.env.example
+.ua
+.claude/settings.local.json
