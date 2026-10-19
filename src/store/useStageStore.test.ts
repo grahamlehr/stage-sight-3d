@@ -2,16 +2,16 @@ import { describe, expect, it } from 'vitest';
 import { useStageStore } from './useStageStore';
 import { STAGE } from '../components/canvas/venue/roomLayout';
 
-// Rough floor footprints (half-widths, meters) of the props in PresenterSilhouette,
-// including their contact shadows
-const PRESENTER_RADIUS = 0.4;
-const LECTERN_HALF = { x: 0.43, z: 0.35 };
+// Floor footprints (half-widths, meters) of the props in PresenterSilhouette,
+// taken from their contact shadows, which are wider than the props themselves
+const PRESENTER_HALF = { x: 0.42, z: 0.38 };
+const LECTERN_HALF = { x: 0.5, z: 0.42 };
 const PANEL_SEAT_XS = [-2.6, -0.9, 0.9, 2.6];
 const PANEL_SEAT_RADIUS = 0.5;
 /** The panelists' feet reach this far in front of the chair centers. */
 const PANEL_FRONT_REACH = 0.6;
 /** Clearance kept between any prop and the deck's front edge. */
-const FRONT_EDGE_MARGIN = 0.4;
+const FRONT_EDGE_MARGIN = 0.35;
 
 interface Footprint {
   minX: number;
@@ -33,7 +33,7 @@ const overlaps = (a: Footprint, b: Footprint) =>
 const defaultFootprints = () => {
   const { screenPosition, presenterOffset, lecternOffset, panelOffset } = useStageStore.getState();
   const [sx, , sz] = screenPosition;
-  const presenter = around(sx + presenterOffset[0], sz + presenterOffset[1], PRESENTER_RADIUS, PRESENTER_RADIUS);
+  const presenter = around(sx + presenterOffset[0], sz + presenterOffset[1], PRESENTER_HALF.x, PRESENTER_HALF.z);
   const lectern = around(sx + lecternOffset[0], sz + lecternOffset[1], LECTERN_HALF.x, LECTERN_HALF.z);
   const seats = PANEL_SEAT_XS.map((x) =>
     around(sx + panelOffset[0] + x, sz + panelOffset[1], PANEL_SEAT_RADIUS, PANEL_SEAT_RADIUS, PANEL_FRONT_REACH)

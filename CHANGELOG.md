@@ -29,7 +29,7 @@ No release has been tagged yet. `main` deploys continuously to GitHub Pages, and
 
 ### Fixed
 
-- **Prop offsets.** The presenter and lectern now default to 4m either side of center and the panel to 1m in front of the screen, so turning the panel on no longer puts its outer chairs inside the presenter and lectern. All three props sit at least 0.4m back from the deck's front edge; the lectern used to stand on the lip and the panel hung 0.2m past it (2026-10-19).
+- **Prop offsets.** The presenter and lectern now default to 4m either side of center and the panel to 1m in front of the screen, so turning the panel on no longer puts its outer chairs inside the presenter and lectern. All three props, contact shadows included, sit at least 0.35m back from the deck's front edge; the lectern used to stand on the lip and the panel hung 0.2m past it (2026-10-19).
 - **Lectern orientation.** The lectern's front panel now faces the audience. It used to face the screen (2026-10-19).
 - **Gizmo.** Dragging the screen no longer collapses it to the room origin, because the transform gizmo now drives the screen group (2026-10-19).
 - **Mesh binding.** Bound screens are measured in world space, so centimeter-authored models no longer produce 800m-wide screens (2026-10-19).
