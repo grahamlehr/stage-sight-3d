@@ -89,6 +89,8 @@ export interface StageState {
   screenPosition: [number, number, number];
   screenRotation: [number, number, number];
   showTransformGizmo: boolean;
+  /** True while a gizmo handle is held, so camera navigation stands down. */
+  isTransformDragging: boolean;
 
   // Content Source & UV Crop State
   sourceType: SourceType;
@@ -148,6 +150,7 @@ export interface StageState {
   setScreenPosition: (pos: [number, number, number]) => void;
   setScreenRotation: (rot: [number, number, number]) => void;
   setShowTransformGizmo: (show: boolean) => void;
+  setIsTransformDragging: (dragging: boolean) => void;
 
   setSourceType: (type: SourceType) => void;
   setSlides: (slides: HTMLCanvasElement[]) => void;
@@ -205,6 +208,7 @@ export const useStageStore = create<StageState>((set, get) => ({
   screenPosition: [0, 3.4, -12],
   screenRotation: [0, 0, 0],
   showTransformGizmo: false,
+  isTransformDragging: false,
 
   // Content Source Defaults
   sourceType: 'test-pattern',
@@ -323,6 +327,7 @@ export const useStageStore = create<StageState>((set, get) => ({
   setScreenPosition: (screenPosition) => set({ screenPosition }),
   setScreenRotation: (screenRotation) => set({ screenRotation }),
   setShowTransformGizmo: (showTransformGizmo) => set({ showTransformGizmo }),
+  setIsTransformDragging: (isTransformDragging) => set({ isTransformDragging }),
 
   setSourceType: (sourceType) => set({ sourceType }),
   setSlides: (slides) => set({ slides, currentSlideIndex: 0 }),

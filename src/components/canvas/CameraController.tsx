@@ -38,6 +38,12 @@ export const CameraController: React.FC = () => {
 
   // 2. Seated Mode Position & Aiming (Flat desktop mode)
   useEffect(() => {
+    // A gizmo drag updates screenPosition on every move. Leave the camera alone
+    // then: re-aiming would swing the seated view under the cursor, and
+    // re-enabling orbit would undo drei disabling it for the drag. Read from the
+    // store rather than subscribed, so releasing the gizmo doesn't snap the view.
+    if (useStageStore.getState().isTransformDragging) return;
+
     if (isVrPresenting) {
       if (orbitRef.current) {
         orbitRef.current.enabled = false;
@@ -86,6 +92,13 @@ export const CameraController: React.FC = () => {
 
     const handlePointerMove = (e: PointerEvent) => {
       if (!isDraggingRef.current) return;
+      // The same press that grabbed a gizmo handle also lands here; let the
+      // gizmo have it. Checked on move because the gizmo's own pointerdown
+      // listener may run after ours.
+      if (useStageStore.getState().isTransformDragging) {
+        prevPointerRef.current = { x: e.clientX, y: e.clientY };
+        return;
+      }
       const deltaX = e.clientX - prevPointerRef.current.x;
       const deltaY = e.clientY - prevPointerRef.current.y;
       prevPointerRef.current = { x: e.clientX, y: e.clientY };

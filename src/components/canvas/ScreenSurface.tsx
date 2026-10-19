@@ -41,6 +41,13 @@ export const ScreenSurface: React.FC = () => {
   const screenRotation = useStageStore((s) => s.screenRotation);
   const showTransformGizmo = useStageStore((s) => s.showTransformGizmo);
   const setScreenPosition = useStageStore((s) => s.setScreenPosition);
+  const setIsTransformDragging = useStageStore((s) => s.setIsTransformDragging);
+
+  // Hiding the gizmo mid-drag unmounts it before its mouseUp fires; clear the flag
+  // so camera navigation isn't left switched off.
+  useEffect(() => {
+    if (!showTransformGizmo) setIsTransformDragging(false);
+  }, [showTransformGizmo, setIsTransformDragging]);
 
   const sourceType = useStageStore((s) => s.sourceType);
   const slides = useStageStore((s) => s.slides);
@@ -202,6 +209,12 @@ export const ScreenSurface: React.FC = () => {
         <TransformControls
           object={screenGroup}
           mode="translate"
+          // Flag the drag so CameraController keeps the camera still. drei only
+          // disables the default OrbitControls once, at drag start; this flag is
+          // what stops CameraController re-enabling them (or re-aiming the seated
+          // camera) as each move updates screenPosition.
+          onMouseDown={() => setIsTransformDragging(true)}
+          onMouseUp={() => setIsTransformDragging(false)}
           onObjectChange={() => {
             // mode="translate" never alters rotation, so screenRotation is left alone
             const { x, y, z } = screenGroup.position;
