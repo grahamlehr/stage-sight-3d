@@ -30,7 +30,9 @@ const applyVideoCrop = (texture: THREE.Texture, videoEl: HTMLVideoElement) => {
 
 export const ScreenSurface: React.FC = () => {
   const { gl } = useThree();
-  const screenGroupRef = useRef<THREE.Group>(null);
+  // Held in state (via a callback ref) rather than a plain ref so the gizmo below
+  // re-renders once the group exists — a ref read during render is not reactive.
+  const [screenGroup, setScreenGroup] = useState<THREE.Group | null>(null);
 
   // Store state
   const screenWidth = useStageStore((s) => s.screenWidth);
@@ -109,6 +111,7 @@ export const ScreenSurface: React.FC = () => {
       newTexture = canvasTex;
     }
 
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- the texture owns GPU memory, so it is created and disposed with this effect's lifecycle rather than derived during render
     setActiveTexture((prevTexture) => {
       if (prevTexture) {
         prevTexture.dispose(); // Explicit VRAM leak prevention
@@ -158,7 +161,7 @@ export const ScreenSurface: React.FC = () => {
 
   return (
     <>
-      <group ref={screenGroupRef} position={screenPosition} rotation={screenRotation}>
+      <group ref={setScreenGroup} position={screenPosition} rotation={screenRotation}>
         {/* LED Screen Frame Bezel / Backing */}
         <mesh position={[0, 0, -0.06]}>
           <boxGeometry args={[screenWidth + 0.16, screenHeight + 0.16, 0.10]} />
@@ -195,16 +198,14 @@ export const ScreenSurface: React.FC = () => {
           screenPosition — which the rest of the app reads as world — collapsing the
           screen to the room origin on the first drag and leaving the bezel behind.
           The group sits at the scene root, so its local transform IS world. */}
-      {showTransformGizmo && screenGroupRef.current && (
+      {showTransformGizmo && screenGroup && (
         <TransformControls
-          object={screenGroupRef.current}
+          object={screenGroup}
           mode="translate"
           onObjectChange={() => {
-            const group = screenGroupRef.current;
-            if (group) {
-              // mode="translate" never alters rotation, so screenRotation is left alone
-              setScreenPosition([group.position.x, group.position.y, group.position.z]);
-            }
+            // mode="translate" never alters rotation, so screenRotation is left alone
+            const { x, y, z } = screenGroup.position;
+            setScreenPosition([x, y, z]);
           }}
         />
       )}
