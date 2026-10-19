@@ -48,7 +48,7 @@ All app state lives in [`src/store/useStageStore.ts`](../src/store/useStageStore
 | Content | Source type, rasterized slide canvases, current slide, the live `MediaStream`, and the UV crop mode and its manual values |
 | Camera | Orbit or seated navigation, seat position and FOV mode |
 | VR | Support and presenting flags, HUD visibility, a recenter counter, and the session toggle function |
-| Occlusion | Visibility and stage offsets for the presenter, lectern and panel |
+| Occlusion | Visibility and stage offsets for the presenter, lectern and panel. Offsets are `[x, z]` from the screen center, z toward the audience. The defaults (presenter `[-4, 1.2]`, lectern `[4, 1.2]`, panel `[0, 1]`) don't overlap with all three shown and stay back from the deck's front edge, which is 2m in front of the default screen. |
 | Telemetry | The latest `DiscasTelemetry` result |
 | UI | Active sidebar tab and whether the sidebar is open |
 

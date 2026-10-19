@@ -228,14 +228,17 @@ export const useStageStore = create<StageState>((set, get) => ({
   vrRecenterCount: 0,
   toggleVrSession: null,
 
-  // Stage Occlusion Defaults
+  // Stage Occlusion Defaults. The screen sits 2m behind the deck's front edge,
+  // so z offsets stay at or under 1.2m to keep the props off the lip. The
+  // presenter and lectern stand at x = ±4, clear of the panel's outer chairs
+  // (x = ±2.6, about 0.5m radius), so all three can be shown together.
   showPresenterSilhouette: true,
   showPresenter: true,
-  presenterOffset: [-2.5, 2.0],
+  presenterOffset: [-4.0, 1.2],
   showLectern: true,
-  lecternOffset: [2.5, 2.0],
+  lecternOffset: [4.0, 1.2],
   showPanel: false,
-  panelOffset: [0.0, 2.2],
+  panelOffset: [0.0, 1.0],
 
   // Live Telemetry Defaults
   telemetry: {

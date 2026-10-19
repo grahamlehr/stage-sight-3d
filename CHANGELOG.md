@@ -28,6 +28,7 @@ No release has been tagged yet. `main` deploys continuously to GitHub Pages, and
 
 ### Fixed
 
+- **Prop offsets.** The presenter and lectern now default to 4m either side of center and the panel to 1m in front of the screen, so turning the panel on no longer puts its outer chairs inside the presenter and lectern. All three props sit at least 0.4m back from the deck's front edge; the lectern used to stand on the lip and the panel hung 0.2m past it (2026-10-19).
 - **Gizmo.** Dragging the screen no longer collapses it to the room origin, because the transform gizmo now drives the screen group (2026-10-19).
 - **Mesh binding.** Bound screens are measured in world space, so centimeter-authored models no longer produce 800m-wide screens (2026-10-19).
 - **Portrait PDFs.** Pages are fitted to 4096px on their longest edge instead of their width, which fixes oversized textures and memory exhaustion. Pages that fail to render now raise an error instead of being dropped (2026-10-19).
