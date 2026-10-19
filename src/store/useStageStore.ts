@@ -251,7 +251,16 @@ export const useStageStore = create<StageState>((set, get) => ({
 
   // Actions
   setVenueSource: (venueSource) => set({ venueSource }),
-  setCustomGlbUrl: (customGlbUrl) => set({ customGlbUrl }),
+  setCustomGlbUrl: (customGlbUrl) => {
+    // Single choke point for the uploaded venue blob: release the URL we are
+    // replacing, otherwise every upload pins its whole file (often 10s–100s of
+    // MB) in memory for the lifetime of the page.
+    const previous = get().customGlbUrl;
+    if (previous && previous !== customGlbUrl && previous.startsWith('blob:')) {
+      URL.revokeObjectURL(previous);
+    }
+    set({ customGlbUrl });
+  },
   setStageHeight: (stageHeight) => set({ stageHeight }),
   setVenueDimensions: (venueWidth, venueLength) => set({ venueWidth, venueLength }),
   setHouseLightsIntensity: (houseLightsIntensity) => set({ houseLightsIntensity }),

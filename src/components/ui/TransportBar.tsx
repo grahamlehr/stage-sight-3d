@@ -1,6 +1,10 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useMemo } from 'react';
 import { ChevronLeft, ChevronRight, X } from 'lucide-react';
 import { useStageStore } from '../../store/useStageStore';
+
+// Thumbnails are rendered ~44px tall, so encode them small rather than
+// re-encoding full-resolution slide canvases.
+const THUMBNAIL_WIDTH = 160;
 
 export const TransportBar: React.FC = () => {
   const sourceType = useStageStore((s) => s.sourceType);
@@ -9,10 +13,34 @@ export const TransportBar: React.FC = () => {
   const currentSlideIndex = useStageStore((s) => s.currentSlideIndex);
   const setCurrentSlideIndex = useStageStore((s) => s.setCurrentSlideIndex);
 
+  // Encode the thumbnail strip once per deck. Doing this in the render body meant
+  // every re-render — including every slide advance — synchronously JPEG-encoded
+  // every slide canvas at full rasterization resolution.
+  const thumbnails = useMemo(
+    () =>
+      slides.map((canvas) => {
+        const aspect = `${canvas.width} / ${canvas.height}`;
+        const scale = THUMBNAIL_WIDTH / Math.max(1, canvas.width);
+        const thumb = document.createElement('canvas');
+        thumb.width = THUMBNAIL_WIDTH;
+        thumb.height = Math.max(1, Math.round(canvas.height * scale));
+        const ctx = thumb.getContext('2d');
+        if (!ctx) return { url: '', aspect };
+        ctx.drawImage(canvas, 0, 0, thumb.width, thumb.height);
+        return { url: thumb.toDataURL('image/jpeg', 0.6), aspect };
+      }),
+    [slides]
+  );
+
   // Keyboard navigation for Left / Right arrow keys
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (sourceType !== 'pdf' || slides.length === 0) return;
+
+      // Don't swallow typing or native range-slider keys from the sidebar's
+      // controls — these shortcuts are global and preventDefault here.
+      const tag = (e.target as HTMLElement | null)?.tagName;
+      if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
 
       if (e.key === 'ArrowRight' || e.key === 'PageDown' || e.key === ' ') {
         e.preventDefault();
@@ -66,7 +94,7 @@ export const TransportBar: React.FC = () => {
 
       {/* Horizontal Thumbnail Tray */}
       <div className="flex items-center gap-2 overflow-x-auto py-1 max-w-[60vw] scrollbar-thin">
-        {slides.map((canvas, index) => {
+        {thumbnails.map((thumb, index) => {
           const isSelected = index === currentSlideIndex;
           return (
             <button
@@ -78,13 +106,13 @@ export const TransportBar: React.FC = () => {
                   : 'border-zinc-800 opacity-60 hover:opacity-100 hover:border-zinc-600'
               }`}
               style={{
-                aspectRatio: `${canvas.width} / ${canvas.height}`,
+                aspectRatio: thumb.aspect,
               }}
               title={`Jump to Slide ${index + 1}`}
             >
               {/* Thumbnail snapshot */}
               <img
-                src={canvas.toDataURL('image/jpeg', 0.6)}
+                src={thumb.url}
                 alt={`Thumbnail ${index + 1}`}
                 className="w-full h-full object-cover"
               />

@@ -6,7 +6,17 @@ import { drawStageSightMark } from './testPatternGenerator';
 pdfjsLib.GlobalWorkerOptions.workerSrc = pdfWorkerUrl;
 
 /**
- * Rasterizes an uploaded PDF ArrayBuffer into an array of high-resolution 4096px wide HTML5 Canvases.
+ * Longest edge of a rasterized page, in pixels. Fitting the *longest* edge rather
+ * than the width keeps portrait pages from becoming 4096 x ~5300 — which both blows
+ * past the 4096px MAX_TEXTURE_SIZE of many GPUs (three.js then silently downscales
+ * the texture anyway) and costs ~87MB of canvas backing store per page, enough for a
+ * medium portrait deck to exhaust the tab.
+ */
+const MAX_PAGE_DIMENSION = 4096;
+
+/**
+ * Rasterizes an uploaded PDF ArrayBuffer into an array of high-resolution HTML5
+ * Canvases, each fitted to MAX_PAGE_DIMENSION on its longest edge.
  */
 export async function rasterizePdf(
   data: ArrayBuffer,
@@ -14,24 +24,34 @@ export async function rasterizePdf(
 ): Promise<HTMLCanvasElement[]> {
   const loadingTask = pdfjsLib.getDocument({ data });
   const pdfDoc = await loadingTask.promise;
-  const numPages = pdfDoc.numPages;
   const canvases: HTMLCanvasElement[] = [];
 
-  for (let pageNum = 1; pageNum <= numPages; pageNum++) {
-    const page = await pdfDoc.getPage(pageNum);
-    const unscaledViewport = page.getViewport({ scale: 1 });
+  try {
+    const numPages = pdfDoc.numPages;
 
-    // Scale to crisp 4096px width
-    const targetWidth = 4096;
-    const scale = targetWidth / unscaledViewport.width;
-    const viewport = page.getViewport({ scale });
+    for (let pageNum = 1; pageNum <= numPages; pageNum++) {
+      const page = await pdfDoc.getPage(pageNum);
+      const unscaledViewport = page.getViewport({ scale: 1 });
 
-    const canvas = document.createElement('canvas');
-    canvas.width = Math.round(viewport.width);
-    canvas.height = Math.round(viewport.height);
+      const scale =
+        MAX_PAGE_DIMENSION /
+        Math.max(1, unscaledViewport.width, unscaledViewport.height);
+      const viewport = page.getViewport({ scale });
 
-    const ctx = canvas.getContext('2d');
-    if (ctx) {
+      const canvas = document.createElement('canvas');
+      canvas.width = Math.max(1, Math.round(viewport.width));
+      canvas.height = Math.max(1, Math.round(viewport.height));
+
+      const ctx = canvas.getContext('2d');
+      if (!ctx) {
+        // Dropping the page here would hand back a deck that is quietly missing
+        // slides while progress still reported success, so fail loudly instead.
+        throw new Error(
+          `Could not allocate a 2D canvas for page ${pageNum} of ${numPages}. ` +
+            'The browser is likely out of memory — try a smaller PDF.'
+        );
+      }
+
       // White/clean background for PDF rendering
       ctx.fillStyle = '#ffffff';
       ctx.fillRect(0, 0, canvas.width, canvas.height);
@@ -42,40 +62,57 @@ export async function rasterizePdf(
         viewport,
       };
       await page.render(renderContext).promise;
+      page.cleanup();
       canvases.push(canvas);
-    }
 
-    if (onProgress) {
-      onProgress(pageNum, numPages);
+      if (onProgress) {
+        onProgress(pageNum, numPages);
+      }
     }
+  } finally {
+    // Releases the worker-side document plus its font/image/operator caches,
+    // which would otherwise stay alive for every PDF opened this session.
+    await pdfDoc.destroy();
   }
 
   return canvases;
 }
 
 /**
- * Rasterizes an image file (PNG/JPG) to a 4096px wide offscreen canvas.
+ * Rasterizes an image file (PNG/JPG) to an offscreen canvas fitted to
+ * MAX_PAGE_DIMENSION on its longest edge.
  */
 export async function rasterizeImageFile(file: File): Promise<HTMLCanvasElement> {
   return new Promise((resolve, reject) => {
     const img = new Image();
     const url = URL.createObjectURL(file);
-    img.onload = () => {
+
+    const done = (result: HTMLCanvasElement | Error) => {
       URL.revokeObjectURL(url);
-      const targetWidth = 4096;
-      const aspect = img.width / Math.max(1, img.height);
-      const targetHeight = Math.round(targetWidth / aspect);
+      if (result instanceof Error) reject(result);
+      else resolve(result);
+    };
+
+    img.onload = () => {
+      const srcW = Math.max(1, img.width);
+      const srcH = Math.max(1, img.height);
+      const scale = MAX_PAGE_DIMENSION / Math.max(srcW, srcH);
+      const targetWidth = Math.max(1, Math.round(srcW * scale));
+      const targetHeight = Math.max(1, Math.round(srcH * scale));
 
       const canvas = document.createElement('canvas');
       canvas.width = targetWidth;
       canvas.height = targetHeight;
       const ctx = canvas.getContext('2d');
-      if (ctx) {
-        ctx.drawImage(img, 0, 0, targetWidth, targetHeight);
+      if (!ctx) {
+        done(new Error('Could not allocate a 2D canvas for the uploaded image.'));
+        return;
       }
-      resolve(canvas);
+      ctx.drawImage(img, 0, 0, targetWidth, targetHeight);
+      done(canvas);
     };
-    img.onerror = (e) => reject(e);
+
+    img.onerror = () => done(new Error('Could not decode the uploaded image file.'));
     img.src = url;
   });
 }

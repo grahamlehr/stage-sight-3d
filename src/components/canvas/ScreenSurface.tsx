@@ -6,11 +6,31 @@ import { useStageStore } from '../../store/useStageStore';
 import { generateTestPatternCanvas } from '../../utils/testPatternGenerator';
 import { computeUvCrop } from '../../utils/uvCropMath';
 
+/**
+ * Applies the current crop settings to a live capture texture using the video's
+ * real dimensions. Reads the store directly so it stays correct when called from
+ * an event listener outside React's render cycle.
+ */
+const applyVideoCrop = (texture: THREE.Texture, videoEl: HTMLVideoElement) => {
+  const st = useStageStore.getState();
+  const crop = computeUvCrop({
+    cropMode: st.uvCropMode,
+    captureWidth: videoEl.videoWidth || 1920,
+    captureHeight: videoEl.videoHeight || 1080,
+    screenWidth: st.screenWidth,
+    screenHeight: st.screenHeight,
+    manualRepeatY: st.manualUvRepeatY,
+    manualOffsetY: st.manualUvOffsetY,
+  });
 
+  texture.repeat.set(crop.repeatX, crop.repeatY);
+  texture.offset.set(crop.offsetX, crop.offsetY);
+  texture.needsUpdate = true;
+};
 
 export const ScreenSurface: React.FC = () => {
   const { gl } = useThree();
-  const screenMeshRef = useRef<THREE.Mesh>(null);
+  const screenGroupRef = useRef<THREE.Group>(null);
 
   // Store state
   const screenWidth = useStageStore((s) => s.screenWidth);
@@ -19,7 +39,6 @@ export const ScreenSurface: React.FC = () => {
   const screenRotation = useStageStore((s) => s.screenRotation);
   const showTransformGizmo = useStageStore((s) => s.showTransformGizmo);
   const setScreenPosition = useStageStore((s) => s.setScreenPosition);
-  const setScreenRotation = useStageStore((s) => s.setScreenRotation);
 
   const sourceType = useStageStore((s) => s.sourceType);
   const slides = useStageStore((s) => s.slides);
@@ -37,6 +56,7 @@ export const ScreenSurface: React.FC = () => {
   useEffect(() => {
     let newTexture: THREE.Texture | null = null;
     let videoEl: HTMLVideoElement | null = null;
+    let onVideoMetadata: (() => void) | null = null;
 
     if ((sourceType === 'hdmi-capture' || sourceType === 'screen-share') && activeVideoStream) {
       // Create hidden video element
@@ -55,21 +75,18 @@ export const ScreenSurface: React.FC = () => {
       vidTexture.generateMipmaps = false;
       vidTexture.anisotropy = Math.min(16, gl.capabilities.getMaxAnisotropy());
 
-      // Apply initial UV crop
-      const videoWidth = videoEl.videoWidth || 1920;
-      const videoHeight = videoEl.videoHeight || 1080;
-      const crop = computeUvCrop({
-        cropMode: uvCropMode,
-        captureWidth: videoWidth,
-        captureHeight: videoHeight,
-        screenWidth,
-        screenHeight,
-        manualRepeatY: manualUvRepeatY,
-        manualOffsetY: manualUvOffsetY,
-      });
+      // Provisional crop from the 1920x1080 fallback: videoWidth/videoHeight are
+      // still 0 this early, so recompute once the real dimensions arrive. Without
+      // this a non-16:9 source (ultra-wide capture card, 32:9 screen share) stays
+      // cropped for the wrong aspect until the user nudges a crop setting.
+      applyVideoCrop(vidTexture, videoEl);
 
-      vidTexture.repeat.set(crop.repeatX, crop.repeatY);
-      vidTexture.offset.set(crop.offsetX, crop.offsetY);
+      const metadataTarget = videoEl;
+      onVideoMetadata = () => applyVideoCrop(vidTexture, metadataTarget);
+      // 'resize' also covers a screen share whose dimensions change mid-stream
+      videoEl.addEventListener('loadedmetadata', onVideoMetadata);
+      videoEl.addEventListener('resize', onVideoMetadata);
+
       newTexture = vidTexture;
     } else if (sourceType === 'pdf' && slides.length > 0 && slides[currentSlideIndex]) {
       const slideCanvas = slides[currentSlideIndex];
@@ -104,8 +121,15 @@ export const ScreenSurface: React.FC = () => {
         newTexture.dispose();
       }
       if (videoEl) {
+        if (onVideoMetadata) {
+          videoEl.removeEventListener('loadedmetadata', onVideoMetadata);
+          videoEl.removeEventListener('resize', onVideoMetadata);
+        }
         videoEl.pause();
         videoEl.srcObject = null;
+        if (videoElementRef.current === videoEl) {
+          videoElementRef.current = null;
+        }
       }
     };
   }, [
@@ -121,22 +145,7 @@ export const ScreenSurface: React.FC = () => {
   // 2. Reactive UV Cropping update for Video Texture
   useEffect(() => {
     if (activeTexture instanceof THREE.VideoTexture && videoElementRef.current) {
-      const vid = videoElementRef.current;
-      const vidW = vid.videoWidth || 1920;
-      const vidH = vid.videoHeight || 1080;
-      const crop = computeUvCrop({
-        cropMode: uvCropMode,
-        captureWidth: vidW,
-        captureHeight: vidH,
-        screenWidth,
-        screenHeight,
-        manualRepeatY: manualUvRepeatY,
-        manualOffsetY: manualUvOffsetY,
-      });
-
-      activeTexture.repeat.set(crop.repeatX, crop.repeatY);
-      activeTexture.offset.set(crop.offsetX, crop.offsetY);
-      activeTexture.needsUpdate = true;
+      applyVideoCrop(activeTexture, videoElementRef.current);
     }
   }, [
     activeTexture,
@@ -149,7 +158,7 @@ export const ScreenSurface: React.FC = () => {
 
   return (
     <>
-      <group position={screenPosition} rotation={screenRotation}>
+      <group ref={screenGroupRef} position={screenPosition} rotation={screenRotation}>
         {/* LED Screen Frame Bezel / Backing */}
         <mesh position={[0, 0, -0.06]}>
           <boxGeometry args={[screenWidth + 0.16, screenHeight + 0.16, 0.10]} />
@@ -157,7 +166,7 @@ export const ScreenSurface: React.FC = () => {
         </mesh>
 
         {/* LED Screen Display Surface (Unlit Emissive Projection) */}
-        <mesh ref={screenMeshRef} position={[0, 0, 0]}>
+        <mesh position={[0, 0, 0]}>
           <planeGeometry args={[screenWidth, screenHeight]} />
           {activeTexture ? (
             <meshBasicMaterial
@@ -179,17 +188,22 @@ export const ScreenSurface: React.FC = () => {
         />
       </group>
 
-      {/* TransformControls Gizmo */}
-      {showTransformGizmo && screenMeshRef.current && (
+      {/* TransformControls Gizmo. Attached to the screen GROUP, not the inner
+          display mesh: TransformControls writes parent-local coordinates, and the
+          mesh's parent-local origin is [0,0,0] while the group carries the world
+          position. Driving the mesh therefore wrote a local offset into
+          screenPosition — which the rest of the app reads as world — collapsing the
+          screen to the room origin on the first drag and leaving the bezel behind.
+          The group sits at the scene root, so its local transform IS world. */}
+      {showTransformGizmo && screenGroupRef.current && (
         <TransformControls
-          object={screenMeshRef.current}
+          object={screenGroupRef.current}
           mode="translate"
           onObjectChange={() => {
-            if (screenMeshRef.current) {
-              const pos = screenMeshRef.current.position;
-              const rot = screenMeshRef.current.rotation;
-              setScreenPosition([pos.x, pos.y, pos.z]);
-              setScreenRotation([rot.x, rot.y, rot.z]);
+            const group = screenGroupRef.current;
+            if (group) {
+              // mode="translate" never alters rotation, so screenRotation is left alone
+              setScreenPosition([group.position.x, group.position.y, group.position.z]);
             }
           }}
         />

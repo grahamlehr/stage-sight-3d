@@ -6,27 +6,34 @@ import { useStageStore } from '../../store/useStageStore';
 
 interface ErrorBoundaryProps {
   children: ReactNode;
-  fallback: (error: Error) => ReactNode;
+  fallback: ReactNode;
+  onError?: (error: Error) => void;
 }
 
 interface ErrorBoundaryState {
   hasError: boolean;
-  error: Error | null;
 }
 
 class GlbErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
   constructor(props: ErrorBoundaryProps) {
     super(props);
-    this.state = { hasError: false, error: null };
+    this.state = { hasError: false };
   }
 
-  static getDerivedStateFromError(error: Error): ErrorBoundaryState {
-    return { hasError: true, error };
+  static getDerivedStateFromError(): ErrorBoundaryState {
+    return { hasError: true };
+  }
+
+  // Side effects belong here, in the commit phase. Running them from render()
+  // dispatches a store update mid-render, which React warns about and which can
+  // re-enter indefinitely because hasError stays true.
+  componentDidCatch(error: Error) {
+    this.props.onError?.(error);
   }
 
   render() {
-    if (this.state.hasError && this.state.error) {
-      return this.props.fallback(this.state.error);
+    if (this.state.hasError) {
+      return this.props.fallback;
     }
     return this.props.children;
   }
@@ -44,6 +51,7 @@ const LoadedGlbModel: React.FC<LoadedGlbProps> = ({ url }) => {
   const setBoundMeshName = useStageStore((s) => s.setBoundMeshName);
   const setIsPickingMesh = useStageStore((s) => s.setIsPickingMesh);
   const setVenueSource = useStageStore((s) => s.setVenueSource);
+  const setCustomGlbUrl = useStageStore((s) => s.setCustomGlbUrl);
   const navigationMode = useStageStore((s) => s.navigationMode);
   const setSeatPosition = useStageStore((s) => s.setSeatPosition);
   const setNavigationMode = useStageStore((s) => s.setNavigationMode);
@@ -68,24 +76,24 @@ const LoadedGlbModel: React.FC<LoadedGlbProps> = ({ url }) => {
         console.error('Failed to parse custom GLB:', err);
         alert('Failed to load custom GLB file. Reverting to Default Ballroom.');
         setVenueSource('default-ballroom');
+        // Also releases the uploaded blob URL rather than leaking the whole file
+        setCustomGlbUrl(null);
       }
     );
-  }, [url, setVenueSource]);
+  }, [url, setVenueSource, setCustomGlbUrl]);
 
   const handleMeshClick = (e: ThreeEvent<PointerEvent>) => {
     e.stopPropagation();
     const mesh = e.object as THREE.Mesh;
 
     if (isPickingMesh && mesh.geometry) {
-      // Mesh Click-to-Bind mode: calculate bounding box to extract dimensions
-      mesh.geometry.computeBoundingBox();
-      const bbox = mesh.geometry.boundingBox;
-      if (bbox) {
-        const size = new THREE.Vector3();
-        bbox.getSize(size);
-        const center = new THREE.Vector3();
-        bbox.getCenter(center);
-        mesh.localToWorld(center);
+      // Mesh Click-to-Bind mode. Measure in WORLD space: a geometry-local box
+      // ignores the mesh's and its ancestors' scale, so a centimetre-authored GLB
+      // imported at 0.01 root scale would report an 800m-wide screen.
+      const bbox = new THREE.Box3().setFromObject(mesh);
+      if (!bbox.isEmpty()) {
+        const size = bbox.getSize(new THREE.Vector3());
+        const center = bbox.getCenter(new THREE.Vector3());
 
         // Extracted physical dimensions
         const computedWidth = Math.max(1, Math.round(Math.max(size.x, size.z) * 10) / 10);
@@ -122,15 +130,18 @@ const LoadedGlbModel: React.FC<LoadedGlbProps> = ({ url }) => {
 export const CustomGlbVenue: React.FC = () => {
   const customGlbUrl = useStageStore((s) => s.customGlbUrl);
   const setVenueSource = useStageStore((s) => s.setVenueSource);
+  const setCustomGlbUrl = useStageStore((s) => s.setCustomGlbUrl);
 
   if (!customGlbUrl) return null;
 
   return (
     <GlbErrorBoundary
-      fallback={(err) => {
+      fallback={null}
+      onError={(err) => {
         console.error('GLB Error caught:', err);
         setVenueSource('default-ballroom');
-        return null;
+        // Also releases the uploaded blob URL
+        setCustomGlbUrl(null);
       }}
     >
       <LoadedGlbModel url={customGlbUrl} />
