@@ -22,6 +22,7 @@ No release has been tagged yet. `main` deploys continuously to GitHub Pages, and
 
 ### Changed
 
+- **Occlusion props.** The presenter, panelists, lectern, tub chairs and side tables were rebuilt to look like real people and furniture at real scale. People have proportioned heads, necks, shoulders, hands and shoes, suits with shirts, lapels and ties, skin tones and hair, and seated poses with crossed legs and arms on armrests. The lectern is walnut with a sloped desk, notes and a gooseneck mic. Each person is three draw calls, and the full set is about a quarter of the old draw calls (2026-10-19).
 - **CI and deploy.** The deploy workflow moved from Node 20 (end of life) to Node 24, and the checkout and setup-node actions moved to v5 (2026-10-19).
 - **Test deck.** `StageSightTest.pptx`, `.DS_Store` and duplicate root logo files are no longer tracked (2026-10-19).
 - **Guides removed.** Title-safe, action-safe and 16:9 center-cut guides are gone from the test pattern (2026-10-15).
@@ -29,6 +30,7 @@ No release has been tagged yet. `main` deploys continuously to GitHub Pages, and
 ### Fixed
 
 - **Prop offsets.** The presenter and lectern now default to 4m either side of center and the panel to 1m in front of the screen, so turning the panel on no longer puts its outer chairs inside the presenter and lectern. All three props sit at least 0.4m back from the deck's front edge; the lectern used to stand on the lip and the panel hung 0.2m past it (2026-10-19).
+- **Lectern orientation.** The lectern's front panel now faces the audience. It used to face the screen (2026-10-19).
 - **Gizmo.** Dragging the screen no longer collapses it to the room origin, because the transform gizmo now drives the screen group (2026-10-19).
 - **Mesh binding.** Bound screens are measured in world space, so centimeter-authored models no longer produce 800m-wide screens (2026-10-19).
 - **Portrait PDFs.** Pages are fitted to 4096px on their longest edge instead of their width, which fixes oversized textures and memory exhaustion. Pages that fail to render now raise an error instead of being dropped (2026-10-19).
