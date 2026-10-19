@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { hasDismissedGuide } from '../utils/firstRunGuide';
 
 export type VenueSource = 'default-ballroom' | 'custom-glb';
 export type ScreenMode = 'procedural' | 'mesh-bind';
@@ -126,6 +127,7 @@ export interface StageState {
   // UI State
   activeSidebarTab: 'source' | 'screen' | 'venue';
   isSidebarOpen: boolean;
+  isGuideOpen: boolean;
 
   // Actions
   setVenueSource: (source: VenueSource) => void;
@@ -179,6 +181,7 @@ export interface StageState {
   setTelemetry: (telemetry: DiscasTelemetry) => void;
   setActiveSidebarTab: (tab: 'source' | 'screen' | 'venue') => void;
   setIsSidebarOpen: (open: boolean) => void;
+  setIsGuideOpen: (open: boolean) => void;
 }
 
 export const useStageStore = create<StageState>((set, get) => ({
@@ -248,6 +251,8 @@ export const useStageStore = create<StageState>((set, get) => ({
   // UI State
   activeSidebarTab: 'source',
   isSidebarOpen: true,
+  // First-run tour: open until the user dismisses it with "Don't show again"
+  isGuideOpen: !hasDismissedGuide(),
 
   // Actions
   setVenueSource: (venueSource) => set({ venueSource }),
@@ -371,4 +376,5 @@ export const useStageStore = create<StageState>((set, get) => ({
   setTelemetry: (telemetry) => set({ telemetry }),
   setActiveSidebarTab: (activeSidebarTab) => set({ activeSidebarTab }),
   setIsSidebarOpen: (isSidebarOpen) => set({ isSidebarOpen }),
+  setIsGuideOpen: (isGuideOpen) => set({ isGuideOpen }),
 }));

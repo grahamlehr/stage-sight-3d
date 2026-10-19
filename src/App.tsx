@@ -3,8 +3,12 @@ import { StageCanvas } from './components/canvas/StageCanvas';
 import { TelemetryHUD } from './components/ui/TelemetryHUD';
 import { Sidebar } from './components/ui/Sidebar';
 import { TransportBar } from './components/ui/TransportBar';
+import { FirstRunGuide } from './components/ui/FirstRunGuide';
+import { useStageStore } from './store/useStageStore';
 
 export const App: React.FC = () => {
+  const isGuideOpen = useStageStore((s) => s.isGuideOpen);
+
   return (
     <div className="relative w-screen h-screen overflow-hidden bg-zinc-950 select-none">
       {/* 3D Viewport */}
@@ -20,6 +24,9 @@ export const App: React.FC = () => {
 
       {/* Bottom PDF / Presentation Deck Scrubber */}
       <TransportBar />
+
+      {/* First-run tour (reopened from the About panel) */}
+      {isGuideOpen && <FirstRunGuide />}
     </div>
   );
 };

@@ -219,7 +219,9 @@ export const Sidebar: React.FC = () => {
   if (!isSidebarOpen) return null;
 
   return (
-    <aside className="absolute left-3 top-16 bottom-16 w-84 sm:w-92 z-20 flex flex-col rounded-2xl bg-zinc-950/95 border border-zinc-800/80 shadow-2xl backdrop-blur-md overflow-hidden text-zinc-200">
+    <aside
+      data-guide="sidebar"
+      className="absolute left-3 top-16 bottom-16 w-84 sm:w-92 z-20 flex flex-col rounded-2xl bg-zinc-950/95 border border-zinc-800/80 shadow-2xl backdrop-blur-md overflow-hidden text-zinc-200">
       {/* Sidebar Tabs */}
       <div className="grid grid-cols-3 border-b border-zinc-800/80 p-1 bg-zinc-900/60">
         <button

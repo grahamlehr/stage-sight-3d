@@ -34,6 +34,7 @@ export const TelemetryHUD: React.FC = () => {
   const isVrPresenting = useStageStore((s) => s.isVrPresenting);
   const toggleVrSession = useStageStore((s) => s.toggleVrSession);
   const triggerVrRecenter = useStageStore((s) => s.triggerVrRecenter);
+  const setIsGuideOpen = useStageStore((s) => s.setIsGuideOpen);
 
   // Badge color helpers
   const getDhColor = (status: string) => {
@@ -67,6 +68,7 @@ export const TelemetryHUD: React.FC = () => {
       {/* Left: Sidebar Toggle & Branding */}
       <div className="pointer-events-auto flex items-center gap-2">
         <button
+          data-guide="sidebar-toggle"
           onClick={() => setIsSidebarOpen(!isSidebarOpen)}
           className="flex items-center justify-center w-9 h-9 rounded-lg bg-zinc-900/90 hover:bg-zinc-800 text-zinc-300 hover:text-white border border-zinc-800 backdrop-blur shadow-md transition"
           title={isSidebarOpen ? 'Hide Sidebar' : 'Show Sidebar'}
@@ -75,6 +77,7 @@ export const TelemetryHUD: React.FC = () => {
         </button>
 
         <button
+          data-guide="about"
           onClick={() => setIsAboutOpen(true)}
           className="flex items-center gap-2.5 px-3 py-1.5 rounded-lg bg-zinc-900/90 hover:bg-zinc-800 border border-zinc-800 hover:border-zinc-700 backdrop-blur shadow-md transition group text-left"
           title="About StageSight 3D (Click for details)"
@@ -87,7 +90,9 @@ export const TelemetryHUD: React.FC = () => {
       </div>
 
       {/* Center: Live DISCAS Telemetry Badges */}
-      <div className="pointer-events-auto flex items-center gap-2 px-3 py-1.5 rounded-xl bg-zinc-950/90 border border-zinc-800/80 backdrop-blur shadow-xl">
+      <div
+        data-guide="telemetry"
+        className="pointer-events-auto flex items-center gap-2 px-3 py-1.5 rounded-xl bg-zinc-950/90 border border-zinc-800/80 backdrop-blur shadow-xl">
         {/* Viewing Distance */}
         <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-zinc-900 border border-zinc-800/80 text-xs">
           <span className="text-zinc-500 uppercase tracking-wider text-[10px] font-semibold">Dist (D)</span>
@@ -122,7 +127,7 @@ export const TelemetryHUD: React.FC = () => {
       {/* Right: Camera Mode, Dual-FOV, Seat Presets & Lighting */}
       <div className="pointer-events-auto flex items-center gap-2">
         {/* Venue Lighting Quick Selector */}
-        <div className="relative group">
+        <div data-guide="lighting" className="relative group">
           <button
             className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-medium shadow-md backdrop-blur transition ${
               lightingPreset === 'conference-bright'
@@ -199,7 +204,7 @@ export const TelemetryHUD: React.FC = () => {
         </div>
 
         {/* Seat Presets Dropdown */}
-        <div className="relative group">
+        <div data-guide="seat-presets" className="relative group">
           <button className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-zinc-900/90 hover:bg-zinc-800 text-zinc-200 border border-zinc-800 backdrop-blur text-xs font-medium shadow-md transition">
             <Armchair size={14} className="text-cyan-400" />
             <span className="hidden sm:inline">Seat Presets</span>
@@ -222,7 +227,7 @@ export const TelemetryHUD: React.FC = () => {
         </div>
 
         {/* Dual FOV Toggle */}
-        <div className="flex items-center rounded-lg bg-zinc-900/90 border border-zinc-800 p-0.5 backdrop-blur shadow-md">
+        <div data-guide="fov" className="flex items-center rounded-lg bg-zinc-900/90 border border-zinc-800 p-0.5 backdrop-blur shadow-md">
           <button
             onClick={() => setFovMode('room-context')}
             className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium transition ${
@@ -251,6 +256,7 @@ export const TelemetryHUD: React.FC = () => {
 
         {/* Navigation Mode Switcher */}
         <button
+          data-guide="navigation"
           onClick={() => setNavigationMode(navigationMode === 'orbit' ? 'seated' : 'orbit')}
           className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-medium shadow-md backdrop-blur transition ${
             navigationMode === 'seated'
@@ -263,7 +269,7 @@ export const TelemetryHUD: React.FC = () => {
         </button>
 
         {/* Meta Quest / PCVR WebXR Controls */}
-        <div className="relative flex items-center gap-1.5">
+        <div data-guide="vr" className="relative flex items-center gap-1.5">
           {isVrPresenting && (
             <button
               onClick={triggerVrRecenter}
@@ -372,7 +378,14 @@ export const TelemetryHUD: React.FC = () => {
       </div>
 
       {/* About StageSight 3D Modal */}
-      <AboutModal isOpen={isAboutOpen} onClose={() => setIsAboutOpen(false)} />
+      <AboutModal
+        isOpen={isAboutOpen}
+        onClose={() => setIsAboutOpen(false)}
+        onStartTour={() => {
+          setIsAboutOpen(false);
+          setIsGuideOpen(true);
+        }}
+      />
     </header>
   );
 };
