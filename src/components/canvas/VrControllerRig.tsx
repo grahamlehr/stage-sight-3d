@@ -321,21 +321,28 @@ export const VrControllerRig: React.FC = () => {
 
     ctx.clearRect(0, 0, W, H);
 
-    // Rounded translucent dark glass background
-    ctx.fillStyle = 'rgba(9, 13, 22, 0.92)';
-    ctx.beginPath();
-    ctx.roundRect(8, 8, W - 16, H - 16, 24);
-    ctx.fill();
+    // CueSmith Backstage palette: ink on ground, signal colors for health, red only for live
+    const INK = '#f3f2f2';
+    const MUTED = 'rgba(243, 242, 242, 0.62)';
+    const RULE = 'rgba(243, 242, 242, 0.2)';
+    const GROUND = '#161514';
+    const SURFACE = '#201e1d';
+    const SIGNAL = { go: '#399d57', warn: '#f0b135' };
+    const LIVE = '#ec3013';
+    const font = (weight: 400 | 600 | 800, size: number) => `${weight} ${size}px Archivo, system-ui, sans-serif`;
 
-    ctx.strokeStyle = 'rgba(6, 182, 212, 0.45)';
-    ctx.lineWidth = 3;
-    ctx.stroke();
+    // Square panel with a hairline edge
+    ctx.fillStyle = 'rgba(22, 21, 20, 0.94)';
+    ctx.fillRect(8, 8, W - 16, H - 16);
+    ctx.strokeStyle = RULE;
+    ctx.lineWidth = 2;
+    ctx.strokeRect(8, 8, W - 16, H - 16);
 
     // Top Header Bar
-    ctx.fillStyle = '#06b6d4';
-    ctx.font = 'bold 20px monospace';
+    ctx.fillStyle = INK;
+    ctx.font = font(800, 20);
     ctx.textAlign = 'left';
-    ctx.fillText('STAGESIGHT 3D // META QUEST VR SIGHTLINE HUD', 40, 48);
+    ctx.fillText('STAGESIGHT 3D · VR SIGHTLINE HUD', 40, 48);
 
     // Matching Seat Preset Name or Custom Floor Coordinates
     const matchedPreset = SEAT_PRESETS.find(
@@ -347,52 +354,50 @@ export const VrControllerRig: React.FC = () => {
       ? matchedPreset.name.toUpperCase()
       : `SEAT (${seatPosition[0].toFixed(1)}m, ${seatPosition[2].toFixed(1)}m)`;
 
-    ctx.fillStyle = '#e2e8f0';
-    ctx.font = 'bold 20px monospace';
+    ctx.fillStyle = MUTED;
+    ctx.font = font(800, 20);
     ctx.textAlign = 'right';
     ctx.fillText(seatLabel, W - 40, 48);
 
-    // Divider
-    ctx.strokeStyle = 'rgba(148, 163, 184, 0.2)';
-    ctx.lineWidth = 1.5;
+    // 2px rule under the header
+    ctx.strokeStyle = RULE;
+    ctx.lineWidth = 2;
     ctx.beginPath();
     ctx.moveTo(40, 66);
     ctx.lineTo(W - 40, 66);
     ctx.stroke();
 
-    // 3 Metric Cards: Viewing Distance, D/H Ratio, Off-Axis Angle
-    const dhColor =
+    // 3 Metric Cards: Viewing Distance, D/H Ratio, Off-Axis Angle.
+    // Pass shows a go dot, marginal a warn dot, and a fail inverts the card to solid ink.
+    type Level = 'go' | 'warn' | 'fail' | null;
+    const dhLevel: Level =
       telemetry.dhStatus === 'detail' || telemetry.dhStatus === 'reading'
-        ? '#10b981'
+        ? 'go'
         : telemetry.dhStatus === 'marginal'
-        ? '#f59e0b'
-        : '#f43f5e';
+        ? 'warn'
+        : 'fail';
 
-    const angleColor =
-      telemetry.angleStatus === 'optimal'
-        ? '#10b981'
-        : telemetry.angleStatus === 'steep'
-        ? '#f59e0b'
-        : '#f43f5e';
+    const angleLevel: Level =
+      telemetry.angleStatus === 'optimal' ? 'go' : telemetry.angleStatus === 'steep' ? 'warn' : 'fail';
 
-    const cards = [
+    const cards: { label: string; value: string; sub: string; level: Level }[] = [
       {
         label: 'VIEWING DISTANCE (D)',
         value: `${telemetry.viewingDistance}m`,
         sub: `Screen: ${screenWidth}m × ${screenHeight}m`,
-        accent: '#38bdf8',
+        level: null,
       },
       {
         label: 'AVIXA DISCAS D/H RATIO',
         value: `${telemetry.dhRatio}x H`,
         sub: telemetry.dhLabel,
-        accent: dhColor,
+        level: dhLevel,
       },
       {
         label: 'HORIZONTAL OFF-AXIS',
         value: `${telemetry.offAxisAngle}°`,
         sub: telemetry.angleLabel,
-        accent: angleColor,
+        level: angleLevel,
       },
     ];
 
@@ -402,30 +407,37 @@ export const VrControllerRig: React.FC = () => {
 
     cards.forEach((c, i) => {
       const cx = 40 + i * (cardW + 16);
-      ctx.fillStyle = 'rgba(15, 23, 42, 0.95)';
-      ctx.beginPath();
-      ctx.roundRect(cx, cardY, cardW, cardH, 14);
-      ctx.fill();
+      const failed = c.level === 'fail';
+      ctx.fillStyle = failed ? INK : SURFACE;
+      ctx.fillRect(cx, cardY, cardW, cardH);
+      if (!failed) {
+        ctx.strokeStyle = RULE;
+        ctx.lineWidth = 1.5;
+        ctx.strokeRect(cx, cardY, cardW, cardH);
+      }
 
-      ctx.strokeStyle = c.accent;
-      ctx.lineWidth = 2;
-      ctx.stroke();
-
-      ctx.fillStyle = '#94a3b8';
-      ctx.font = 'bold 15px monospace';
+      ctx.fillStyle = failed ? GROUND : MUTED;
+      ctx.font = font(400, 15);
       ctx.textAlign = 'left';
       ctx.fillText(c.label, cx + 20, cardY + 32);
 
-      ctx.fillStyle = '#ffffff';
-      ctx.font = 'bold 42px monospace';
+      ctx.fillStyle = failed ? GROUND : INK;
+      ctx.font = font(800, 42);
       ctx.fillText(c.value, cx + 20, cardY + 84);
 
-      ctx.fillStyle = c.accent;
-      ctx.font = 'bold 16px sans-serif';
-      ctx.fillText(c.sub, cx + 20, cardY + 116);
+      let subX = cx + 20;
+      if (c.level === 'go' || c.level === 'warn') {
+        ctx.fillStyle = SIGNAL[c.level];
+        ctx.fillRect(subX, cardY + 104, 12, 12);
+        subX += 22;
+      }
+      ctx.fillStyle = failed ? GROUND : INK;
+      ctx.font = font(600, 16);
+      ctx.fillText(c.sub, subX, cardY + 116);
     });
 
     // Bottom Controls & Source Info Bar
+    const isLiveSource = sourceType === 'hdmi-capture' || sourceType === 'screen-share';
     const sourceLabel =
       sourceType === 'hdmi-capture'
         ? 'LIVE HDMI CAPTURE'
@@ -435,8 +447,8 @@ export const VrControllerRig: React.FC = () => {
         ? `SLIDE DECK (${currentSlideIndex + 1}/${ Math.max(1, slides.length) })`
         : 'TEST PATTERN';
 
-    ctx.fillStyle = '#94a3b8';
-    ctx.font = '16px monospace';
+    ctx.fillStyle = MUTED;
+    ctx.font = font(400, 16);
     ctx.textAlign = 'left';
     ctx.fillText(
       `[A/X or 1-4] Seat Preset  •  [B/Y or R] Recenter  •  [Grip or L] Light (${lightingPreset})  •  [StickClick or H] Hide HUD`,
@@ -444,8 +456,8 @@ export const VrControllerRig: React.FC = () => {
       H - 30
     );
 
-    ctx.fillStyle = '#06b6d4';
-    ctx.font = 'bold 16px monospace';
+    ctx.fillStyle = isLiveSource ? LIVE : INK;
+    ctx.font = font(800, 16);
     ctx.textAlign = 'right';
     ctx.fillText(sourceLabel, W - 40, H - 30);
 

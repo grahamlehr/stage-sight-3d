@@ -10,7 +10,7 @@ export const App: React.FC = () => {
   const isGuideOpen = useStageStore((s) => s.isGuideOpen);
 
   return (
-    <div className="relative w-screen h-screen overflow-hidden bg-zinc-950 select-none">
+    <div className="relative w-screen h-screen overflow-hidden bg-ground select-none">
       {/* 3D Viewport */}
       <main className="absolute inset-0 z-0">
         <StageCanvas />

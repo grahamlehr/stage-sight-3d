@@ -68,24 +68,26 @@ export const TransportBar: React.FC = () => {
   };
 
   return (
-    <footer className="absolute bottom-3 left-1/2 -translate-x-1/2 z-20 flex items-center gap-3 px-3 py-2 rounded-2xl bg-zinc-950/95 border border-zinc-800/80 backdrop-blur-md shadow-2xl max-w-[90vw]">
+    <footer className="panel absolute bottom-3 left-1/2 -translate-x-1/2 z-20 flex items-center gap-3 px-3 py-2 max-w-[90vw]">
       {/* Slide Navigation Controls */}
-      <div className="flex items-center gap-2 pr-2 border-r border-zinc-800">
+      <div className="flex items-center gap-2 pr-3 border-r border-ink/20">
         <button
           onClick={prevSlide}
-          className="flex items-center justify-center w-8 h-8 rounded-lg bg-zinc-900 hover:bg-zinc-800 text-zinc-300 hover:text-white border border-zinc-800 transition"
+          className="btn btn-secondary btn-icon"
           title="Previous Slide (Left Arrow)"
         >
           <ChevronLeft size={18} />
         </button>
 
-        <div className="px-2 font-mono text-xs font-semibold text-zinc-200 whitespace-nowrap">
-          Slide <span className="text-cyan-400">{currentSlideIndex + 1}</span> of {slides.length}
+        <div className="px-2 text-xs whitespace-nowrap tabular-nums">
+          <span className="text-ink/60">Slide</span>{' '}
+          <span className="font-extrabold text-accent-400">{currentSlideIndex + 1}</span>{' '}
+          <span className="text-ink/60">of</span> <span className="font-extrabold">{slides.length}</span>
         </div>
 
         <button
           onClick={nextSlide}
-          className="flex items-center justify-center w-8 h-8 rounded-lg bg-zinc-900 hover:bg-zinc-800 text-zinc-300 hover:text-white border border-zinc-800 transition"
+          className="btn btn-secondary btn-icon"
           title="Next Slide (Right Arrow)"
         >
           <ChevronRight size={18} />
@@ -100,10 +102,11 @@ export const TransportBar: React.FC = () => {
             <button
               key={index}
               onClick={() => setCurrentSlideIndex(index)}
-              className={`relative flex-shrink-0 h-11 rounded-md overflow-hidden border transition ${
+              aria-current={isSelected ? 'true' : undefined}
+              className={`relative flex-shrink-0 h-11 overflow-hidden border-2 transition ${
                 isSelected
-                  ? 'border-cyan-400 ring-2 ring-cyan-500/40 shadow-[0_0_12px_rgba(6,182,212,0.4)]'
-                  : 'border-zinc-800 opacity-60 hover:opacity-100 hover:border-zinc-600'
+                  ? 'border-accent'
+                  : 'border-transparent opacity-50 hover:opacity-100 hover:border-ink/45'
               }`}
               style={{
                 aspectRatio: thumb.aspect,
@@ -116,7 +119,11 @@ export const TransportBar: React.FC = () => {
                 alt={`Thumbnail ${index + 1}`}
                 className="w-full h-full object-cover"
               />
-              <span className="absolute bottom-0.5 right-1 px-1 rounded bg-black/80 font-mono text-[9px] text-zinc-300">
+              <span
+                className={`absolute bottom-0 right-0 px-1 text-[9px] font-extrabold tabular-nums ${
+                  isSelected ? 'bg-accent text-white' : 'bg-ground text-ink'
+                }`}
+              >
                 {index + 1}
               </span>
             </button>
@@ -125,10 +132,10 @@ export const TransportBar: React.FC = () => {
       </div>
 
       {/* Close/Return to Test Pattern */}
-      <div className="pl-2 border-l border-zinc-800">
+      <div className="pl-3 border-l border-ink/20">
         <button
           onClick={() => setSourceType('test-pattern')}
-          className="flex items-center justify-center w-7 h-7 rounded-lg bg-zinc-900 hover:bg-zinc-800 text-zinc-400 hover:text-rose-400 border border-zinc-800 transition"
+          className="btn btn-ghost btn-icon text-ink/60 hover:text-ink"
           title="Exit Slide Deck (Return to Test Pattern)"
         >
           <X size={15} />

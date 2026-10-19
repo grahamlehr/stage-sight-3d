@@ -7,7 +7,6 @@ export interface LogoProps {
    */
   variant?: 'icon' | 'full';
   className?: string;
-  glow?: boolean;
   withText?: boolean;
   textClassName?: string;
   badge?: string;
@@ -17,9 +16,8 @@ export interface LogoProps {
 export const Logo: React.FC<LogoProps> = ({
   variant = 'icon',
   className = 'w-6 h-6',
-  glow = false,
   withText = false,
-  textClassName = 'text-sm font-bold',
+  textClassName = 'text-sm font-extrabold',
   badge,
   onClick,
 }) => {
@@ -34,9 +32,7 @@ export const Logo: React.FC<LogoProps> = ({
       <svg
         xmlns="http://www.w3.org/2000/svg"
         viewBox={viewBox}
-        className={`${className} flex-shrink-0 transition-transform duration-200 ${
-          glow ? 'drop-shadow-[0_0_8px_rgba(6,182,212,0.6)]' : ''
-        }`}
+        className={`${className} flex-shrink-0 transition-transform duration-200`}
         fill="none"
       >
         <defs>
@@ -140,11 +136,9 @@ export const Logo: React.FC<LogoProps> = ({
 
       {withText && (
         <div className="flex items-center gap-1.5 leading-none">
-          <span className={`tracking-tight text-zinc-100 ${textClassName}`}>
-            StageSight <span className="text-cyan-400">3D</span>
-          </span>
+          <span className={`tracking-tight text-ink ${textClassName}`}>StageSight 3D</span>
           {badge && (
-            <span className="text-[10px] px-1.5 py-0.5 rounded bg-zinc-800 text-cyan-400 font-mono font-semibold">
+            <span className="tag tag-outline">
               {badge}
             </span>
           )}
