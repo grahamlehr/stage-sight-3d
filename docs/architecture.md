@@ -69,7 +69,7 @@ Store actions do the work that has to happen whenever a value changes. For examp
 | [`DemoBallroom`](../src/components/canvas/DemoBallroom.tsx) | Procedural room: floor, walls, the 18m × 5m stage deck, instanced chairs and optional ceiling fixtures. Clicking the floor picks a seat. |
 | [`CustomGlbVenue`](../src/components/canvas/CustomGlbVenue.tsx) | Loads the uploaded model with `GLTFLoader` inside an error boundary. If loading fails, the app falls back to the ballroom and releases the blob. Handles click-to-sit and click-to-bind for the screen mesh. |
 | [`ScreenSurface`](../src/components/canvas/ScreenSurface.tsx) | The screen: bezel, unlit display plane and underglow. Builds the texture for the active content source and attaches the translate gizmo. |
-| [`PresenterSilhouette`](../src/components/canvas/PresenterSilhouette.tsx) | Occlusion props: standing presenter, lectern and four-person seated panel. |
+| [`PresenterSilhouette`](../src/components/canvas/PresenterSilhouette.tsx) | Occlusion props: standing presenter, lectern and four-person seated panel. It places meshes; the shapes come from [`stagePropGeometry`](../src/components/canvas/stagePropGeometry.ts). See [Occlusion props](#occlusion-props). |
 | [`CameraController`](../src/components/canvas/CameraController.tsx) | Orbit controls, seated look-around, FOV switching, desktop hotkeys and the telemetry loop. |
 | [`VrControllerRig`](../src/components/canvas/VrControllerRig.tsx) | WebXR session, seated head calibration, controller rays and teleporting, gamepad bindings and the in-headset HUD. |
 
@@ -78,6 +78,16 @@ Store actions do the work that has to happen whenever a value changes. For examp
 - **Units are meters.** Screen sizes, seat positions and venue dimensions are physical, and the D/H ratio only means something if they stay that way. A custom model has to be authored in meters, because it is loaded at its native scale.
 - **Y is up and the audience sits toward +Z.** The screen faces +Z by default. The default screen is centered at `[0, 3.4, -12]`, and seats run from `z = -8` (front row) to `z = 13` (back of the room).
 - **The seated eye is 1.2m above the seat floor.** Desktop seated mode and VR both use this height, set by `SEATED_EYE_HEIGHT` in `VrControllerRig`. Picking a seat always sets its floor height to `y = 0`.
+
+### Occlusion props
+
+The presenter, lectern and panel are procedural, built from three.js primitives in [`stagePropGeometry.ts`](../src/components/canvas/stagePropGeometry.ts). Each prop faces +Z and stands on its own origin, and the Screen tab's offsets place it relative to the screen at stage height.
+
+- **Real scale.** The presenter is 1.8m tall. The lectern is 0.62m wide and 0.5m deep, 1.15m at the front edge of its sloped desk, with its front panel toward the audience and an open back with a shelf. Panelists sit in 0.8m tub chairs with 0.47m seats, scaled 0.92–0.98 so seated head heights land between 1.3m and 1.4m.
+- **Merged by material.** Each prop is merged into one geometry per material, with colors baked in as vertex colors. A person is three draw calls (cloth, skin, gloss), a chair two, and every material is shared. With all three props on they add 32 draw calls and about 51k triangles per pass, down from about 125 draw calls. A unit test holds each figure under 12k triangles and the panel under 60k.
+- **Built once.** Geometry is built in `useMemo` when a prop mounts and disposed when it unmounts, so toggling a prop rebuilds it and nothing else does.
+- **Lighting workarounds.** Skin doesn't receive shadows, and the jaw's normals are tilted up. Without both, the overhead key light darkens every lower face until it reads as a beard.
+- **Not scored.** The props are for checking by eye. The telemetry ignores them.
 
 ### Telemetry loop
 
