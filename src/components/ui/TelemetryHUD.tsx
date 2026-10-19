@@ -278,7 +278,9 @@ export const TelemetryHUD: React.FC = () => {
           <button
             onClick={() => {
               if (isVrSupported && toggleVrSession) {
-                toggleVrSession();
+                void toggleVrSession().catch((err) =>
+                  console.error('VR session toggle failed:', err)
+                );
               } else {
                 setIsVrHelpOpen(!isVrHelpOpen);
               }

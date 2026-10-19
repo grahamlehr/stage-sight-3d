@@ -56,11 +56,13 @@ export function computeUvCrop({
     }
     case 'top-aligned': {
       if (aScreen > aCapture) {
+        // Ultra-wide screen: keep the top of the capture (V runs bottom-to-top)
         repeatY = aCapture / aScreen;
         offsetY = 1 - repeatY;
       } else {
+        // This mode only anchors vertically, so a horizontal crop still centers
         repeatX = aScreen / aCapture;
-        offsetX = 0;
+        offsetX = (1 - repeatX) / 2;
       }
       break;
     }

@@ -45,9 +45,9 @@ export const DemoBallroom: React.FC = () => {
     return { chairTransforms: transforms, chairCount: transforms.length };
   }, []);
 
-  // Construct combined chair geometry for high-performance single-call instanced rendering
+  // Chair parts, each rendered as its own instanced draw call
   const chairGeometry = useMemo(() => {
-    // Single chair model: seat base + backrest
+    // Single chair model: seat base + backrest + central pedestal leg
     const seatGeo = new THREE.BoxGeometry(0.52, 0.08, 0.48);
     seatGeo.translate(0, 0.42, 0);
 
@@ -57,9 +57,7 @@ export const DemoBallroom: React.FC = () => {
     const legsGeo = new THREE.CylinderGeometry(0.018, 0.015, 0.40, 8);
     legsGeo.translate(0, 0.20, 0);
 
-    // Merge into one compound geometry manually using BufferGeometryUtils or groups
-    // Using BufferGeometry groups
-    return { seatGeo, backGeo };
+    return { seatGeo, backGeo, legsGeo };
   }, []);
 
   // Floor click handler: click-to-sit
@@ -76,6 +74,9 @@ export const DemoBallroom: React.FC = () => {
       }
     }
   };
+
+  // Keep the square floor grid inside the venue footprint, with 1m cells
+  const floorGridSize = Math.max(1, Math.round(Math.min(venueWidth, venueLength)));
 
   // Stage dimensions: 18m wide, 5m deep, centered at z = -12.5m (front edge at z = -10m)
   const stageWidth = 18.0;
@@ -101,9 +102,11 @@ export const DemoBallroom: React.FC = () => {
         />
       </mesh>
 
-      {/* 1m Grid Helper on Floor */}
+      {/* 1m Grid Helper on Floor. gridHelper is always square, so size it to the
+          shorter venue axis — a grid sized to the longer one would float past the
+          side walls into empty space. */}
       <gridHelper
-        args={[venueLength, venueLength, 0x06b6d4, 0x334155]}
+        args={[floorGridSize, floorGridSize, 0x06b6d4, 0x334155]}
         position={[0, 0.005, 0]}
       />
 
@@ -191,6 +194,22 @@ export const DemoBallroom: React.FC = () => {
         }}
       >
         <meshStandardMaterial color="#3a4863" roughness={0.55} metalness={0.1} />
+      </instancedMesh>
+
+      {/* Seat Pedestal Legs — part of the seated-height occlusion profile */}
+      <instancedMesh
+        args={[chairGeometry.legsGeo, undefined, chairCount]}
+        receiveShadow
+        castShadow
+        onPointerDown={handleFloorClick}
+        ref={(inst) => {
+          if (inst) {
+            chairTransforms.forEach((matrix, i) => inst.setMatrixAt(i, matrix));
+            inst.instanceMatrix.needsUpdate = true;
+          }
+        }}
+      >
+        <meshStandardMaterial color="#242c3c" roughness={0.45} metalness={0.5} />
       </instancedMesh>
 
       {/* Zone Floor Label Indicators */}
