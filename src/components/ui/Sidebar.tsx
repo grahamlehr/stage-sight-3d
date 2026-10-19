@@ -29,6 +29,35 @@ import {
   generateSampleExecutiveDeck,
 } from '../../utils/pdfRasterizer';
 
+// Sections are divided by rules rather than boxed, after the CueSmith grid.
+const Section: React.FC<{ title: React.ReactNode; meta?: React.ReactNode; children: React.ReactNode }> = ({
+  title,
+  meta,
+  children,
+}) => (
+  <section className="space-y-2.5 pt-4 border-t border-ink/20 first:pt-0 first:border-t-0">
+    <div className="flex items-center justify-between gap-2">
+      <span className="label flex items-center gap-1.5">{title}</span>
+      {meta && <span className="text-[10px] text-ink/60">{meta}</span>}
+    </div>
+    {children}
+  </section>
+);
+
+const SliderRow: React.FC<
+  { label: string; value: string } & Omit<React.InputHTMLAttributes<HTMLInputElement>, 'type' | 'value'> & {
+      inputValue: number;
+    }
+> = ({ label, value, inputValue, ...inputProps }) => (
+  <div>
+    <div className="flex justify-between text-[11px] text-ink/60 mb-1">
+      <span>{label}</span>
+      <span className="font-extrabold text-ink tabular-nums">{value}</span>
+    </div>
+    <input type="range" value={inputValue} {...inputProps} />
+  </div>
+);
+
 export const Sidebar: React.FC = () => {
   const isSidebarOpen = useStageStore((s) => s.isSidebarOpen);
   const activeSidebarTab = useStageStore((s) => s.activeSidebarTab);
@@ -218,88 +247,81 @@ export const Sidebar: React.FC = () => {
 
   if (!isSidebarOpen) return null;
 
+  const isLiveFeed =
+    activeVideoStream !== null && (sourceType === 'hdmi-capture' || sourceType === 'screen-share');
+
+  const tabs = [
+    { id: 'source', label: 'Source', icon: Layers },
+    { id: 'screen', label: 'Screen', icon: Monitor },
+    { id: 'venue', label: 'Venue', icon: Building },
+  ] as const;
+
+  const sourceTiles = [
+    { id: 'test-pattern', label: 'Test Pattern', sub: '4K Rulers & Ladder', icon: Grid },
+    { id: 'pdf', label: 'PDF / Image', sub: 'Upload Slide Deck', icon: FileText },
+    { id: 'hdmi-capture', label: 'HDMI Capture', sub: 'USB Video In', icon: Video },
+    { id: 'screen-share', label: 'Window Share', sub: 'PowerPoint App', icon: Share2 },
+  ] as const;
+
+  const handleSourceTile = (id: (typeof sourceTiles)[number]['id']) => {
+    if (id === 'test-pattern') setSourceType('test-pattern');
+    else if (id === 'pdf') fileInputRef.current?.click();
+    else if (id === 'hdmi-capture') void handleStartCaptureCard();
+    else void handleStartScreenShare();
+  };
+
+  const lightingPresets = [
+    { id: 'conference-bright', label: 'Bright' },
+    { id: 'ballroom-standard', label: 'Standard' },
+    { id: 'keynote-dark', label: 'Dark' },
+  ] as const;
+
   return (
     <aside
       data-guide="sidebar"
-      className="absolute left-3 top-16 bottom-16 w-84 sm:w-92 z-20 flex flex-col rounded-2xl bg-zinc-950/95 border border-zinc-800/80 shadow-2xl backdrop-blur-md overflow-hidden text-zinc-200">
+      className="panel absolute left-3 top-16 bottom-16 w-[21rem] sm:w-[23rem] z-20 flex flex-col overflow-hidden">
       {/* Sidebar Tabs */}
-      <div className="grid grid-cols-3 border-b border-zinc-800/80 p-1 bg-zinc-900/60">
-        <button
-          onClick={() => setActiveSidebarTab('source')}
-          className={`flex items-center justify-center gap-1.5 py-2 text-xs font-medium rounded-lg transition ${
-            activeSidebarTab === 'source'
-              ? 'bg-zinc-800 text-cyan-400 font-semibold shadow-sm'
-              : 'text-zinc-400 hover:text-zinc-200'
-          }`}
-        >
-          <Layers size={14} />
-          <span>Source</span>
-        </button>
-
-        <button
-          onClick={() => setActiveSidebarTab('screen')}
-          className={`flex items-center justify-center gap-1.5 py-2 text-xs font-medium rounded-lg transition ${
-            activeSidebarTab === 'screen'
-              ? 'bg-zinc-800 text-cyan-400 font-semibold shadow-sm'
-              : 'text-zinc-400 hover:text-zinc-200'
-          }`}
-        >
-          <Monitor size={14} />
-          <span>Screen</span>
-        </button>
-
-        <button
-          onClick={() => setActiveSidebarTab('venue')}
-          className={`flex items-center justify-center gap-1.5 py-2 text-xs font-medium rounded-lg transition ${
-            activeSidebarTab === 'venue'
-              ? 'bg-zinc-800 text-cyan-400 font-semibold shadow-sm'
-              : 'text-zinc-400 hover:text-zinc-200'
-          }`}
-        >
-          <Building size={14} />
-          <span>Venue</span>
-        </button>
+      <div role="tablist" className="grid grid-cols-3 border-b-2 border-ink/20">
+        {tabs.map(({ id, label, icon: Icon }) => (
+          <button
+            key={id}
+            role="tab"
+            aria-selected={activeSidebarTab === id}
+            onClick={() => setActiveSidebarTab(id)}
+            className={`flex items-center justify-center gap-1.5 py-2.5 -mb-[2px] border-b-2 text-xs transition ${
+              activeSidebarTab === id
+                ? 'border-ink text-ink font-extrabold'
+                : 'border-transparent text-ink/60 hover:text-ink'
+            }`}
+          >
+            <Icon size={14} />
+            <span>{label}</span>
+          </button>
+        ))}
       </div>
 
       {/* Tab Content Container */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-5 text-xs">
+      <div className="flex-1 overflow-y-auto p-4 space-y-4 text-xs">
         {/* ================= TAB 1: CONTENT SOURCE ================= */}
         {activeSidebarTab === 'source' && (
           <>
-            <div>
-              <label className="text-[11px] font-semibold text-zinc-400 uppercase tracking-wider block mb-2">
-                Active Content Feed
-              </label>
+            <Section title="Active Content Feed">
               <div className="grid grid-cols-2 gap-2">
-                <button
-                  onClick={() => setSourceType('test-pattern')}
-                  className={`flex items-center gap-2 p-2.5 rounded-xl border text-left transition ${
-                    sourceType === 'test-pattern'
-                      ? 'bg-cyan-500/15 border-cyan-500/50 text-cyan-300 font-semibold'
-                      : 'bg-zinc-900/80 border-zinc-800/80 hover:bg-zinc-850 text-zinc-300'
-                  }`}
-                >
-                  <Grid size={16} />
-                  <div>
-                    <div className="text-xs">Test Pattern</div>
-                    <div className="text-[10px] text-zinc-500 font-normal">4K Rulers & Ladder</div>
-                  </div>
-                </button>
-
-                <button
-                  onClick={() => fileInputRef.current?.click()}
-                  className={`flex items-center gap-2 p-2.5 rounded-xl border text-left transition ${
-                    sourceType === 'pdf'
-                      ? 'bg-cyan-500/15 border-cyan-500/50 text-cyan-300 font-semibold'
-                      : 'bg-zinc-900/80 border-zinc-800/80 hover:bg-zinc-850 text-zinc-300'
-                  }`}
-                >
-                  <FileText size={16} />
-                  <div>
-                    <div className="text-xs">PDF / Image</div>
-                    <div className="text-[10px] text-zinc-500 font-normal">Upload Slide Deck</div>
-                  </div>
-                </button>
+                {sourceTiles.map(({ id, label, sub, icon: Icon }) => (
+                  <button
+                    key={id}
+                    onClick={() => handleSourceTile(id)}
+                    aria-pressed={sourceType === id}
+                    className="option"
+                  >
+                    <Icon size={16} strokeWidth={1.5} className="flex-none" />
+                    <div className="min-w-0">
+                      <div className="text-xs">{label}</div>
+                      <div className="text-[10px] font-normal opacity-70">{sub}</div>
+                    </div>
+                    {isLiveFeed && sourceType === id && <span className="tag tag-live ml-auto">Live</span>}
+                  </button>
+                ))}
                 <input
                   ref={fileInputRef}
                   type="file"
@@ -307,66 +329,29 @@ export const Sidebar: React.FC = () => {
                   className="hidden"
                   onChange={handleFileUpload}
                 />
-
-                <button
-                  onClick={handleStartCaptureCard}
-                  className={`flex items-center gap-2 p-2.5 rounded-xl border text-left transition ${
-                    sourceType === 'hdmi-capture'
-                      ? 'bg-cyan-500/15 border-cyan-500/50 text-cyan-300 font-semibold'
-                      : 'bg-zinc-900/80 border-zinc-800/80 hover:bg-zinc-850 text-zinc-300'
-                  }`}
-                >
-                  <Video size={16} />
-                  <div>
-                    <div className="text-xs">HDMI Capture</div>
-                    <div className="text-[10px] text-zinc-500 font-normal">USB Video In</div>
-                  </div>
-                </button>
-
-                <button
-                  onClick={handleStartScreenShare}
-                  className={`flex items-center gap-2 p-2.5 rounded-xl border text-left transition ${
-                    sourceType === 'screen-share'
-                      ? 'bg-cyan-500/15 border-cyan-500/50 text-cyan-300 font-semibold'
-                      : 'bg-zinc-900/80 border-zinc-800/80 hover:bg-zinc-850 text-zinc-300'
-                  }`}
-                >
-                  <Share2 size={16} />
-                  <div>
-                    <div className="text-xs">Window Share</div>
-                    <div className="text-[10px] text-zinc-500 font-normal">PowerPoint App</div>
-                  </div>
-                </button>
               </div>
-            </div>
+            </Section>
 
             {/* Quick Demo Deck Button */}
-            <div className="p-3 rounded-xl bg-zinc-900/70 border border-zinc-800/80 space-y-2">
-              <div className="flex items-center justify-between">
-                <span className="font-semibold text-zinc-200">Instant Demo Deck</span>
-                <Sparkles size={14} className="text-amber-400" />
-              </div>
-              <p className="text-[11px] text-zinc-400">
+            <Section title="Instant Demo Deck" meta={<Sparkles size={13} />}>
+              <p className="text-[11px] text-ink/60">
                 Load 5 procedural 32:9 executive slides (Keynote, Clinical Data, Pipeline, Financials, Q&A) for immediate testing.
               </p>
-              <button
-                onClick={handleLoadSampleDeck}
-                className="w-full flex items-center justify-center gap-2 py-2 rounded-lg bg-cyan-600 hover:bg-cyan-500 text-zinc-950 font-bold transition shadow-md"
-              >
+              <button onClick={handleLoadSampleDeck} className="btn btn-primary w-full py-2">
                 Load Sample 32:9 Executive Deck (5 Slides)
               </button>
-            </div>
+            </Section>
 
             {/* Ingestion Progress indicator */}
             {isRasterizing && (
-              <div className="p-3 rounded-xl bg-zinc-900 border border-cyan-500/40 text-cyan-300 space-y-1">
-                <div className="flex items-center justify-between text-xs font-medium">
+              <div className="p-3 bg-standby border border-ink/20 space-y-1.5">
+                <div className="flex items-center justify-between text-xs font-semibold">
                   <span>Rasterizing slides at 4096px...</span>
-                  <span>{rasterProgress.current} / {rasterProgress.total}</span>
+                  <span className="tabular-nums">{rasterProgress.current} / {rasterProgress.total}</span>
                 </div>
-                <div className="w-full h-1.5 bg-zinc-800 rounded-full overflow-hidden">
+                <div className="w-full h-0.5 bg-ink/20">
                   <div
-                    className="h-full bg-cyan-400 transition-all duration-200"
+                    className="h-full bg-ink transition-all duration-200"
                     style={{
                       width: `${(rasterProgress.current / Math.max(1, rasterProgress.total)) * 100}%`,
                     }}
@@ -377,17 +362,18 @@ export const Sidebar: React.FC = () => {
 
             {/* HDMI Capture Device Settings */}
             {sourceType === 'hdmi-capture' && (
-              <div className="p-3 rounded-xl bg-zinc-900/60 border border-zinc-800 space-y-2">
-                <div className="flex items-center justify-between">
-                  <label className="text-[11px] font-semibold text-zinc-300">Video Device</label>
-                  <button onClick={refreshDevices} className="text-zinc-400 hover:text-white" title="Refresh Devices">
+              <Section
+                title="Video Device"
+                meta={
+                  <button onClick={refreshDevices} className="btn btn-ghost p-1 text-ink/60 hover:text-ink" title="Refresh Devices">
                     <RefreshCw size={12} />
                   </button>
-                </div>
+                }
+              >
                 <select
                   value={selectedVideoDeviceId}
                   onChange={(e) => setSelectedVideoDeviceId(e.target.value)}
-                  className="w-full p-2 rounded-lg bg-zinc-950 border border-zinc-800 text-zinc-200 text-xs focus:outline-none focus:border-cyan-500"
+                  className="input"
                 >
                   {videoDevices.map((d) => (
                     <option key={d.deviceId} value={d.deviceId}>
@@ -395,20 +381,20 @@ export const Sidebar: React.FC = () => {
                     </option>
                   ))}
                 </select>
-              </div>
+              </Section>
             )}
 
             {/* Module D: Reactive 16:9 HDMI Letterbox UV Cropper Controls */}
             {(sourceType === 'hdmi-capture' || sourceType === 'screen-share') && (
-              <div className="p-3 rounded-xl bg-zinc-900/60 border border-zinc-800 space-y-3">
-                <div className="flex items-center justify-between">
-                  <span className="font-semibold text-zinc-200 flex items-center gap-1.5">
-                    <Sliders size={13} className="text-cyan-400" />
+              <Section
+                title={
+                  <>
+                    <Sliders size={12} />
                     Ultra-Wide Letterbox Cropper
-                  </span>
-                  <span className="text-[10px] text-zinc-500 font-mono">16:9 EDID Fix</span>
-                </div>
-
+                  </>
+                }
+                meta="16:9 EDID Fix"
+              >
                 <div className="grid grid-cols-2 gap-1.5">
                   {(
                     [
@@ -421,11 +407,8 @@ export const Sidebar: React.FC = () => {
                     <button
                       key={m.id}
                       onClick={() => setUvCropMode(m.id)}
-                      className={`py-1.5 px-2 rounded-lg text-xs font-medium border text-center transition ${
-                        uvCropMode === m.id
-                          ? 'bg-cyan-500/20 text-cyan-300 border-cyan-500/50'
-                          : 'bg-zinc-950 border-zinc-800 text-zinc-400 hover:text-zinc-200'
-                      }`}
+                      aria-pressed={uvCropMode === m.id}
+                      className="option justify-center py-1.5"
                     >
                       {m.label}
                     </button>
@@ -433,41 +416,28 @@ export const Sidebar: React.FC = () => {
                 </div>
 
                 {uvCropMode === 'manual' && (
-                  <div className="space-y-2 pt-2 border-t border-zinc-800">
-                    <div>
-                      <div className="flex justify-between text-[11px] text-zinc-400 mb-1">
-                        <span>Repeat Y (Height Crop)</span>
-                        <span className="font-mono">{manualUvRepeatY.toFixed(2)}</span>
-                      </div>
-                      <input
-                        type="range"
-                        min="0.1"
-                        max="1.0"
-                        step="0.01"
-                        value={manualUvRepeatY}
-                        onChange={(e) => setManualUvRepeatY(parseFloat(e.target.value))}
-                        className="w-full accent-cyan-400 h-1 bg-zinc-800 rounded"
-                      />
-                    </div>
-
-                    <div>
-                      <div className="flex justify-between text-[11px] text-zinc-400 mb-1">
-                        <span>Offset Y (Vertical Shift)</span>
-                        <span className="font-mono">{manualUvOffsetY.toFixed(2)}</span>
-                      </div>
-                      <input
-                        type="range"
-                        min="0.0"
-                        max="0.9"
-                        step="0.01"
-                        value={manualUvOffsetY}
-                        onChange={(e) => setManualUvOffsetY(parseFloat(e.target.value))}
-                        className="w-full accent-cyan-400 h-1 bg-zinc-800 rounded"
-                      />
-                    </div>
+                  <div className="space-y-2.5 pt-2.5 border-t border-ink/[0.12]">
+                    <SliderRow
+                      label="Repeat Y (Height Crop)"
+                      value={manualUvRepeatY.toFixed(2)}
+                      min="0.1"
+                      max="1.0"
+                      step="0.01"
+                      inputValue={manualUvRepeatY}
+                      onChange={(e) => setManualUvRepeatY(parseFloat(e.target.value))}
+                    />
+                    <SliderRow
+                      label="Offset Y (Vertical Shift)"
+                      value={manualUvOffsetY.toFixed(2)}
+                      min="0.0"
+                      max="0.9"
+                      step="0.01"
+                      inputValue={manualUvOffsetY}
+                      onChange={(e) => setManualUvOffsetY(parseFloat(e.target.value))}
+                    />
                   </div>
                 )}
-              </div>
+              </Section>
             )}
           </>
         )}
@@ -475,11 +445,8 @@ export const Sidebar: React.FC = () => {
         {/* ================= TAB 2: SCREEN & STAGE ================= */}
         {activeSidebarTab === 'screen' && (
           <>
-            <div>
-              <label className="text-[11px] font-semibold text-zinc-400 uppercase tracking-wider block mb-2">
-                Aspect Ratio Presets
-              </label>
-              <div className="space-y-1.5">
+            <Section title="Aspect Ratio Presets">
+              <div className="space-y-1">
                 {ASPECT_RATIO_PRESETS.map((p) => {
                   const isSelected =
                     Math.abs(screenWidth - p.width) < 0.05 &&
@@ -488,30 +455,24 @@ export const Sidebar: React.FC = () => {
                     <button
                       key={p.id}
                       onClick={() => setScreenPreset(p.id)}
-                      className={`w-full flex items-center justify-between p-2 rounded-xl border text-xs transition ${
-                        isSelected
-                          ? 'bg-cyan-500/20 text-cyan-300 border-cyan-500/50 font-semibold'
-                          : 'bg-zinc-900/60 border-zinc-800/80 hover:bg-zinc-850 text-zinc-300'
-                      }`}
+                      aria-pressed={isSelected}
+                      className="option w-full justify-between p-2"
                     >
                       <span>{p.label}</span>
-                      <span className="font-mono text-[11px] text-zinc-400">
+                      <span className="text-[11px] tabular-nums opacity-70">
                         {p.width}m × {p.height}m
                       </span>
                     </button>
                   );
                 })}
               </div>
-            </div>
+            </Section>
 
             {/* Manual Dimensions Input */}
-            <div className="p-3 rounded-xl bg-zinc-900/60 border border-zinc-800 space-y-3">
-              <label className="text-[11px] font-semibold text-zinc-300 block">
-                Custom Physical Dimensions (Meters)
-              </label>
+            <Section title="Custom Physical Dimensions (Meters)">
               <div className="grid grid-cols-2 gap-2">
-                <div>
-                  <span className="text-[10px] text-zinc-500 block mb-1">Width (m)</span>
+                <label>
+                  <span className="text-[10px] text-ink/60 block mb-1">Width (m)</span>
                   <input
                     type="number"
                     step="0.5"
@@ -521,11 +482,11 @@ export const Sidebar: React.FC = () => {
                     onChange={(e) =>
                       setScreenDimensions(Math.max(1, parseFloat(e.target.value) || 1), screenHeight)
                     }
-                    className="w-full p-2 rounded-lg bg-zinc-950 border border-zinc-800 text-zinc-100 font-mono text-xs focus:outline-none focus:border-cyan-500"
+                    className="input"
                   />
-                </div>
-                <div>
-                  <span className="text-[10px] text-zinc-500 block mb-1">Height (m)</span>
+                </label>
+                <label>
+                  <span className="text-[10px] text-ink/60 block mb-1">Height (m)</span>
                   <input
                     type="number"
                     step="0.25"
@@ -535,254 +496,197 @@ export const Sidebar: React.FC = () => {
                     onChange={(e) =>
                       setScreenDimensions(screenWidth, Math.max(1, parseFloat(e.target.value) || 1))
                     }
-                    className="w-full p-2 rounded-lg bg-zinc-950 border border-zinc-800 text-zinc-100 font-mono text-xs focus:outline-none focus:border-cyan-500"
+                    className="input"
                   />
-                </div>
+                </label>
               </div>
-            </div>
+            </Section>
 
             {/* Transform Gizmo & Mesh Pick */}
-            <div className="space-y-2">
+            <Section title="Placement">
               <button
                 onClick={() => setShowTransformGizmo(!showTransformGizmo)}
-                className={`w-full flex items-center justify-between p-2.5 rounded-xl border text-xs transition ${
-                  showTransformGizmo
-                    ? 'bg-amber-500/20 text-amber-300 border-amber-500/50 font-semibold'
-                    : 'bg-zinc-900/80 border-zinc-800 text-zinc-300 hover:bg-zinc-800'
-                }`}
+                aria-pressed={showTransformGizmo}
+                className="option w-full justify-between"
               >
                 <span className="flex items-center gap-2">
                   <Move size={15} />
                   3D Transform Gizmo
                 </span>
-                <span className="font-mono text-[10px]">{showTransformGizmo ? 'ON' : 'OFF'}</span>
+                <span className="text-[10px] font-extrabold">{showTransformGizmo ? 'ON' : 'OFF'}</span>
               </button>
 
               <button
                 onClick={() => setIsPickingMesh(!isPickingMesh)}
-                className={`w-full flex items-center justify-between p-2.5 rounded-xl border text-xs transition ${
-                  isPickingMesh
-                    ? 'bg-cyan-500 text-zinc-950 border-cyan-400 font-bold'
-                    : 'bg-zinc-900/80 border-zinc-800 text-zinc-300 hover:bg-zinc-800'
-                }`}
+                data-state={isPickingMesh ? 'standby' : undefined}
+                className="option w-full justify-between"
               >
                 <span className="flex items-center gap-2">
                   <MousePointer size={15} />
                   {isPickingMesh ? 'Click Mesh in 3D View...' : 'Pick Screen Mesh from GLB'}
                 </span>
+                {isPickingMesh && <span className="tag tag-outline">Stby</span>}
                 {boundMeshName && !isPickingMesh && (
-                  <span className="text-[10px] text-cyan-400 font-mono truncate max-w-[100px]">
+                  <span className="text-[10px] opacity-70 truncate max-w-[100px]">
                     {boundMeshName}
                   </span>
                 )}
               </button>
-            </div>
+            </Section>
 
             {/* ================= 3 Stage Occlusion Test Items ================= */}
-            <div className="space-y-2.5">
-              <label className="text-[11px] font-semibold text-zinc-400 uppercase tracking-wider block">
-                Stage Occlusion Items
-              </label>
-
+            <Section title="Stage Occlusion Items">
               {/* 1. Presenter (Standing Person) */}
-              <div className="p-3 rounded-xl bg-zinc-900/60 border border-zinc-800 space-y-2.5">
-                <div className="flex items-center justify-between">
-                  <span className="font-semibold text-zinc-200 flex items-center gap-1.5">
-                    <User size={14} className="text-cyan-400" />
+              <div className="space-y-2.5">
+                <label className="flex items-center justify-between cursor-pointer">
+                  <span className="font-semibold flex items-center gap-1.5">
+                    <User size={14} strokeWidth={1.5} className="text-ink/60" />
                     Presenter (1.8m)
                   </span>
                   <input
                     type="checkbox"
                     checked={showPresenter}
                     onChange={(e) => setShowPresenter(e.target.checked)}
-                    className="w-4 h-4 accent-cyan-400 rounded cursor-pointer"
+                    className="w-4 h-4 cursor-pointer"
                   />
-                </div>
+                </label>
 
                 {showPresenter && (
-                  <div className="space-y-2 pt-2 border-t border-zinc-800/80">
-                    <div>
-                      <div className="flex justify-between text-[11px] text-zinc-400 mb-1">
-                        <span>Lateral Position (X)</span>
-                        <span className="font-mono text-cyan-300">{presenterOffset[0].toFixed(1)}m</span>
-                      </div>
-                      <input
-                        type="range"
-                        min="-7.5"
-                        max="7.5"
-                        step="0.1"
-                        value={presenterOffset[0]}
-                        onChange={(e) =>
-                          setPresenterOffset([parseFloat(e.target.value), presenterOffset[1]])
-                        }
-                        className="w-full accent-cyan-400 h-1 bg-zinc-800 rounded"
-                      />
-                    </div>
-
-                    <div>
-                      <div className="flex justify-between text-[11px] text-zinc-400 mb-1">
-                        <span>Distance in Front (Z)</span>
-                        <span className="font-mono text-cyan-300">{presenterOffset[1].toFixed(1)}m</span>
-                      </div>
-                      <input
-                        type="range"
-                        min="0.5"
-                        max="4.5"
-                        step="0.1"
-                        value={presenterOffset[1]}
-                        onChange={(e) =>
-                          setPresenterOffset([presenterOffset[0], parseFloat(e.target.value)])
-                        }
-                        className="w-full accent-cyan-400 h-1 bg-zinc-800 rounded"
-                      />
-                    </div>
+                  <div className="space-y-2.5 pl-5">
+                    <SliderRow
+                      label="Lateral Position (X)"
+                      value={`${presenterOffset[0].toFixed(1)}m`}
+                      min="-7.5"
+                      max="7.5"
+                      step="0.1"
+                      inputValue={presenterOffset[0]}
+                      onChange={(e) =>
+                        setPresenterOffset([parseFloat(e.target.value), presenterOffset[1]])
+                      }
+                    />
+                    <SliderRow
+                      label="Distance in Front (Z)"
+                      value={`${presenterOffset[1].toFixed(1)}m`}
+                      min="0.5"
+                      max="4.5"
+                      step="0.1"
+                      inputValue={presenterOffset[1]}
+                      onChange={(e) =>
+                        setPresenterOffset([presenterOffset[0], parseFloat(e.target.value)])
+                      }
+                    />
                   </div>
                 )}
               </div>
 
               {/* 2. Lectern / Podium */}
-              <div className="p-3 rounded-xl bg-zinc-900/60 border border-zinc-800 space-y-2.5">
-                <div className="flex items-center justify-between">
-                  <span className="font-semibold text-zinc-200 flex items-center gap-1.5">
-                    <Mic size={14} className="text-amber-400" />
+              <div className="space-y-2.5 pt-2.5 border-t border-ink/[0.12]">
+                <label className="flex items-center justify-between cursor-pointer">
+                  <span className="font-semibold flex items-center gap-1.5">
+                    <Mic size={14} strokeWidth={1.5} className="text-ink/60" />
                     Lectern / Podium (1.15m)
                   </span>
                   <input
                     type="checkbox"
                     checked={showLectern}
                     onChange={(e) => setShowLectern(e.target.checked)}
-                    className="w-4 h-4 accent-amber-400 rounded cursor-pointer"
+                    className="w-4 h-4 cursor-pointer"
                   />
-                </div>
+                </label>
 
                 {showLectern && (
-                  <div className="space-y-2 pt-2 border-t border-zinc-800/80">
-                    <div>
-                      <div className="flex justify-between text-[11px] text-zinc-400 mb-1">
-                        <span>Lateral Position (X)</span>
-                        <span className="font-mono text-amber-300">{lecternOffset[0].toFixed(1)}m</span>
-                      </div>
-                      <input
-                        type="range"
-                        min="-7.5"
-                        max="7.5"
-                        step="0.1"
-                        value={lecternOffset[0]}
-                        onChange={(e) =>
-                          setLecternOffset([parseFloat(e.target.value), lecternOffset[1]])
-                        }
-                        className="w-full accent-amber-400 h-1 bg-zinc-800 rounded"
-                      />
-                    </div>
-
-                    <div>
-                      <div className="flex justify-between text-[11px] text-zinc-400 mb-1">
-                        <span>Distance in Front (Z)</span>
-                        <span className="font-mono text-amber-300">{lecternOffset[1].toFixed(1)}m</span>
-                      </div>
-                      <input
-                        type="range"
-                        min="0.5"
-                        max="4.5"
-                        step="0.1"
-                        value={lecternOffset[1]}
-                        onChange={(e) =>
-                          setLecternOffset([lecternOffset[0], parseFloat(e.target.value)])
-                        }
-                        className="w-full accent-amber-400 h-1 bg-zinc-800 rounded"
-                      />
-                    </div>
+                  <div className="space-y-2.5 pl-5">
+                    <SliderRow
+                      label="Lateral Position (X)"
+                      value={`${lecternOffset[0].toFixed(1)}m`}
+                      min="-7.5"
+                      max="7.5"
+                      step="0.1"
+                      inputValue={lecternOffset[0]}
+                      onChange={(e) =>
+                        setLecternOffset([parseFloat(e.target.value), lecternOffset[1]])
+                      }
+                    />
+                    <SliderRow
+                      label="Distance in Front (Z)"
+                      value={`${lecternOffset[1].toFixed(1)}m`}
+                      min="0.5"
+                      max="4.5"
+                      step="0.1"
+                      inputValue={lecternOffset[1]}
+                      onChange={(e) =>
+                        setLecternOffset([lecternOffset[0], parseFloat(e.target.value)])
+                      }
+                    />
                   </div>
                 )}
               </div>
 
               {/* 3. Four-Person Panel in Tub Chairs */}
-              <div className="p-3 rounded-xl bg-zinc-900/60 border border-zinc-800 space-y-2.5">
-                <div className="flex items-center justify-between">
-                  <span className="font-semibold text-zinc-200 flex items-center gap-1.5">
-                    <Users size={14} className="text-emerald-400" />
+              <div className="space-y-2.5 pt-2.5 border-t border-ink/[0.12]">
+                <label className="flex items-center justify-between cursor-pointer">
+                  <span className="font-semibold flex items-center gap-1.5">
+                    <Users size={14} strokeWidth={1.5} className="text-ink/60" />
                     Four-Person Panel (Tub Chairs)
                   </span>
                   <input
                     type="checkbox"
                     checked={showPanel}
                     onChange={(e) => setShowPanel(e.target.checked)}
-                    className="w-4 h-4 accent-emerald-400 rounded cursor-pointer"
+                    className="w-4 h-4 cursor-pointer"
                   />
-                </div>
-                <p className="text-[10px] text-zinc-400">
+                </label>
+                <p className="text-[10px] text-ink/60 pl-5">
                   4 seated panelists in modern curved club chairs with coffee tables on stage.
                 </p>
 
                 {showPanel && (
-                  <div className="space-y-2 pt-2 border-t border-zinc-800/80">
-                    <div>
-                      <div className="flex justify-between text-[11px] text-zinc-400 mb-1">
-                        <span>Center Position (X)</span>
-                        <span className="font-mono text-emerald-300">{panelOffset[0].toFixed(1)}m</span>
-                      </div>
-                      <input
-                        type="range"
-                        min="-5.0"
-                        max="5.0"
-                        step="0.1"
-                        value={panelOffset[0]}
-                        onChange={(e) =>
-                          setPanelOffset([parseFloat(e.target.value), panelOffset[1]])
-                        }
-                        className="w-full accent-emerald-400 h-1 bg-zinc-800 rounded"
-                      />
-                    </div>
-
-                    <div>
-                      <div className="flex justify-between text-[11px] text-zinc-400 mb-1">
-                        <span>Distance in Front (Z)</span>
-                        <span className="font-mono text-emerald-300">{panelOffset[1].toFixed(1)}m</span>
-                      </div>
-                      <input
-                        type="range"
-                        min="1.0"
-                        max="4.5"
-                        step="0.1"
-                        value={panelOffset[1]}
-                        onChange={(e) =>
-                          setPanelOffset([panelOffset[0], parseFloat(e.target.value)])
-                        }
-                        className="w-full accent-emerald-400 h-1 bg-zinc-800 rounded"
-                      />
-                    </div>
+                  <div className="space-y-2.5 pl-5">
+                    <SliderRow
+                      label="Center Position (X)"
+                      value={`${panelOffset[0].toFixed(1)}m`}
+                      min="-5.0"
+                      max="5.0"
+                      step="0.1"
+                      inputValue={panelOffset[0]}
+                      onChange={(e) =>
+                        setPanelOffset([parseFloat(e.target.value), panelOffset[1]])
+                      }
+                    />
+                    <SliderRow
+                      label="Distance in Front (Z)"
+                      value={`${panelOffset[1].toFixed(1)}m`}
+                      min="1.0"
+                      max="4.5"
+                      step="0.1"
+                      inputValue={panelOffset[1]}
+                      onChange={(e) =>
+                        setPanelOffset([panelOffset[0], parseFloat(e.target.value)])
+                      }
+                    />
                   </div>
                 )}
               </div>
-            </div>
+            </Section>
           </>
         )}
 
         {/* ================= TAB 3: VENUE MODEL ================= */}
         {activeSidebarTab === 'venue' && (
           <>
-            <div>
-              <label className="text-[11px] font-semibold text-zinc-400 uppercase tracking-wider block mb-2">
-                Venue Source
-              </label>
+            <Section title="Venue Source">
               <div className="grid grid-cols-2 gap-2">
                 <button
                   onClick={() => setVenueSource('default-ballroom')}
-                  className={`p-2.5 rounded-xl border text-center transition ${
-                    venueSource === 'default-ballroom'
-                      ? 'bg-cyan-500/20 text-cyan-300 border-cyan-500/50 font-semibold'
-                      : 'bg-zinc-900 border-zinc-800 text-zinc-400 hover:text-zinc-200'
-                  }`}
+                  aria-pressed={venueSource === 'default-ballroom'}
+                  className="option justify-center"
                 >
                   Demo Ballroom
                 </button>
                 <button
                   onClick={() => glbInputRef.current?.click()}
-                  className={`p-2.5 rounded-xl border text-center transition ${
-                    venueSource === 'custom-glb'
-                      ? 'bg-cyan-500/20 text-cyan-300 border-cyan-500/50 font-semibold'
-                      : 'bg-zinc-900 border-zinc-800 text-zinc-400 hover:text-zinc-200'
-                  }`}
+                  aria-pressed={venueSource === 'custom-glb'}
+                  className="option justify-center"
                 >
                   Upload .GLB
                 </button>
@@ -794,171 +698,115 @@ export const Sidebar: React.FC = () => {
                   onChange={handleGlbUpload}
                 />
               </div>
-            </div>
+            </Section>
 
             {/* Default Ballroom Parameters */}
             {venueSource === 'default-ballroom' ? (
-              <div className="p-3 rounded-xl bg-zinc-900/60 border border-zinc-800 space-y-3">
-                <span className="font-semibold text-zinc-200 block">Stage Deck & Room Size</span>
-
-                <div>
-                  <div className="flex justify-between text-[11px] text-zinc-400 mb-1">
-                    <span>Stage Height</span>
-                    <span className="font-mono">{stageHeight.toFixed(2)}m</span>
-                  </div>
-                  <input
-                    type="range"
-                    min="0.3"
-                    max="2.5"
-                    step="0.05"
-                    value={stageHeight}
-                    onChange={(e) => setStageHeight(parseFloat(e.target.value))}
-                    className="w-full accent-cyan-400 h-1 bg-zinc-800 rounded"
-                  />
-                </div>
-
-                <div>
-                  <div className="flex justify-between text-[11px] text-zinc-400 mb-1">
-                    <span>Venue Length (Depth)</span>
-                    <span className="font-mono">{venueLength}m</span>
-                  </div>
-                  <input
-                    type="range"
-                    min="15"
-                    max="60"
-                    step="1"
-                    value={venueLength}
-                    onChange={(e) => setVenueDimensions(venueWidth, parseInt(e.target.value, 10))}
-                    className="w-full accent-cyan-400 h-1 bg-zinc-800 rounded"
-                  />
-                </div>
-
-                <div>
-                  <div className="flex justify-between text-[11px] text-zinc-400 mb-1">
-                    <span>Venue Width</span>
-                    <span className="font-mono">{venueWidth}m</span>
-                  </div>
-                  <input
-                    type="range"
-                    min="12"
-                    max="45"
-                    step="1"
-                    value={venueWidth}
-                    onChange={(e) => setVenueDimensions(parseInt(e.target.value, 10), venueLength)}
-                    className="w-full accent-cyan-400 h-1 bg-zinc-800 rounded"
-                  />
-                </div>
-              </div>
+              <Section title="Stage Deck & Room Size">
+                <SliderRow
+                  label="Stage Height"
+                  value={`${stageHeight.toFixed(2)}m`}
+                  min="0.3"
+                  max="2.5"
+                  step="0.05"
+                  inputValue={stageHeight}
+                  onChange={(e) => setStageHeight(parseFloat(e.target.value))}
+                />
+                <SliderRow
+                  label="Venue Length (Depth)"
+                  value={`${venueLength}m`}
+                  min="15"
+                  max="60"
+                  step="1"
+                  inputValue={venueLength}
+                  onChange={(e) => setVenueDimensions(venueWidth, parseInt(e.target.value, 10))}
+                />
+                <SliderRow
+                  label="Venue Width"
+                  value={`${venueWidth}m`}
+                  min="12"
+                  max="45"
+                  step="1"
+                  inputValue={venueWidth}
+                  onChange={(e) => setVenueDimensions(parseInt(e.target.value, 10), venueLength)}
+                />
+              </Section>
             ) : (
-              <div className="p-3 rounded-xl bg-zinc-900/60 border border-zinc-800 space-y-2 text-center">
-                <Upload size={24} className="mx-auto text-cyan-400" />
-                <p className="text-xs font-semibold text-zinc-200">Custom GLB Venue Loaded</p>
-                <p className="text-[10px] text-zinc-400">
-                  Click meshes to test seating or use &quot;Pick Screen Mesh from GLB&quot; on the Screen tab.
-                </p>
-                <button
-                  onClick={() => glbInputRef.current?.click()}
-                  className="px-3 py-1.5 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-200 text-xs font-medium transition"
-                >
+              <Section title="Custom GLB Venue">
+                <div className="flex items-start gap-2.5">
+                  <Upload size={18} strokeWidth={1.5} className="text-ink/60 flex-none mt-0.5" />
+                  <div className="space-y-1">
+                    <p className="text-xs font-semibold">Custom GLB Venue Loaded</p>
+                    <p className="text-[10px] text-ink/60">
+                      Click meshes to test seating or use &quot;Pick Screen Mesh from GLB&quot; on the Screen tab.
+                    </p>
+                  </div>
+                </div>
+                <button onClick={() => glbInputRef.current?.click()} className="btn btn-secondary">
                   Change .GLB File
                 </button>
-              </div>
+              </Section>
             )}
 
             {/* Venue Lighting Rig & Controls */}
-            <div className="p-3 rounded-xl bg-zinc-900/60 border border-zinc-800 space-y-3">
-              <div className="flex items-center justify-between">
-                <span className="font-semibold text-zinc-200 flex items-center gap-1.5">
-                  <Sun size={14} className="text-amber-400" />
+            <Section
+              title={
+                <>
+                  <Sun size={12} />
                   Venue Lighting Rig
-                </span>
-                <span className="text-[10px] text-zinc-500 font-mono">Real-time</span>
-              </div>
-
+                </>
+              }
+              meta="Real-time"
+            >
               {/* Lighting Presets */}
               <div>
-                <span className="text-[10px] text-zinc-500 block mb-1">Atmosphere Preset</span>
-                <div className="grid grid-cols-3 gap-1.5">
-                  <button
-                    onClick={() => setLightingPreset('conference-bright')}
-                    className={`py-1.5 px-1 rounded-lg text-[11px] font-medium border text-center transition ${
-                      lightingPreset === 'conference-bright'
-                        ? 'bg-amber-500/20 text-amber-300 border-amber-500/50 font-semibold'
-                        : 'bg-zinc-950 border-zinc-800 text-zinc-400 hover:text-zinc-200'
-                    }`}
-                  >
-                    Bright
-                  </button>
-                  <button
-                    onClick={() => setLightingPreset('ballroom-standard')}
-                    className={`py-1.5 px-1 rounded-lg text-[11px] font-medium border text-center transition ${
-                      lightingPreset === 'ballroom-standard'
-                        ? 'bg-cyan-500/20 text-cyan-300 border-cyan-500/50 font-semibold'
-                        : 'bg-zinc-950 border-zinc-800 text-zinc-400 hover:text-zinc-200'
-                    }`}
-                  >
-                    Standard
-                  </button>
-                  <button
-                    onClick={() => setLightingPreset('keynote-dark')}
-                    className={`py-1.5 px-1 rounded-lg text-[11px] font-medium border text-center transition ${
-                      lightingPreset === 'keynote-dark'
-                        ? 'bg-purple-500/20 text-purple-300 border-purple-500/50 font-semibold'
-                        : 'bg-zinc-950 border-zinc-800 text-zinc-400 hover:text-zinc-200'
-                    }`}
-                  >
-                    Dark
-                  </button>
+                <span className="text-[10px] text-ink/60 block mb-1">Atmosphere Preset</span>
+                <div className="seg w-full">
+                  {lightingPresets.map((p) => (
+                    <button
+                      key={p.id}
+                      onClick={() => setLightingPreset(p.id)}
+                      aria-pressed={lightingPreset === p.id}
+                      className="seg-opt flex-1 py-1.5 text-[11px]"
+                    >
+                      {p.label}
+                    </button>
+                  ))}
                 </div>
               </div>
 
-              {/* House Lights Slider */}
-              <div>
-                <div className="flex justify-between text-[11px] text-zinc-400 mb-1">
-                  <span>Audience House Lights</span>
-                  <span className="font-mono">{Math.round(houseLightsIntensity * 100)}%</span>
-                </div>
-                <input
-                  type="range"
-                  min="0.1"
-                  max="2.2"
-                  step="0.05"
-                  value={houseLightsIntensity}
-                  onChange={(e) => setHouseLightsIntensity(parseFloat(e.target.value))}
-                  className="w-full accent-amber-400 h-1 bg-zinc-800 rounded"
-                />
-              </div>
-
-              {/* Stage Lights Slider */}
-              <div>
-                <div className="flex justify-between text-[11px] text-zinc-400 mb-1">
-                  <span>Stage Key & Spotlights</span>
-                  <span className="font-mono">{Math.round(stageLightsIntensity * 100)}%</span>
-                </div>
-                <input
-                  type="range"
-                  min="0.2"
-                  max="2.5"
-                  step="0.05"
-                  value={stageLightsIntensity}
-                  onChange={(e) => setStageLightsIntensity(parseFloat(e.target.value))}
-                  className="w-full accent-cyan-400 h-1 bg-zinc-800 rounded"
-                />
-              </div>
+              <SliderRow
+                label="Audience House Lights"
+                value={`${Math.round(houseLightsIntensity * 100)}%`}
+                min="0.1"
+                max="2.2"
+                step="0.05"
+                inputValue={houseLightsIntensity}
+                onChange={(e) => setHouseLightsIntensity(parseFloat(e.target.value))}
+              />
+              <SliderRow
+                label="Stage Key & Spotlights"
+                value={`${Math.round(stageLightsIntensity * 100)}%`}
+                min="0.2"
+                max="2.5"
+                step="0.05"
+                inputValue={stageLightsIntensity}
+                onChange={(e) => setStageLightsIntensity(parseFloat(e.target.value))}
+              />
 
               {/* Ceiling Fixtures Toggle */}
               {venueSource === 'default-ballroom' && (
-                <div className="pt-2 border-t border-zinc-800 flex items-center justify-between">
-                  <span className="text-[11px] text-zinc-300">Ceiling Lighting Trusses</span>
+                <label className="pt-2.5 border-t border-ink/[0.12] flex items-center justify-between cursor-pointer">
+                  <span className="text-[11px]">Ceiling Lighting Trusses</span>
                   <input
                     type="checkbox"
                     checked={showCeilingFixtures}
                     onChange={(e) => setShowCeilingFixtures(e.target.checked)}
-                    className="w-4 h-4 accent-amber-400 rounded cursor-pointer"
+                    className="w-4 h-4 cursor-pointer"
                   />
-                </div>
+                </label>
               )}
-            </div>
+            </Section>
           </>
         )}
       </div>

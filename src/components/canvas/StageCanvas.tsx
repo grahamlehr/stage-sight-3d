@@ -134,25 +134,29 @@ export const StageCanvas: React.FC = () => {
       </Canvas>
 
       {/* Helpful Viewport Navigation Overlay Hint */}
-      <div className="pointer-events-none absolute bottom-4 left-1/2 -translate-x-1/2 z-10 px-3.5 py-1.5 rounded-full bg-zinc-900/85 backdrop-blur border border-zinc-700/60 shadow-lg flex items-center gap-2.5 text-xs text-zinc-300">
-        <span
-          className={`w-2 h-2 rounded-full animate-pulse ${
-            isVrPresenting ? 'bg-emerald-400' : 'bg-cyan-400'
-          }`}
-        />
+      <div
+        className={`pointer-events-none absolute bottom-4 left-1/2 -translate-x-1/2 z-10 px-3.5 py-1.5 flex items-center gap-2.5 text-xs text-ink/80 border border-ink/20 ${
+          isPickingMesh && !isVrPresenting ? 'bg-standby' : 'bg-surface/90'
+        }`}
+      >
+        {isVrPresenting ? (
+          <span className="tag tag-live">Live</span>
+        ) : (
+          <span className="signal-dot bg-ink/60" />
+        )}
         {isVrPresenting ? (
           <span>
-            <strong className="text-emerald-300">Meta Quest VR Active:</strong> Keys <kbd className="px-1 py-0.5 bg-zinc-800 rounded text-cyan-300 text-[10px]">1–4</kbd> or <kbd className="px-1 py-0.5 bg-zinc-800 rounded text-cyan-300 text-[10px]">A/X</kbd> Seat Presets &bull; <kbd className="px-1 py-0.5 bg-zinc-800 rounded text-cyan-300 text-[10px]">R</kbd> or <kbd className="px-1 py-0.5 bg-zinc-800 rounded text-cyan-300 text-[10px]">B/Y</kbd> Recenter &bull; <kbd className="px-1 py-0.5 bg-zinc-800 rounded text-cyan-300 text-[10px]">L</kbd> Lighting &bull; <kbd className="px-1 py-0.5 bg-zinc-800 rounded text-cyan-300 text-[10px]">H</kbd> Toggle VR HUD
+            <strong className="font-extrabold text-ink">Meta Quest VR Active:</strong> Keys <kbd className="kbd">1–4</kbd> or <kbd className="kbd">A/X</kbd> Seat Presets &bull; <kbd className="kbd">R</kbd> or <kbd className="kbd">B/Y</kbd> Recenter &bull; <kbd className="kbd">L</kbd> Lighting &bull; <kbd className="kbd">H</kbd> Toggle VR HUD
           </span>
         ) : isPickingMesh ? (
-          <span className="font-semibold text-cyan-300">Click any mesh in the 3D model to bind the LED screen</span>
+          <span className="font-semibold text-ink">Click any mesh in the 3D model to bind the LED screen</span>
         ) : navigationMode === 'seated' ? (
           <span>
-            <strong className="text-cyan-300">Seated View:</strong> Click & drag to look around &bull; Click any floor area to change seats &bull; Keys <kbd className="px-1 py-0.5 bg-zinc-800 rounded text-cyan-300 text-[10px]">1–4</kbd> Seat Presets
+            <strong className="font-extrabold text-ink">Seated View:</strong> Click & drag to look around &bull; Click any floor area to change seats &bull; Keys <kbd className="kbd">1–4</kbd> Seat Presets
           </span>
         ) : (
           <span>
-            <strong className="text-zinc-100">Orbit View:</strong> Left-drag to rotate &bull; Right-drag to pan &bull; <kbd className="px-1 py-0.5 bg-zinc-800 rounded text-cyan-300 text-[10px]">Shift + Click</kbd> floor to sit &bull; Keys <kbd className="px-1 py-0.5 bg-zinc-800 rounded text-cyan-300 text-[10px]">1–4</kbd> Seat Presets
+            <strong className="font-extrabold text-ink">Orbit View:</strong> Left-drag to rotate &bull; Right-drag to pan &bull; <kbd className="kbd">Shift + Click</kbd> floor to sit &bull; Keys <kbd className="kbd">1–4</kbd> Seat Presets
           </span>
         )}
       </div>
