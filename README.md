@@ -7,9 +7,9 @@ Preview ultra-wide event screens and LED walls from any seat in the room before 
 ## Features
 
 - **Screens** — 16:9, 21:9, 32:9, 3:1 and 4:1 presets, custom physical dimensions, and a drag gizmo for placement. Or bind the screen to a mesh in your own venue model.
-- **Content** — an aspect-matched test pattern, PDF or image decks, a live HDMI capture card, or a screen share. A five-slide 32:9 sample deck is built in.
+- **Content** — an aspect-matched test pattern, a PDF deck, a single PNG or JPEG, a live HDMI capture card, or a screen share. A five-slide 32:9 sample deck is built in. Slides are stretched to the screen, so export decks at the screen's aspect ratio.
 - **Ultra-wide cropping** — fixes 16:9 EDID sources on ultra-wide walls: centered, top-aligned, 1:1 or manual crop.
-- **Venues** — a procedural ballroom with adjustable size and stage height, or upload your own `.glb` / `.gltf`.
+- **Venues** — a procedural ballroom with adjustable size and stage height, or upload your own `.glb` (or a self-contained `.gltf`) authored in meters.
 - **Sightline telemetry** — live D/H ratio and horizontal off-axis angle against the bands below, plus 50° room-context and 25° eye-focus FOV modes.
 - **Occlusion checks** — a 1.8m standing presenter, a lectern and a four-person seated panel, each movable on the stage.
 - **Lighting** — conference, ballroom and keynote presets.
@@ -22,7 +22,7 @@ Preview ultra-wide event screens and LED walls from any seat in the room before 
 | D/H ratio | < 4× analytical detail · 4–6× basic reading | 6–8× small text at risk | > 8× beyond DISCAS max |
 | Horizontal off-axis | < 30° | 30–45° | > 45° |
 
-D/H is the 3D distance from the viewer's eye to the screen center, divided by the screen height. Off-axis is measured in the horizontal plane against the screen's facing direction.
+D/H is the 3D distance from the viewer's eye to the screen center, divided by the screen height. Off-axis is measured in the horizontal plane against the screen's facing direction. Both are measured to the screen center. [Sightline telemetry](docs/sightline-telemetry.md) covers the math and what it leaves out, including edge angles on ultra-wide screens.
 
 ## Controls
 
@@ -30,7 +30,8 @@ D/H is the 3D distance from the viewer's eye to the screen center, divided by th
 
 | Input | Action |
 | --- | --- |
-| Drag | Orbit (orbit view) · look around (seated view) |
+| Left-drag | Orbit (orbit view) · look around (seated view) |
+| Right-drag · scroll | Pan · zoom (orbit view) |
 | Click floor | Sit there (seated view) |
 | <kbd>Shift</kbd> + click floor | Sit there (orbit view) |
 | <kbd>1</kbd>–<kbd>4</kbd> | Seat presets |
@@ -52,7 +53,19 @@ D/H is the 3D distance from the viewer's eye to the screen center, divided by th
 
 ## VR preview
 
-VR uses WebXR (`immersive-vr`). On a PC, connect a Meta Quest through **Quest Link / Air Link** or **Virtual Desktop (VDXR)** and make it the active OpenXR runtime, then choose **Enter VR**. The view starts seated at 1.2m eye height, facing the stage.
+VR uses WebXR (`immersive-vr`). On a PC, connect a Meta Quest through **Quest Link / Air Link** or **Virtual Desktop (VDXR)** and make it the active OpenXR runtime, then choose **Enter VR**. The view starts seated at 1.2m eye height, facing the stage. See [VR preview](docs/vr-preview.md) for calibration and troubleshooting.
+
+## Documentation
+
+| Doc | Covers |
+| --- | --- |
+| [Content sources and cropping](docs/content-sources.md) | Decks, capture cards, screen share and ultra-wide crop modes |
+| [Custom venues](docs/custom-venues.md) | Preparing a `.glb` and binding the screen to a mesh |
+| [VR preview](docs/vr-preview.md) | Headset setup, calibration and troubleshooting |
+| [Sightline telemetry](docs/sightline-telemetry.md) | How D/H and off-axis are computed, and their limits |
+| [Architecture](docs/architecture.md) | State, scene, content pipeline and lifecycle rules |
+| [Contributing](CONTRIBUTING.md) | Setup, checks, conventions and pull requests |
+| [Changelog](CHANGELOG.md) | What has changed |
 
 ## Getting started
 
@@ -87,6 +100,7 @@ src/
     ui/       Sidebar, top HUD, slide transport bar, about modal
   store/      Single Zustand store holding all app state
   utils/      DISCAS and UV-crop math, PDF rasterizing, test-pattern drawing
+docs/         Guides, reference and architecture (see docs/README.md)
 ```
 
 The math in `src/utils/discasMath.ts` and `src/utils/uvCropMath.ts` is pure and has unit tests next to it.
