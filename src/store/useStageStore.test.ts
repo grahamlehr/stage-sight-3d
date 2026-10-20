@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it } from 'vitest';
 import { useStageStore } from './useStageStore';
 import { STAGE } from '../components/canvas/venue/roomLayout';
 
@@ -61,5 +61,42 @@ describe('default occlusion prop offsets', () => {
       expect(prop.minZ).toBeGreaterThan(screenZ);
       expect(prop.maxZ).toBeLessThanOrEqual(STAGE.frontZ - FRONT_EDGE_MARGIN);
     });
+  });
+});
+
+const Q = Math.PI / 2;
+const initial = useStageStore.getState();
+
+describe('venue rotation', () => {
+  beforeEach(() => {
+    useStageStore.setState(initial, true);
+  });
+
+  it('snaps the venue yaw to a quarter turn', () => {
+    useStageStore.getState().setVenueYaw(Q + 0.2);
+    expect(useStageStore.getState().venueYaw).toBeCloseTo(Q);
+  });
+
+  it('carries the seat round with the venue', () => {
+    // Regression: auto-aligning a venue left the seat at its old world
+    // position, which ended up beside the screen at 129° off-axis
+    useStageStore.setState({ seatPosition: [-3, 0, -14.3] });
+    useStageStore.getState().setVenueYaw(Q);
+    const [x, y, z] = useStageStore.getState().seatPosition;
+    expect(x).toBeCloseTo(-14.3);
+    expect(y).toBe(0);
+    expect(z).toBeCloseTo(3);
+  });
+
+  it('turns the seat by the change in yaw, not the absolute yaw', () => {
+    useStageStore.setState({ venueYaw: Q, seatPosition: [1, 0, 0] });
+    useStageStore.getState().setVenueYaw(Q);
+    expect(useStageStore.getState().seatPosition).toEqual([1, 0, 0]);
+  });
+
+  it('resets the yaw when a different model is loaded', () => {
+    useStageStore.setState({ customGlbUrl: '/a.glb', venueYaw: Q });
+    useStageStore.getState().setCustomGlbUrl('/b.glb');
+    expect(useStageStore.getState().venueYaw).toBe(0);
   });
 });

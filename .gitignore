@@ -31,3 +31,6 @@ StageSightTest.pptx
 !.env.example
 .ua
 .claude/settings.local.json
+
+# Local test venues and images (may be large or private)
+test-assets/

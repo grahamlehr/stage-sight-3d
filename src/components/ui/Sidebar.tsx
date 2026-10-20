@@ -107,6 +107,8 @@ export const Sidebar: React.FC = () => {
   const venueSource = useStageStore((s) => s.venueSource);
   const setVenueSource = useStageStore((s) => s.setVenueSource);
   const setCustomGlbUrl = useStageStore((s) => s.setCustomGlbUrl);
+  const venueYaw = useStageStore((s) => s.venueYaw);
+  const setVenueYaw = useStageStore((s) => s.setVenueYaw);
   const stageHeight = useStageStore((s) => s.stageHeight);
   const setStageHeight = useStageStore((s) => s.setStageHeight);
   const venueLength = useStageStore((s) => s.venueLength);
@@ -740,6 +742,24 @@ export const Sidebar: React.FC = () => {
                     <p className="text-[10px] text-ink/60">
                       Click meshes to test seating or use &quot;Pick Screen Mesh from GLB&quot; on the Screen tab.
                     </p>
+                  </div>
+                </div>
+                <div className="space-y-1.5">
+                  <p className="text-[10px] text-ink/60">
+                    Rotation: turn the model until its screen wall faces the audience. Picking the screen mesh
+                    does this for you.
+                  </p>
+                  <div className="grid grid-cols-4 gap-2">
+                    {[0, 90, 180, 270].map((deg) => (
+                      <button
+                        key={deg}
+                        onClick={() => setVenueYaw((deg * Math.PI) / 180)}
+                        aria-pressed={Math.round((venueYaw * 180) / Math.PI) === deg}
+                        className="option justify-center"
+                      >
+                        {deg}°
+                      </button>
+                    ))}
                   </div>
                 </div>
                 <button onClick={() => glbInputRef.current?.click()} className="btn btn-secondary">
