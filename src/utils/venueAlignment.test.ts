@@ -1,5 +1,12 @@
 import { describe, expect, it } from 'vitest';
-import { SCREEN_STANDOFF, alignScreenMesh, normaliseQuarterTurn, rotateAboutY } from './venueAlignment';
+import {
+  DECK_PROBE_DISTANCE,
+  SCREEN_STANDOFF,
+  alignScreenMesh,
+  deckProbeOrigin,
+  normaliseQuarterTurn,
+  rotateAboutY,
+} from './venueAlignment';
 
 const Q = Math.PI / 2;
 
@@ -99,5 +106,30 @@ describe('alignScreenMesh', () => {
     const a = alignScreenMesh([0, 1, -5], [0.44, 0.2, 0.05], [0, 1, 0]);
     expect(a.width).toBe(1);
     expect(a.height).toBe(1);
+  });
+});
+
+describe('deckProbeOrigin', () => {
+  it('starts in front of a +Z wall at its centre height', () => {
+    const center: [number, number, number] = [0, 3.4, -12];
+    const a = alignScreenMesh(center, [16, 4.5, 0.2], [0, 1.2, 0]);
+    const [x, y, z] = deckProbeOrigin(center, a);
+    expect(x).toBe(0);
+    expect(y).toBe(3.4);
+    expect(z).toBeCloseTo(-12 + 0.1 + DECK_PROBE_DISTANCE);
+  });
+
+  it('starts on the audience side of a wall facing -X', () => {
+    // The real Paris venue: LED wall at x = 5.13 facing the chairs at -X, with
+    // a 0.3m deck running from x = 3 to x = 5 in front of it. The probe has to
+    // land over that deck, not behind the wall.
+    const center: [number, number, number] = [5.13, 2.8, -14.31];
+    const a = alignScreenMesh(center, [0, 4, 11], [-1, 1.2, -14]);
+    const [x, y, z] = deckProbeOrigin(center, a);
+    expect(x).toBeCloseTo(5.13 - DECK_PROBE_DISTANCE);
+    expect(x).toBeGreaterThan(3);
+    expect(x).toBeLessThan(5);
+    expect(y).toBe(2.8);
+    expect(z).toBe(-14.31);
   });
 });

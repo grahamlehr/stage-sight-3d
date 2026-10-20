@@ -46,6 +46,10 @@ Then the mesh's world-space bounding box, after the turn, sets the preview scree
 - **Height** is the box's Y extent, rounded to 0.1m, minimum 1m.
 - **Position** is the center of the box's front face, plus 2cm towards the audience so the preview doesn't flicker against the wall.
 
+Binding also finds the stage, so the presenter, lectern and panel stand on it instead of floating at the demo ballroom's 1m deck height. A ray is cast straight down from 1m in front of the wall, at the wall's centre height, and the first surface it hits sets **Stage Floor Height**. If it hits nothing, the props go on the floor at `y = 0`.
+
+**Stage Floor Height** sits at the top of **Stage Occlusion Items** on the Screen tab, for custom venues only. Use it if the stage in front of your wall isn't level, or if the ray hit something else first, such as a lectern in the model. A newly uploaded model starts at 0m.
+
 The picked mesh's name appears next to the button.
 
 **Binding copies size and position, and snaps the facing to a quarter turn.** The preview screen is still a flat plane facing +Z. A wall that is curved or angled off the X and Z axes is approximated, not reproduced, and its telemetry is graded as if it faced the nearest axis.

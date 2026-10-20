@@ -75,6 +75,8 @@ export interface StageState {
   customGlbUrl: string | null;
   /** Custom venue turn about Y in radians, a multiple of π/2, so its screen wall faces +Z. */
   venueYaw: number;
+  /** Height of a custom venue's stage deck in metres; the occlusion props stand on it. */
+  customDeckHeight: number;
   stageHeight: number;
   venueLength: number;
   venueWidth: number;
@@ -138,6 +140,7 @@ export interface StageState {
   setVenueSource: (source: VenueSource) => void;
   setCustomGlbUrl: (url: string | null) => void;
   setVenueYaw: (yaw: number) => void;
+  setCustomDeckHeight: (height: number) => void;
   setStageHeight: (height: number) => void;
   setVenueDimensions: (width: number, length: number) => void;
   setHouseLightsIntensity: (intensity: number) => void;
@@ -196,6 +199,7 @@ export const useStageStore = create<StageState>((set, get) => ({
   venueSource: 'default-ballroom',
   customGlbUrl: null,
   venueYaw: 0,
+  customDeckHeight: 0,
   stageHeight: 1.0,
   venueLength: 30,
   venueWidth: 20,
@@ -277,7 +281,7 @@ export const useStageStore = create<StageState>((set, get) => ({
       URL.revokeObjectURL(previous);
     }
     // A new model starts unturned; its orientation has nothing to do with the last one's
-    set(previous === customGlbUrl ? { customGlbUrl } : { customGlbUrl, venueYaw: 0 });
+    set(previous === customGlbUrl ? { customGlbUrl } : { customGlbUrl, venueYaw: 0, customDeckHeight: 0 });
   },
   setVenueYaw: (yaw) => {
     // Carry the seat round with the room so the viewer stays in the same chair
@@ -286,6 +290,7 @@ export const useStageStore = create<StageState>((set, get) => ({
     const next = normaliseQuarterTurn(yaw);
     set({ venueYaw: next, seatPosition: rotateAboutY(seatPosition, next - venueYaw) });
   },
+  setCustomDeckHeight: (customDeckHeight) => set({ customDeckHeight: Math.max(0, customDeckHeight) }),
   setStageHeight: (stageHeight) => set({ stageHeight }),
   setVenueDimensions: (venueWidth, venueLength) => set({ venueWidth, venueLength }),
   setHouseLightsIntensity: (houseLightsIntensity) => set({ houseLightsIntensity }),
