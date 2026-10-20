@@ -7,6 +7,7 @@ import { ScreenSurface } from './ScreenSurface';
 import { PresenterSilhouette } from './PresenterSilhouette';
 import { CameraController } from './CameraController';
 import { VrControllerRig } from './VrControllerRig';
+import { FloorPlanView } from './FloorPlanView';
 
 export const StageCanvas: React.FC = () => {
   const venueSource = useStageStore((s) => s.venueSource);
@@ -16,6 +17,9 @@ export const StageCanvas: React.FC = () => {
   const stageLightsIntensity = useStageStore((s) => s.stageLightsIntensity);
   const lightingPreset = useStageStore((s) => s.lightingPreset);
   const isVrPresenting = useStageStore((s) => s.isVrPresenting);
+  const isFloorPlanOpen = useStageStore((s) => s.isFloorPlanOpen);
+  const floorPlanSlot = useStageStore((s) => s.floorPlanSlot);
+  const showFloorPlan = venueSource === 'custom-glb' && isFloorPlanOpen && !isVrPresenting;
 
   // Background color subtle tone adjustment based on preset
   const bgColor =
@@ -28,7 +32,7 @@ export const StageCanvas: React.FC = () => {
   return (
     <div
       className={`relative w-full h-full ${
-        isPickingMesh
+        isPickingMesh || showFloorPlan
           ? 'cursor-crosshair'
           : navigationMode === 'seated'
           ? 'cursor-move'
@@ -130,13 +134,14 @@ export const StageCanvas: React.FC = () => {
         </Suspense>
 
         <CameraController />
+        {showFloorPlan && <FloorPlanView />}
         <VrControllerRig />
       </Canvas>
 
       {/* Helpful Viewport Navigation Overlay Hint */}
       <div
         className={`pointer-events-none absolute bottom-4 left-1/2 -translate-x-1/2 z-10 px-3.5 py-1.5 flex items-center gap-2.5 text-xs text-ink/80 border border-ink/20 ${
-          isPickingMesh && !isVrPresenting ? 'bg-standby' : 'bg-surface/90'
+          (isPickingMesh || showFloorPlan) && !isVrPresenting ? 'bg-standby' : 'bg-surface/90'
         }`}
       >
         {isVrPresenting ? (
@@ -147,6 +152,10 @@ export const StageCanvas: React.FC = () => {
         {isVrPresenting ? (
           <span>
             <strong className="font-extrabold text-ink">Meta Quest VR Active:</strong> Keys <kbd className="kbd">1–4</kbd> or <kbd className="kbd">A/X</kbd> Seat Presets &bull; <kbd className="kbd">R</kbd> or <kbd className="kbd">B/Y</kbd> Recenter &bull; <kbd className="kbd">L</kbd> Lighting &bull; <kbd className="kbd">H</kbd> Toggle VR HUD
+          </span>
+        ) : showFloorPlan ? (
+          <span>
+            <strong className="font-extrabold text-ink">Floor Plan:</strong> click the floor to place View {floorPlanSlot + 1}, drag to aim it &bull; <kbd className="kbd">Esc</kbd> to close
           </span>
         ) : isPickingMesh ? (
           <span className="font-semibold text-ink">Click any mesh in the 3D model to bind the LED screen</span>

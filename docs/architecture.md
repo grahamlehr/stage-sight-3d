@@ -43,10 +43,10 @@ All app state lives in [`src/store/useStageStore.ts`](../src/store/useStageStore
 
 | Slice | Holds |
 | --- | --- |
-| Venue | Source (`default-ballroom` or `custom-glb`), the uploaded blob URL, the custom venue's quarter-turn `venueYaw` and deck height (`customDeckHeight`), the ballroom's stage height, room size, lighting preset and intensities |
+| Venue | Source (`default-ballroom` or `custom-glb`), the uploaded blob URL, the custom venue's quarter-turn `venueYaw` and deck height (`customDeckHeight`), the four hand-placed `customSeatViews`, the measured `customVenueBounds`, the floor plan's open flag, selected slot and cut height, the ballroom's stage height, room size, lighting preset and intensities |
 | Screen | Width and height in meters, world position and rotation, gizmo toggle, mesh-picking state and the bound mesh name |
 | Content | Source type, rasterized slide canvases, current slide, the live `MediaStream`, and the UV crop mode and its manual values |
-| Camera | Orbit or seated navigation, seat position and FOV mode |
+| Camera | Orbit or seated navigation, seat position, the seated heading (`seatYaw`, null means face the screen) and FOV mode. `getActiveSeatPresets` returns the ballroom's fixed seats or the custom venue's placed views |
 | VR | Support and presenting flags, HUD visibility, a recenter counter, and the session toggle function |
 | Occlusion | Visibility and stage offsets for the presenter, lectern and panel. Offsets are `[x, z]` from the screen center, z toward the audience. The defaults (presenter `[-4, 1.2]`, lectern `[4, 1.2]`, panel `[0, 1]`) don't overlap with all three shown and stay back from the deck's front edge, which is 2m in front of the default screen. |
 | Telemetry | The latest `DiscasTelemetry` result |
@@ -67,9 +67,10 @@ Store actions do the work that has to happen whenever a value changes. For examp
 | Component | Responsibility |
 | --- | --- |
 | [`DemoBallroom`](../src/components/canvas/DemoBallroom.tsx) | Procedural conference ballroom, built from the parts in [`venue/`](../src/components/canvas/venue): carpeted floor, paneled walls with doors and exit signs, a tiled ceiling, the skirted 18m × 5m stage with stairs and drape, theatre-style banquet seating ([`seatingLayout`](../src/utils/seatingLayout.ts)) and optional ceiling trusses. Textures are painted on canvases at startup, so there are no image assets. Clicking the floor picks a spot; clicking a chair sits in it. |
-| [`CustomGlbVenue`](../src/components/canvas/CustomGlbVenue.tsx) | Loads the uploaded model with `GLTFLoader` inside an error boundary. If loading fails, the app falls back to the ballroom and releases the blob. Handles click-to-sit and click-to-bind for the screen mesh. The model sits in a group turned by `venueYaw`; binding a sideways wall turns it to face +Z ([`venueAlignment`](../src/utils/venueAlignment.ts)). |
+| [`CustomGlbVenue`](../src/components/canvas/CustomGlbVenue.tsx) | Loads the uploaded model with `GLTFLoader` inside an error boundary. If loading fails, the app falls back to the ballroom and releases the blob. Handles click-to-sit and click-to-bind for the screen mesh, and publishes the model's world-space bounds as `customVenueBounds`. The model sits in a group turned by `venueYaw`; binding a sideways wall turns it to face +Z ([`venueAlignment`](../src/utils/venueAlignment.ts)). |
 | [`ScreenSurface`](../src/components/canvas/ScreenSurface.tsx) | The screen: bezel, unlit display plane and underglow. Builds the texture for the active content source and attaches the translate gizmo. |
 | [`PresenterSilhouette`](../src/components/canvas/PresenterSilhouette.tsx) | Occlusion props: standing presenter, lectern and four-person seated panel. It places meshes; the shapes come from [`stagePropGeometry`](../src/components/canvas/stagePropGeometry.ts). See [Occlusion props](#occlusion-props). |
+| [`FloorPlanView`](../src/components/canvas/FloorPlanView.tsx) | Top-down floor plan for custom venues: an orthographic default camera, a renderer clipping plane for the section cut, and pointer handlers that place and aim the four camera views ([`floorPlan`](../src/utils/floorPlan.ts)). Mounted only while the plan is open, and restores the perspective camera and clears the clipping plane on unmount. |
 | [`CameraController`](../src/components/canvas/CameraController.tsx) | Orbit controls, seated look-around, FOV switching, desktop hotkeys and the telemetry loop. |
 | [`VrControllerRig`](../src/components/canvas/VrControllerRig.tsx) | WebXR session, seated head calibration, controller rays and teleporting, gamepad bindings and the in-headset HUD. |
 
@@ -96,7 +97,7 @@ The presenter, lectern and panel are procedural, built from three.js primitives 
 ### Navigation modes
 
 - **Orbit.** drei `OrbitControls`, with the polar angle clamped so the camera can't go below the floor.
-- **Seated.** Orbit controls are off. The camera sits at the seat's eye height and is aimed at the screen center, and dragging adjusts yaw and pitch. Pitch is clamped to ±72°.
+- **Seated.** Orbit controls are off. The camera sits at the seat's eye height and is aimed at the screen center (or along `seatYaw`, for a custom view), and dragging adjusts yaw and pitch. Pitch is clamped to ±72°.
 - **VR.** Starting a session switches to seated mode. The camera is reparented to a rig group, and the first valid headset pose is calibrated so that facing forward means facing the stage at 1.2m. A floor guard re-pins the eye only if it drops below 0.6m above the seat.
 
 ## Content pipeline
@@ -135,6 +136,6 @@ These are in the code today. Fix them or document them; don't rely on them silen
 - **Screen rotation can't be set from the UI.** `screenRotation` exists and the telemetry math honors its Y component, but no control calls `setScreenRotation`, so it is always `[0, 0, 0]`.
 - **`screenMode` is unused.** The `'procedural' | 'mesh-bind'` field and its setter are never read or written outside the store. Mesh binding only copies the picked mesh's size and center into the procedural screen.
 - **`showPresenterSilhouette` is a legacy alias.** Its setter also sets `showPresenter`, and nothing else reads it.
-- **Seats are always on a flat floor at `y = 0`,** even in a custom venue. Raked seating and balconies aren't modeled.
-- **The seat presets assume the demo ballroom's layout.** In a custom venue they use the same coordinates.
+- **Click-to-sit is always on a flat floor at `y = 0`,** even in a custom venue. Camera views placed on the floor plan use the clicked floor height, so use those for raked seating and balconies.
+- **VR ignores a custom view's heading.** The headset's first calibration faces the screen.
 - **The orbit camera's target is fixed at `[0, 2, -5]`.** After a custom venue is turned, orbit view still circles that point rather than the bound screen.

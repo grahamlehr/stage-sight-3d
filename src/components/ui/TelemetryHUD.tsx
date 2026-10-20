@@ -11,7 +11,7 @@ import {
   Glasses,
   RotateCcw,
 } from 'lucide-react';
-import { useStageStore, SEAT_PRESETS } from '../../store/useStageStore';
+import { useStageStore, getActiveSeatPresets } from '../../store/useStageStore';
 import { Logo } from './Logo';
 import { AboutModal } from './AboutModal';
 
@@ -38,6 +38,9 @@ export const TelemetryHUD: React.FC = () => {
   const fovMode = useStageStore((s) => s.fovMode);
   const setFovMode = useStageStore((s) => s.setFovMode);
   const applySeatPreset = useStageStore((s) => s.applySeatPreset);
+  const venueSource = useStageStore((s) => s.venueSource);
+  const customSeatViews = useStageStore((s) => s.customSeatViews);
+  const seatPresets = getActiveSeatPresets({ venueSource, customSeatViews });
   const isSidebarOpen = useStageStore((s) => s.isSidebarOpen);
   const setIsSidebarOpen = useStageStore((s) => s.setIsSidebarOpen);
   const lightingPreset = useStageStore((s) => s.lightingPreset);
@@ -196,16 +199,20 @@ export const TelemetryHUD: React.FC = () => {
             <span className="label px-3 py-1 flex items-center gap-1">
               <Info size={11} /> Quick Sightline Tests
             </span>
-            {SEAT_PRESETS.map((preset, i) => (
+            {seatPresets.map((preset, i) => (
               <button
                 key={preset.id}
                 onClick={() => applySeatPreset(preset.id)}
-                className="w-full text-left px-3 py-2 border-t border-ink/[0.12] hover:bg-ink/[0.07] text-xs transition flex items-start gap-2.5"
+                disabled={!preset.placed}
+                title={preset.placed ? undefined : 'Not placed yet — open the floor plan on the Venue tab'}
+                className="w-full text-left px-3 py-2 border-t border-ink/[0.12] hover:bg-ink/[0.07] text-xs transition flex items-start gap-2.5 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-transparent"
               >
                 <span className="font-extrabold tabular-nums text-ink/60">{i + 1}</span>
                 <span className="flex flex-col">
                   <span className="font-semibold">{preset.name}</span>
-                  <span className="text-[10px] text-ink/60">{preset.description}</span>
+                  <span className="text-[10px] text-ink/60">
+                    {preset.placed ? preset.description : 'Not placed yet — open the floor plan on the Venue tab'}
+                  </span>
                 </span>
               </button>
             ))}

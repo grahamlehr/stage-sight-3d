@@ -1,18 +1,28 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import * as THREE from 'three';
 import { useThree, useFrame } from '@react-three/fiber';
 import { OrbitControls as OrbitControlsImpl } from 'three-stdlib';
 import { OrbitControls } from '@react-three/drei';
-import { useStageStore, SEAT_PRESETS } from '../../store/useStageStore';
+import { useStageStore, getActiveSeatPresets } from '../../store/useStageStore';
 import { computeDiscasTelemetry } from '../../utils/discasMath';
+import { rotateAboutY } from '../../utils/venueAlignment';
+import { seatedLookTarget } from '../../utils/floorPlan';
 
 export const CameraController: React.FC = () => {
-  const { camera, gl } = useThree();
+  const gl = useThree((s) => s.gl);
+  // The floor plan swaps in an orthographic default camera. Everything here
+  // keeps driving the perspective camera the scene started with: drei's
+  // OrbitControls would otherwise be rebuilt around the other camera and lose
+  // its target, and the seat effects would move the plan camera.
+  const defaultCamera = useThree((s) => s.camera);
+  const [camera] = useState(defaultCamera);
   const orbitRef = useRef<OrbitControlsImpl>(null);
   const worldPosRef = useRef(new THREE.Vector3());
 
   const navigationMode = useStageStore((s) => s.navigationMode);
   const seatPosition = useStageStore((s) => s.seatPosition);
+  const seatYaw = useStageStore((s) => s.seatYaw);
+  const isFloorPlanOpen = useStageStore((s) => s.isFloorPlanOpen);
   const fovMode = useStageStore((s) => s.fovMode);
   const screenPosition = useStageStore((s) => s.screenPosition);
   const screenRotation = useStageStore((s) => s.screenRotation);
@@ -57,12 +67,17 @@ export const CameraController: React.FC = () => {
       const eyePos = new THREE.Vector3(sx, sy + eyeHeight, sz);
       camera.position.copy(eyePos);
 
-      // Point camera at center of screen
-      const screenTarget = new THREE.Vector3(...screenPosition);
-      camera.lookAt(screenTarget);
+      // Point the camera at the centre of the screen, or along the heading of a
+      // custom view placed on the floor plan
+      const lookTarget = new THREE.Vector3(
+        ...(seatYaw === null
+          ? screenPosition
+          : seatedLookTarget(eyePos.toArray(), seatYaw, screenPosition))
+      );
+      camera.lookAt(lookTarget);
 
-      // Compute initial yaw and pitch relative to screen target
-      const forward = new THREE.Vector3().subVectors(screenTarget, eyePos).normalize();
+      // Compute initial yaw and pitch relative to that target
+      const forward = new THREE.Vector3().subVectors(lookTarget, eyePos).normalize();
       seatedYawPitchRef.current.yaw = Math.atan2(forward.x, forward.z);
       seatedYawPitchRef.current.pitch = Math.asin(forward.y);
 
@@ -71,14 +86,43 @@ export const CameraController: React.FC = () => {
       }
     } else {
       if (orbitRef.current) {
-        orbitRef.current.enabled = true;
+        // The floor plan has its own fixed top-down view
+        orbitRef.current.enabled = !useStageStore.getState().isFloorPlanOpen;
       }
     }
-  }, [navigationMode, seatPosition, screenPosition, camera, isVrPresenting]);
+  }, [navigationMode, seatPosition, seatYaw, screenPosition, camera, isVrPresenting, isFloorPlanOpen]);
+
+  // 2a. The perspective camera isn't resized while the plan camera is the
+  // default, so refresh its aspect ratio when the plan closes.
+  useEffect(() => {
+    if (isFloorPlanOpen) return;
+    const persCamera = camera as THREE.PerspectiveCamera;
+    if (persCamera.isPerspectiveCamera && gl.domElement.clientHeight > 0) {
+      persCamera.aspect = gl.domElement.clientWidth / gl.domElement.clientHeight;
+      persCamera.updateProjectionMatrix();
+    }
+  }, [isFloorPlanOpen, camera, gl]);
+
+  // 2b. Turn the orbit camera with the venue. Picking a screen mesh turns a
+  // custom venue about the world origin; without this the room spins under a
+  // still camera, which reads as the camera jumping somewhere else. Seated
+  // views are covered by effect 2, because setVenueYaw carries the seat round.
+  useEffect(() => {
+    return useStageStore.subscribe((state, prev) => {
+      if (state.venueYaw === prev.venueYaw || state.isVrPresenting || state.navigationMode !== 'orbit') return;
+      const delta = state.venueYaw - prev.venueYaw;
+      camera.position.fromArray(rotateAboutY(camera.position.toArray(), delta));
+      const controls = orbitRef.current;
+      if (controls) {
+        controls.target.fromArray(rotateAboutY(controls.target.toArray(), delta));
+        controls.update();
+      }
+    });
+  }, [camera]);
 
   // 3. Pointer drag look-around when seated (Flat desktop mode)
   useEffect(() => {
-    if (navigationMode !== 'seated' || isVrPresenting) return;
+    if (navigationMode !== 'seated' || isVrPresenting || isFloorPlanOpen) return;
 
     const domElement = gl.domElement;
 
@@ -135,9 +179,9 @@ export const CameraController: React.FC = () => {
       window.removeEventListener('pointermove', handlePointerMove);
       window.removeEventListener('pointerup', handlePointerUp);
     };
-  }, [navigationMode, seatPosition, camera, gl, isVrPresenting]);
+  }, [navigationMode, seatPosition, camera, gl, isVrPresenting, isFloorPlanOpen]);
 
-  // 4. Desk/PCVR Hotkeys: 1-4 Seat Presets, R Recenter VR, L Cycle Lighting, H Toggle VR HUD
+  // 4. Desk/PCVR Hotkeys: 1-4 Seat Presets, Esc close floor plan, R Recenter VR, L Cycle Lighting, H Toggle VR HUD
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       const tag = (e.target as HTMLElement)?.tagName;
@@ -146,9 +190,13 @@ export const CameraController: React.FC = () => {
       const state = useStageStore.getState();
       if (e.key >= '1' && e.key <= '4') {
         const idx = parseInt(e.key, 10) - 1;
-        if (SEAT_PRESETS[idx]) {
-          state.applySeatPreset(SEAT_PRESETS[idx].id);
+        // Unplaced custom views can't be applied
+        const preset = getActiveSeatPresets(state)[idx];
+        if (preset?.placed) {
+          state.applySeatPreset(preset.id);
         }
+      } else if (e.key === 'Escape') {
+        if (state.isFloorPlanOpen) state.setIsFloorPlanOpen(false);
       } else if (e.key === 'r' || e.key === 'R') {
         state.triggerVrRecenter();
       } else if (e.key === 'l' || e.key === 'L') {
@@ -165,6 +213,8 @@ export const CameraController: React.FC = () => {
   // 5. Live DISCAS Telemetry Calculation on frame (throttled, using world eye position)
   const lastTelemetryUpdate = useRef(0);
   useFrame(({ clock }) => {
+    // The plan camera isn't an eye, so there's nothing to grade
+    if (useStageStore.getState().isFloorPlanOpen) return;
     const elapsed = clock.getElapsedTime();
     if (elapsed - lastTelemetryUpdate.current > 0.05) {
       lastTelemetryUpdate.current = elapsed;
@@ -192,7 +242,8 @@ export const CameraController: React.FC = () => {
       <OrbitControls
         ref={orbitRef}
         makeDefault
-        enabled={!isVrPresenting && navigationMode === 'orbit'}
+        camera={camera}
+        enabled={!isVrPresenting && navigationMode === 'orbit' && !isFloorPlanOpen}
         enableDamping
         dampingFactor={0.08}
         maxPolarAngle={Math.PI / 2 - 0.02} // Do not dip below venue floor

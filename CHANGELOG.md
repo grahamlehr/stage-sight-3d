@@ -8,6 +8,7 @@ No release has been tagged yet. `main` deploys continuously to GitHub Pages, and
 
 ### Added
 
+- **Floor plan for custom venues.** A top-down plan with an adjustable section cut lets you place and point four camera views on the venue's floor. Keys 1–4, the Seat Presets menu and VR cycling use them in place of the ballroom's fixed seats, and a view keeps the clicked floor height and heading so balconies and raked tiers work. Views reset when a different model is uploaded and turn with the venue (2026-10-20).
 - **Stage floor height for custom venues.** Picking the screen mesh finds the stage in front of it and stands the presenter, lectern and panel on it. A **Stage Floor Height** slider on the Screen tab adjusts it by hand (2026-10-20).
 - **Venue rotation.** The Venue tab can turn a custom model in quarter turns so its screen wall faces the audience. The seat turns with the room (2026-10-20).
 - **Realistic default ballroom.** Theatre-style conference seating with center, side and cross aisles; upholstered banquet chairs on steel frames; paneled walls with walnut wainscot, pilasters and sconces; double doors with exit signs; an acoustic tile ceiling with downlights; a skirted stage with carpeted stairs, handrails and a velour drape; and procedural carpet, fabric, wood and tile textures. Clicking a chair sits in it (2026-10-19).
@@ -31,6 +32,7 @@ No release has been tagged yet. `main` deploys continuously to GitHub Pages, and
 
 ### Fixed
 
+- **Picking the screen mesh no longer appears to move the camera.** The orbit camera now turns with the venue, so the room no longer spins under a still camera (2026-10-20).
 - **Floating props in custom venues.** The occlusion props used the demo ballroom's 1m deck height in every venue, so they floated 0.7m above a real venue's 0.3m stage (2026-10-20).
 - **Side-facing screen walls.** Picking a screen mesh on a wall that faces sideways or backwards now turns the venue so the wall faces +Z, then binds the preview screen flat on it, 2cm proud of the face. Before, the screen stayed side-on to the wall with no way to rotate it, and the off-axis reading was measured against the wrong direction (2026-10-20).
 - **Gizmo drags.** Dragging a gizmo handle no longer moves the camera. In orbit view the camera used to start orbiting partway through the drag, and in seated view the press also looked around and the camera re-aimed at the screen on every move (2026-10-19).
