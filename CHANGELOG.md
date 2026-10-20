@@ -8,6 +8,7 @@ No release has been tagged yet. `main` deploys continuously to GitHub Pages, and
 
 ### Added
 
+- **Venue rotation.** The Venue tab can turn a custom model in quarter turns so its screen wall faces the audience. The seat turns with the room (2026-10-20).
 - **Realistic default ballroom.** Theatre-style conference seating with center, side and cross aisles; upholstered banquet chairs on steel frames; paneled walls with walnut wainscot, pilasters and sconces; double doors with exit signs; an acoustic tile ceiling with downlights; a skirted stage with carpeted stairs, handrails and a velour drape; and procedural carpet, fabric, wood and tile textures. Clicking a chair sits in it (2026-10-19).
 - **First-run tour.** A six-step guide that spotlights the sidebar, navigation, telemetry, FOV and lighting, and VR controls, with buttons to try each one live. It can be dismissed for good and reopened from the About panel (2026-10-19).
 - **Docs.** A docs folder covering architecture, sightline telemetry, content sources, custom venues and VR preview, plus a contributing guide, this changelog and an archive policy (2026-10-19).
@@ -29,6 +30,7 @@ No release has been tagged yet. `main` deploys continuously to GitHub Pages, and
 
 ### Fixed
 
+- **Side-facing screen walls.** Picking a screen mesh on a wall that faces sideways or backwards now turns the venue so the wall faces +Z, then binds the preview screen flat on it, 2cm proud of the face. Before, the screen stayed side-on to the wall with no way to rotate it, and the off-axis reading was measured against the wrong direction (2026-10-20).
 - **Gizmo drags.** Dragging a gizmo handle no longer moves the camera. In orbit view the camera used to start orbiting partway through the drag, and in seated view the press also looked around and the camera re-aimed at the screen on every move (2026-10-19).
 - **Prop offsets.** The presenter and lectern now default to 4m either side of center and the panel to 1m in front of the screen, so turning the panel on no longer puts its outer chairs inside the presenter and lectern. All three props, contact shadows included, sit at least 0.35m back from the deck's front edge; the lectern used to stand on the lip and the panel hung 0.2m past it (2026-10-19).
 - **Lectern orientation.** The lectern's front panel now faces the audience. It used to face the screen (2026-10-19).

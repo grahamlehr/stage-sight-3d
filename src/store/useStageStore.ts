@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { hasDismissedGuide } from '../utils/firstRunGuide';
+import { normaliseQuarterTurn, rotateAboutY } from '../utils/venueAlignment';
 
 export type VenueSource = 'default-ballroom' | 'custom-glb';
 export type ScreenMode = 'procedural' | 'mesh-bind';
@@ -72,6 +73,8 @@ export interface StageState {
   // Venue State
   venueSource: VenueSource;
   customGlbUrl: string | null;
+  /** Custom venue turn about Y in radians, a multiple of π/2, so its screen wall faces +Z. */
+  venueYaw: number;
   stageHeight: number;
   venueLength: number;
   venueWidth: number;
@@ -134,6 +137,7 @@ export interface StageState {
   // Actions
   setVenueSource: (source: VenueSource) => void;
   setCustomGlbUrl: (url: string | null) => void;
+  setVenueYaw: (yaw: number) => void;
   setStageHeight: (height: number) => void;
   setVenueDimensions: (width: number, length: number) => void;
   setHouseLightsIntensity: (intensity: number) => void;
@@ -191,6 +195,7 @@ export const useStageStore = create<StageState>((set, get) => ({
   // Venue Defaults
   venueSource: 'default-ballroom',
   customGlbUrl: null,
+  venueYaw: 0,
   stageHeight: 1.0,
   venueLength: 30,
   venueWidth: 20,
@@ -271,7 +276,15 @@ export const useStageStore = create<StageState>((set, get) => ({
     if (previous && previous !== customGlbUrl && previous.startsWith('blob:')) {
       URL.revokeObjectURL(previous);
     }
-    set({ customGlbUrl });
+    // A new model starts unturned; its orientation has nothing to do with the last one's
+    set(previous === customGlbUrl ? { customGlbUrl } : { customGlbUrl, venueYaw: 0 });
+  },
+  setVenueYaw: (yaw) => {
+    // Carry the seat round with the room so the viewer stays in the same chair
+    // rather than being left wherever that world position now lands
+    const { venueYaw, seatPosition } = get();
+    const next = normaliseQuarterTurn(yaw);
+    set({ venueYaw: next, seatPosition: rotateAboutY(seatPosition, next - venueYaw) });
   },
   setStageHeight: (stageHeight) => set({ stageHeight }),
   setVenueDimensions: (venueWidth, venueLength) => set({ venueWidth, venueLength }),

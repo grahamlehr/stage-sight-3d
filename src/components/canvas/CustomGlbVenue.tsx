@@ -3,6 +3,7 @@ import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { ThreeEvent } from '@react-three/fiber';
 import { useStageStore } from '../../store/useStageStore';
+import { alignScreenMesh } from '../../utils/venueAlignment';
 
 interface ErrorBoundaryProps {
   children: ReactNode;
@@ -55,6 +56,8 @@ const LoadedGlbModel: React.FC<LoadedGlbProps> = ({ url }) => {
   const navigationMode = useStageStore((s) => s.navigationMode);
   const setSeatPosition = useStageStore((s) => s.setSeatPosition);
   const setNavigationMode = useStageStore((s) => s.setNavigationMode);
+  const venueYaw = useStageStore((s) => s.venueYaw);
+  const setVenueYaw = useStageStore((s) => s.setVenueYaw);
 
   useEffect(() => {
     const loader = new GLTFLoader();
@@ -95,12 +98,14 @@ const LoadedGlbModel: React.FC<LoadedGlbProps> = ({ url }) => {
         const size = bbox.getSize(new THREE.Vector3());
         const center = bbox.getCenter(new THREE.Vector3());
 
-        // Extracted physical dimensions
-        const computedWidth = Math.max(1, Math.round(Math.max(size.x, size.z) * 10) / 10);
-        const computedHeight = Math.max(1, Math.round(size.y * 10) / 10);
+        // The preview screen only faces +Z, so turn the venue until the picked
+        // wall does too, then bind to where the wall lands after the turn.
+        // The wall's front is the side the user clicked it from.
+        const aligned = alignScreenMesh(center.toArray(), size.toArray(), e.ray.origin.toArray());
 
-        setScreenDimensions(computedWidth, computedHeight);
-        setScreenPosition([center.x, center.y, center.z]);
+        setVenueYaw(venueYaw + aligned.yawDelta);
+        setScreenDimensions(aligned.width, aligned.height);
+        setScreenPosition(aligned.center);
         setBoundMeshName(mesh.name || `Mesh_${mesh.id}`);
         setIsPickingMesh(false);
       }
@@ -120,10 +125,13 @@ const LoadedGlbModel: React.FC<LoadedGlbProps> = ({ url }) => {
   if (!scene) return null;
 
   return (
-    <primitive
-      object={scene}
-      onPointerDown={handleMeshClick}
-    />
+    // Turn about the world origin: alignScreenMesh assumes that pivot
+    <group rotation={[0, venueYaw, 0]}>
+      <primitive
+        object={scene}
+        onPointerDown={handleMeshClick}
+      />
+    </group>
   );
 };
 

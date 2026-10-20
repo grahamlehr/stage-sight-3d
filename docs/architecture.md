@@ -43,7 +43,7 @@ All app state lives in [`src/store/useStageStore.ts`](../src/store/useStageStore
 
 | Slice | Holds |
 | --- | --- |
-| Venue | Source (`default-ballroom` or `custom-glb`), the uploaded blob URL, stage height, room size, lighting preset and intensities |
+| Venue | Source (`default-ballroom` or `custom-glb`), the uploaded blob URL, the custom venue's quarter-turn `venueYaw`, stage height, room size, lighting preset and intensities |
 | Screen | Width and height in meters, world position and rotation, gizmo toggle, mesh-picking state and the bound mesh name |
 | Content | Source type, rasterized slide canvases, current slide, the live `MediaStream`, and the UV crop mode and its manual values |
 | Camera | Orbit or seated navigation, seat position and FOV mode |
@@ -67,7 +67,7 @@ Store actions do the work that has to happen whenever a value changes. For examp
 | Component | Responsibility |
 | --- | --- |
 | [`DemoBallroom`](../src/components/canvas/DemoBallroom.tsx) | Procedural conference ballroom, built from the parts in [`venue/`](../src/components/canvas/venue): carpeted floor, paneled walls with doors and exit signs, a tiled ceiling, the skirted 18m × 5m stage with stairs and drape, theatre-style banquet seating ([`seatingLayout`](../src/utils/seatingLayout.ts)) and optional ceiling trusses. Textures are painted on canvases at startup, so there are no image assets. Clicking the floor picks a spot; clicking a chair sits in it. |
-| [`CustomGlbVenue`](../src/components/canvas/CustomGlbVenue.tsx) | Loads the uploaded model with `GLTFLoader` inside an error boundary. If loading fails, the app falls back to the ballroom and releases the blob. Handles click-to-sit and click-to-bind for the screen mesh. |
+| [`CustomGlbVenue`](../src/components/canvas/CustomGlbVenue.tsx) | Loads the uploaded model with `GLTFLoader` inside an error boundary. If loading fails, the app falls back to the ballroom and releases the blob. Handles click-to-sit and click-to-bind for the screen mesh. The model sits in a group turned by `venueYaw`; binding a sideways wall turns it to face +Z ([`venueAlignment`](../src/utils/venueAlignment.ts)). |
 | [`ScreenSurface`](../src/components/canvas/ScreenSurface.tsx) | The screen: bezel, unlit display plane and underglow. Builds the texture for the active content source and attaches the translate gizmo. |
 | [`PresenterSilhouette`](../src/components/canvas/PresenterSilhouette.tsx) | Occlusion props: standing presenter, lectern and four-person seated panel. It places meshes; the shapes come from [`stagePropGeometry`](../src/components/canvas/stagePropGeometry.ts). See [Occlusion props](#occlusion-props). |
 | [`CameraController`](../src/components/canvas/CameraController.tsx) | Orbit controls, seated look-around, FOV switching, desktop hotkeys and the telemetry loop. |
@@ -137,3 +137,4 @@ These are in the code today. Fix them or document them; don't rely on them silen
 - **`showPresenterSilhouette` is a legacy alias.** Its setter also sets `showPresenter`, and nothing else reads it.
 - **Seats are always on a flat floor at `y = 0`,** even in a custom venue. Raked seating and balconies aren't modeled.
 - **The seat presets assume the demo ballroom's layout.** In a custom venue they use the same coordinates.
+- **The orbit camera's target is fixed at `[0, 2, -5]`.** After a custom venue is turned, orbit view still circles that point rather than the bound screen.
