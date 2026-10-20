@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import * as THREE from 'three';
 import { useFrame, useThree } from '@react-three/fiber';
-import { useStageStore, SEAT_PRESETS } from '../../store/useStageStore';
+import { useStageStore, getActiveSeatPresets } from '../../store/useStageStore';
 
 const FLOOR_PLANE = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
 
@@ -345,8 +345,9 @@ export const VrControllerRig: React.FC = () => {
     ctx.fillText('STAGESIGHT 3D · VR SIGHTLINE HUD', 40, 48);
 
     // Matching Seat Preset Name or Custom Floor Coordinates
-    const matchedPreset = SEAT_PRESETS.find(
+    const matchedPreset = getActiveSeatPresets(useStageStore.getState()).find(
       (p) =>
+        p.placed &&
         Math.abs(p.position[0] - seatPosition[0]) < 0.25 &&
         Math.abs(p.position[2] - seatPosition[2]) < 0.25
     );

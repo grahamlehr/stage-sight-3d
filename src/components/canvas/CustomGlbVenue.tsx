@@ -1,4 +1,4 @@
-import React, { Component, ReactNode, useEffect, useState } from 'react';
+import React, { Component, ReactNode, useEffect, useRef, useState } from 'react';
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { ThreeEvent } from '@react-three/fiber';
@@ -59,6 +59,8 @@ const LoadedGlbModel: React.FC<LoadedGlbProps> = ({ url }) => {
   const venueYaw = useStageStore((s) => s.venueYaw);
   const setVenueYaw = useStageStore((s) => s.setVenueYaw);
   const setCustomDeckHeight = useStageStore((s) => s.setCustomDeckHeight);
+  const setCustomVenueBounds = useStageStore((s) => s.setCustomVenueBounds);
+  const groupRef = useRef<THREE.Group>(null);
 
   useEffect(() => {
     const loader = new GLTFLoader();
@@ -86,7 +88,23 @@ const LoadedGlbModel: React.FC<LoadedGlbProps> = ({ url }) => {
     );
   }, [url, setVenueSource, setCustomGlbUrl]);
 
+  // Publish the venue's world-space bounds for the floor plan, and refresh them
+  // when the venue turns (a turn about the origin moves the box)
+  useEffect(() => {
+    const group = groupRef.current;
+    if (!scene || !group) return;
+    group.updateWorldMatrix(true, true);
+    const box = new THREE.Box3().setFromObject(group);
+    if (!box.isEmpty()) {
+      setCustomVenueBounds({ min: box.min.toArray(), max: box.max.toArray() });
+    }
+  }, [scene, venueYaw, setCustomVenueBounds]);
+
+  useEffect(() => () => setCustomVenueBounds(null), [setCustomVenueBounds]);
+
   const handleMeshClick = (e: ThreeEvent<PointerEvent>) => {
+    // The floor plan places views itself; a click on the model must not also bind or sit
+    if (useStageStore.getState().isFloorPlanOpen) return;
     e.stopPropagation();
     const mesh = e.object as THREE.Mesh;
 
@@ -136,7 +154,7 @@ const LoadedGlbModel: React.FC<LoadedGlbProps> = ({ url }) => {
 
   return (
     // Turn about the world origin: alignScreenMesh assumes that pivot
-    <group rotation={[0, venueYaw, 0]}>
+    <group ref={groupRef} name="custom-venue" rotation={[0, venueYaw, 0]}>
       <primitive
         object={scene}
         onPointerDown={handleMeshClick}

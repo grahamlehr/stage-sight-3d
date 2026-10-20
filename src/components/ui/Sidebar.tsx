@@ -17,12 +17,15 @@ import {
   Sun,
   Users,
   Mic,
+  Map as MapIcon,
+  X,
 } from 'lucide-react';
 import {
   useStageStore,
   ASPECT_RATIO_PRESETS,
   UvCropMode,
 } from '../../store/useStageStore';
+import { defaultCutHeight } from '../../utils/floorPlan';
 import {
   rasterizePdf,
   rasterizeImageFile,
@@ -109,6 +112,15 @@ export const Sidebar: React.FC = () => {
   const setCustomGlbUrl = useStageStore((s) => s.setCustomGlbUrl);
   const venueYaw = useStageStore((s) => s.venueYaw);
   const setVenueYaw = useStageStore((s) => s.setVenueYaw);
+  const customSeatViews = useStageStore((s) => s.customSeatViews);
+  const setCustomSeatView = useStageStore((s) => s.setCustomSeatView);
+  const isFloorPlanOpen = useStageStore((s) => s.isFloorPlanOpen);
+  const setIsFloorPlanOpen = useStageStore((s) => s.setIsFloorPlanOpen);
+  const floorPlanSlot = useStageStore((s) => s.floorPlanSlot);
+  const setFloorPlanSlot = useStageStore((s) => s.setFloorPlanSlot);
+  const floorPlanCutHeight = useStageStore((s) => s.floorPlanCutHeight);
+  const setFloorPlanCutHeight = useStageStore((s) => s.setFloorPlanCutHeight);
+  const customVenueBounds = useStageStore((s) => s.customVenueBounds);
   const customDeckHeight = useStageStore((s) => s.customDeckHeight);
   const setCustomDeckHeight = useStageStore((s) => s.setCustomDeckHeight);
   const stageHeight = useStageStore((s) => s.stageHeight);
@@ -760,7 +772,8 @@ export const Sidebar: React.FC = () => {
                   <div className="space-y-1">
                     <p className="text-xs font-semibold">Custom GLB Venue Loaded</p>
                     <p className="text-[10px] text-ink/60">
-                      Click meshes to test seating or use &quot;Pick Screen Mesh from GLB&quot; on the Screen tab.
+                      Use &quot;Pick Screen Mesh from GLB&quot; on the Screen tab, then place your camera views on
+                      the floor plan below. Shift + click the floor to sit anywhere.
                     </p>
                   </div>
                 </div>
@@ -781,6 +794,60 @@ export const Sidebar: React.FC = () => {
                       </button>
                     ))}
                   </div>
+                </div>
+                <div className="space-y-1.5 pt-2.5 border-t border-ink/[0.12]">
+                  <span className="text-[10px] text-ink/60 block">Camera Views (keys 1–4)</span>
+                  <button
+                    onClick={() => setIsFloorPlanOpen(!isFloorPlanOpen)}
+                    disabled={!customVenueBounds}
+                    aria-pressed={isFloorPlanOpen}
+                    className="btn btn-secondary w-full justify-center disabled:opacity-50"
+                  >
+                    <MapIcon size={14} />
+                    {isFloorPlanOpen ? 'Close Floor Plan' : 'Open Floor Plan'}
+                  </button>
+                  <div className="grid grid-cols-2 gap-2">
+                    {customSeatViews.map((view, i) => (
+                      <div key={i} className="flex items-stretch gap-1">
+                        <button
+                          onClick={() => setFloorPlanSlot(i)}
+                          aria-pressed={floorPlanSlot === i}
+                          className="option flex-1 justify-between"
+                          title={`Select View ${i + 1} to place on the floor plan`}
+                        >
+                          <span>View {i + 1}</span>
+                          <span className="text-[10px] text-ink/60">{view ? 'Placed' : 'Not placed'}</span>
+                        </button>
+                        {view && (
+                          <button
+                            onClick={() => setCustomSeatView(i, null)}
+                            className="btn btn-secondary px-1.5"
+                            aria-label={`Clear View ${i + 1}`}
+                            title={`Clear View ${i + 1}`}
+                          >
+                            <X size={12} />
+                          </button>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                  {isFloorPlanOpen && customVenueBounds && (
+                    <SliderRow
+                      label="Cut height"
+                      value={`${(
+                        (floorPlanCutHeight ?? defaultCutHeight(customVenueBounds)) -
+                        customVenueBounds.min[1]
+                      ).toFixed(1)}m`}
+                      min={customVenueBounds.min[1]}
+                      max={customVenueBounds.max[1]}
+                      step="0.1"
+                      inputValue={floorPlanCutHeight ?? defaultCutHeight(customVenueBounds)}
+                      onChange={(e) => setFloorPlanCutHeight(parseFloat(e.target.value))}
+                    />
+                  )}
+                  <p className="text-[10px] text-ink/60">
+                    Click a floor spot to place the selected view, drag to point it. Keys 1–4 jump to the views.
+                  </p>
                 </div>
                 <button onClick={() => glbInputRef.current?.click()} className="btn btn-secondary">
                   Change .GLB File

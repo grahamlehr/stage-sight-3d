@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { hasDismissedGuide } from '../utils/firstRunGuide';
 import { normaliseQuarterTurn, rotateAboutY } from '../utils/venueAlignment';
+import { normaliseYaw } from '../utils/floorPlan';
 
 export type VenueSource = 'default-ballroom' | 'custom-glb';
 export type ScreenMode = 'procedural' | 'mesh-bind';
@@ -30,6 +31,46 @@ export interface SeatPreset {
   name: string;
   description: string;
   position: [number, number, number]; // [x, y, z] floor position (eye height +1.2 will be added by camera)
+  /** Look direction in radians, as `Math.atan2(dx, dz)`. Omitted means face the screen. */
+  yaw?: number;
+}
+
+/** A camera view placed by hand on a custom venue's floor plan. World coordinates, metres. */
+export interface CustomSeatView {
+  position: [number, number, number]; // y is the floor height that was clicked
+  yaw: number;
+}
+
+export const CUSTOM_VIEW_COUNT = 4;
+
+export interface VenueBounds {
+  min: [number, number, number];
+  max: [number, number, number];
+}
+
+/** A seat preset as offered to the user; unplaced custom views can't be applied. */
+export interface ActiveSeatPreset extends SeatPreset {
+  placed: boolean;
+}
+
+/**
+ * The four seat presets for the current venue: the fixed ballroom set, or the
+ * views placed on a custom venue's floor plan (unplaced slots are flagged).
+ */
+export function getActiveSeatPresets(
+  state: Pick<StageState, 'venueSource' | 'customSeatViews'>,
+): ActiveSeatPreset[] {
+  if (state.venueSource !== 'custom-glb') {
+    return SEAT_PRESETS.map((p) => ({ ...p, placed: true }));
+  }
+  return state.customSeatViews.map((view, i) => ({
+    id: `custom-view-${i + 1}`,
+    name: `View ${i + 1}`,
+    description: view ? 'Placed on the floor plan' : 'Not placed yet',
+    position: view ? view.position : [0, 0, 0],
+    yaw: view ? view.yaw : undefined,
+    placed: view !== null,
+  }));
 }
 
 export const SEAT_PRESETS: SeatPreset[] = [
@@ -77,6 +118,16 @@ export interface StageState {
   venueYaw: number;
   /** Height of a custom venue's stage deck in metres; the occlusion props stand on it. */
   customDeckHeight: number;
+  /** Four hand-placed camera views for a custom venue; null where not placed yet. */
+  customSeatViews: (CustomSeatView | null)[];
+  /** World-space bounds of the loaded custom venue, or null when none is loaded. */
+  customVenueBounds: VenueBounds | null;
+  /** True while the top-down floor plan is showing instead of the 3D view. */
+  isFloorPlanOpen: boolean;
+  /** Which custom view (0–3) a floor plan click places. */
+  floorPlanSlot: number;
+  /** World Y of the floor plan's section cut, or null for the default. */
+  floorPlanCutHeight: number | null;
   stageHeight: number;
   venueLength: number;
   venueWidth: number;
@@ -110,6 +161,8 @@ export interface StageState {
   // Camera & Seating State
   navigationMode: NavigationMode;
   seatPosition: [number, number, number];
+  /** Yaw the seated camera faces, or null to look at the screen centre. */
+  seatYaw: number | null;
   fovMode: FovMode;
 
   // WebXR / Meta Quest VR State
@@ -140,6 +193,12 @@ export interface StageState {
   setVenueSource: (source: VenueSource) => void;
   setCustomGlbUrl: (url: string | null) => void;
   setVenueYaw: (yaw: number) => void;
+  setCustomSeatView: (slot: number, view: CustomSeatView | null) => void;
+  setCustomVenueBounds: (bounds: VenueBounds | null) => void;
+  setIsFloorPlanOpen: (open: boolean) => void;
+  setFloorPlanSlot: (slot: number) => void;
+  setFloorPlanCutHeight: (height: number | null) => void;
+  setSeatView: (position: [number, number, number], yaw: number | null) => void;
   setCustomDeckHeight: (height: number) => void;
   setStageHeight: (height: number) => void;
   setVenueDimensions: (width: number, length: number) => void;
@@ -200,6 +259,11 @@ export const useStageStore = create<StageState>((set, get) => ({
   customGlbUrl: null,
   venueYaw: 0,
   customDeckHeight: 0,
+  customSeatViews: [null, null, null, null],
+  customVenueBounds: null,
+  isFloorPlanOpen: false,
+  floorPlanSlot: 0,
+  floorPlanCutHeight: null,
   stageHeight: 1.0,
   venueLength: 30,
   venueWidth: 20,
@@ -232,6 +296,7 @@ export const useStageStore = create<StageState>((set, get) => ({
   // Camera & Seating Defaults
   navigationMode: 'orbit',
   seatPosition: [0, 0, 2], // Mid-House Center
+  seatYaw: null,
   fovMode: 'room-context',
 
   // WebXR / Meta Quest VR Defaults
@@ -271,7 +336,12 @@ export const useStageStore = create<StageState>((set, get) => ({
   isGuideOpen: !hasDismissedGuide(),
 
   // Actions
-  setVenueSource: (venueSource) => set({ venueSource }),
+  setVenueSource: (venueSource) =>
+    set(
+      venueSource === 'default-ballroom'
+        ? { venueSource, isFloorPlanOpen: false, seatYaw: null }
+        : { venueSource }
+    ),
   setCustomGlbUrl: (customGlbUrl) => {
     // Single choke point for the uploaded venue blob: release the URL we are
     // replacing, otherwise every upload pins its whole file (often 10s–100s of
@@ -281,15 +351,50 @@ export const useStageStore = create<StageState>((set, get) => ({
       URL.revokeObjectURL(previous);
     }
     // A new model starts unturned; its orientation has nothing to do with the last one's
-    set(previous === customGlbUrl ? { customGlbUrl } : { customGlbUrl, venueYaw: 0, customDeckHeight: 0 });
+    // and neither do the camera views placed on its floor plan
+    set(
+      previous === customGlbUrl
+        ? { customGlbUrl }
+        : {
+            customGlbUrl,
+            venueYaw: 0,
+            customDeckHeight: 0,
+            customSeatViews: [null, null, null, null],
+            customVenueBounds: null,
+            isFloorPlanOpen: false,
+            floorPlanSlot: 0,
+            floorPlanCutHeight: null,
+            seatYaw: null,
+          }
+    );
   },
   setVenueYaw: (yaw) => {
     // Carry the seat round with the room so the viewer stays in the same chair
     // rather than being left wherever that world position now lands
-    const { venueYaw, seatPosition } = get();
+    // and every placed view with it, keeping each one's position and heading
+    // fixed relative to the room
+    const { venueYaw, seatPosition, seatYaw, customSeatViews } = get();
     const next = normaliseQuarterTurn(yaw);
-    set({ venueYaw: next, seatPosition: rotateAboutY(seatPosition, next - venueYaw) });
+    const delta = next - venueYaw;
+    set({
+      venueYaw: next,
+      seatPosition: rotateAboutY(seatPosition, delta),
+      seatYaw: seatYaw === null ? null : normaliseYaw(seatYaw + delta),
+      customSeatViews: customSeatViews.map((view) =>
+        view ? { position: rotateAboutY(view.position, delta), yaw: normaliseYaw(view.yaw + delta) } : null
+      ),
+    });
   },
+  setCustomSeatView: (slot, view) =>
+    set((state) => ({
+      customSeatViews: state.customSeatViews.map((existing, i) =>
+        i === slot ? (view ? { position: [...view.position], yaw: view.yaw } : null) : existing
+      ),
+    })),
+  setCustomVenueBounds: (customVenueBounds) => set({ customVenueBounds }),
+  setIsFloorPlanOpen: (isFloorPlanOpen) => set({ isFloorPlanOpen }),
+  setFloorPlanSlot: (slot) => set({ floorPlanSlot: Math.max(0, Math.min(CUSTOM_VIEW_COUNT - 1, Math.round(slot))) }),
+  setFloorPlanCutHeight: (floorPlanCutHeight) => set({ floorPlanCutHeight }),
   setCustomDeckHeight: (customDeckHeight) => set({ customDeckHeight: Math.max(0, customDeckHeight) }),
   setStageHeight: (stageHeight) => set({ stageHeight }),
   setVenueDimensions: (venueWidth, venueLength) => set({ venueWidth, venueLength }),
@@ -357,20 +462,26 @@ export const useStageStore = create<StageState>((set, get) => ({
   setManualUvOffsetY: (manualUvOffsetY) => set({ manualUvOffsetY }),
 
   setNavigationMode: (navigationMode) => set({ navigationMode }),
-  setSeatPosition: (seatPosition) => set({ seatPosition }),
+  // Click-to-sit and VR teleports go back to looking at the screen
+  setSeatPosition: (seatPosition) => set({ seatPosition, seatYaw: null }),
+  setSeatView: (seatPosition, seatYaw) => set({ seatPosition, seatYaw }),
   setFovMode: (fovMode) => set({ fovMode }),
   applySeatPreset: (presetId) => {
-    const preset = SEAT_PRESETS.find((p) => p.id === presetId);
-    if (preset) {
+    const preset = getActiveSeatPresets(get()).find((p) => p.id === presetId);
+    if (preset && preset.placed) {
       set({
         seatPosition: preset.position,
+        seatYaw: preset.yaw ?? null,
         navigationMode: 'seated',
       });
     }
   },
   cycleSeatPreset: (direction = 1) => {
+    // Unplaced custom views can't be sat in, so cycling skips them
+    const presets = getActiveSeatPresets(get()).filter((p) => p.placed);
+    if (presets.length === 0) return;
     const currentPos = get().seatPosition;
-    const currentIdx = SEAT_PRESETS.findIndex(
+    const currentIdx = presets.findIndex(
       (p) =>
         Math.abs(p.position[0] - currentPos[0]) < 0.25 &&
         Math.abs(p.position[2] - currentPos[2]) < 0.25
@@ -378,15 +489,18 @@ export const useStageStore = create<StageState>((set, get) => ({
     const nextIdx =
       currentIdx === -1
         ? 0
-        : (currentIdx + direction + SEAT_PRESETS.length) % SEAT_PRESETS.length;
+        : (currentIdx + direction + presets.length) % presets.length;
     set({
-      seatPosition: SEAT_PRESETS[nextIdx].position,
+      seatPosition: presets[nextIdx].position,
+      seatYaw: presets[nextIdx].yaw ?? null,
       navigationMode: 'seated',
     });
   },
 
   setIsVrSupported: (isVrSupported) => set({ isVrSupported }),
-  setIsVrPresenting: (isVrPresenting) => set({ isVrPresenting }),
+  // The floor plan replaces the 3D view, which a headset can't show
+  setIsVrPresenting: (isVrPresenting) =>
+    set(isVrPresenting ? { isVrPresenting, isFloorPlanOpen: false } : { isVrPresenting }),
   setVrHudVisible: (vrHudVisible) => set({ vrHudVisible }),
   triggerVrRecenter: () => set((state) => ({ vrRecenterCount: state.vrRecenterCount + 1 })),
   setToggleVrSession: (toggleVrSession) => set({ toggleVrSession }),

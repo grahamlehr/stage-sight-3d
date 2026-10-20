@@ -8,9 +8,9 @@ The **Venue** tab can swap the procedural ballroom for your own model of the roo
 | --- | --- |
 | **Prefer `.glb`.** A `.gltf` must be self-contained, with buffers and textures embedded as data URIs. | The file is loaded from a single `blob:` URL, so a `.gltf` that points to separate `.bin` or image files can't find them. |
 | **Author in meters.** | The model is loaded at its native scale with no conversion. A centimeter model looks 100× too large, and its screen and D/H values are wrong by the same factor. |
-| **Y up, floor at `y = 0`.** | Seats are always placed at `y = 0`, with the eye 1.2m above. |
+| **Y up, floor at `y = 0`.** | Click-to-sit places the seat at `y = 0`, with the eye 1.2m above. Camera views placed on the floor plan use the height of the floor you click, so any floor height works there. |
 | **Audience toward +Z, screen wall facing +Z.** | The screen always faces +Z, and the off-axis angle is measured against that direction. A model facing another way can be turned after loading; see [Turning the venue](#turning-the-venue). |
-| **Stage near the origin, screen around `z = −12`,** if you want the seat presets to land in sensible places. | The presets use fixed coordinates taken from the demo ballroom. |
+| **Nothing special about where it sits.** | Keys 1–4 don't use the ballroom's fixed seats in a custom venue. You place four camera views yourself on the [floor plan](#camera-views-and-the-floor-plan). |
 | **Keep it light.** | The whole file stays in memory while it's loaded. Every mesh casts and receives shadows, so high poly counts hit the frame rate directly, especially in VR. |
 
 Most DCC tools, including Blender, SketchUp and Revit through an exporter, can export glTF in meters with Y up. Blender's glTF exporter converts from Z-up for you.
@@ -56,6 +56,23 @@ The picked mesh's name appears next to the button.
 
 Picking only works on a custom venue. Clicks on the demo ballroom don't bind.
 
+## Camera views and the floor plan
+
+In a custom venue, keys <kbd>1</kbd>–<kbd>4</kbd>, the **Seat Presets** menu and the VR thumbstick all jump between four camera views that you place yourself. Until you place one it shows as **Not placed yet** and is skipped. In the ballroom they keep their fixed seats.
+
+1. On the **Venue** tab, under **Camera Views**, choose **Open Floor Plan**. The 3D view is replaced by a top-down plan with the screen wall at the top. The mouse wheel zooms.
+2. Set the **Cut height** slider so the plan slices through the model below its roof and upper floors. It starts 2.5m above the model's lowest point, and the slider shows metres above that point.
+3. Pick a slot (**View 1** to **View 4**), then **click a floor spot** to place it. **Drag** from that spot to point the view; release to confirm. A plain click without a drag aims the view at the screen centre. The next empty slot is selected for you.
+4. Close the plan with **Close Floor Plan** or <kbd>Esc</kbd>. The × beside a slot clears it.
+
+Things to know:
+
+- **Placed views keep the clicked floor height,** so raked tiers and balconies work. The click lands on the first surface at or below the cut height, so cut below a balcony's ceiling to place a view on the floor underneath, or above it to place one on top.
+- **A placed view's heading is kept.** The seated camera faces the way you pointed it, and the eye is 1.2m above the clicked floor.
+- **Views reset when you upload a different model,** and the plan closes. Reloading the same file keeps them. Turning the venue with the **Rotation** buttons carries the views round with the room.
+- The floor plan isn't available in VR; entering a headset closes it. Views still work as VR seats, but the headset keeps its own heading (the first calibration faces the screen).
+- While the plan is open, picking and click-to-sit are paused, and telemetry isn't graded.
+
 ## Moving around
 
-Click-to-sit works on any part of the model: in seated view, click; in orbit view, <kbd>Shift</kbd> + click. The seat goes at the clicked X and Z, always at floor height `y = 0`. Clicking a balcony or a raked tier puts you on the main floor below it.
+Click-to-sit works on any part of the model: in seated view, click; in orbit view, <kbd>Shift</kbd> + click. The seat goes at the clicked X and Z, always at floor height `y = 0`, and looks at the screen centre. Clicking a balcony or a raked tier puts you on the main floor below it; use a floor plan view for those.
