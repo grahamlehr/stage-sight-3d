@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { X, ExternalLink, ShieldCheck, Compass, Eye, Monitor, PlayCircle } from 'lucide-react';
+import { X, ExternalLink, Presentation, Ratio, Building2, Users, PlayCircle } from 'lucide-react';
 import { Logo } from './Logo';
 
 export interface AboutModalProps {
@@ -23,10 +23,10 @@ export const AboutModal: React.FC<AboutModalProps> = ({ isOpen, onClose, onStart
   if (!isOpen) return null;
 
   const features = [
-    { icon: Eye, title: 'Live Content', body: 'Import and preview slides and videos' },
-    { icon: Monitor, title: 'Custom Screen Ratios', body: 'Super widescreen mapped and cropped automatically' },
-    { icon: Compass, title: 'Bespoke Venue Models', body: 'Upload your venue to preview in situ' },
-    { icon: ShieldCheck, title: 'Content Masking', body: 'Presenter, lectern, and 4-person panel check' },
+    { icon: Presentation, title: 'Live Content', body: 'Import and preview slides and videos' },
+    { icon: Ratio, title: 'Custom Screen Ratios', body: 'Super widescreen mapped and cropped automatically' },
+    { icon: Building2, title: 'Bespoke Venue Models', body: 'Upload your venue to preview in situ' },
+    { icon: Users, title: 'Content Masking', body: 'Presenter, lectern, and 4-person panel check' },
   ];
 
   return (
