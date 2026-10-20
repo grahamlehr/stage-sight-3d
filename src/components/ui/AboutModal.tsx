@@ -23,10 +23,10 @@ export const AboutModal: React.FC<AboutModalProps> = ({ isOpen, onClose, onStart
   if (!isOpen) return null;
 
   const features = [
-    { icon: Eye, title: 'AVIXA DISCAS', body: 'Real-time D/H acuity & off-axis angle calculations' },
-    { icon: Monitor, title: '4K LED Calibration', body: 'Dynamic aspect ratio test patterns & SMPTE bars' },
-    { icon: Compass, title: 'Dual-FOV Optics', body: '50° Room Context vs 25° Human Eye Focus' },
-    { icon: ShieldCheck, title: 'Stage Occlusion', body: 'Presenter, Lectern, and 4-Person Panel check' },
+    { icon: Eye, title: 'Live Content', body: 'Import and preview slides and videos' },
+    { icon: Monitor, title: 'Custom Screen Ratios', body: 'Super widescreen mapped and cropped automatically' },
+    { icon: Compass, title: 'Bespoke Venue Models', body: 'Upload your venue to preview in situ' },
+    { icon: ShieldCheck, title: 'Content Masking', body: 'Presenter, lectern, and 4-person panel check' },
   ];
 
   return (
@@ -50,10 +50,10 @@ export const AboutModal: React.FC<AboutModalProps> = ({ isOpen, onClose, onStart
           <div className="mt-3 text-center">
             <h2 className="text-xl flex items-center justify-center gap-2">
               StageSight 3D
-              <span className="tag tag-outline">v0.1.0 MVP</span>
+              <span className="tag tag-outline">v0.1.0</span>
             </h2>
             <p className="text-xs text-ink/60 mt-1 max-w-sm">
-              Ultra-Wide Event Screen, LED Wall & Sightline Simulator
+              Screen, Content &amp; Sightline Previewer
             </p>
           </div>
         </div>
@@ -85,7 +85,7 @@ export const AboutModal: React.FC<AboutModalProps> = ({ isOpen, onClose, onStart
 
           {/* Footer Info */}
           <div className="flex items-center justify-between pt-3 border-t-2 border-ink/20 text-[11px] text-ink/60">
-            <span>StageSight 3D Production Suite</span>
+            <span>StageSight 3D</span>
             <div className="flex items-center gap-1">
               <button onClick={onStartTour} className="btn btn-ghost text-[11px]">
                 <PlayCircle size={12} />
