@@ -109,6 +109,8 @@ export const Sidebar: React.FC = () => {
   const setCustomGlbUrl = useStageStore((s) => s.setCustomGlbUrl);
   const venueYaw = useStageStore((s) => s.venueYaw);
   const setVenueYaw = useStageStore((s) => s.setVenueYaw);
+  const customDeckHeight = useStageStore((s) => s.customDeckHeight);
+  const setCustomDeckHeight = useStageStore((s) => s.setCustomDeckHeight);
   const stageHeight = useStageStore((s) => s.stageHeight);
   const setStageHeight = useStageStore((s) => s.setStageHeight);
   const venueLength = useStageStore((s) => s.venueLength);
@@ -538,6 +540,24 @@ export const Sidebar: React.FC = () => {
 
             {/* ================= 3 Stage Occlusion Test Items ================= */}
             <Section title="Stage Occlusion Items">
+              {/* The ballroom's deck height lives on the Venue tab; a custom model's is set here */}
+              {venueSource === 'custom-glb' && (
+                <div className="space-y-1">
+                  <SliderRow
+                    label="Stage Floor Height"
+                    value={`${customDeckHeight.toFixed(2)}m`}
+                    min="0"
+                    max="3"
+                    step="0.05"
+                    inputValue={customDeckHeight}
+                    onChange={(e) => setCustomDeckHeight(parseFloat(e.target.value))}
+                  />
+                  <p className="text-[10px] text-ink/60">
+                    Where the props stand. Picking the screen mesh sets this from the stage in front of it.
+                  </p>
+                </div>
+              )}
+
               {/* 1. Presenter (Standing Person) */}
               <div className="space-y-2.5">
                 <label className="flex items-center justify-between cursor-pointer">

@@ -28,6 +28,10 @@ export interface ScreenMeshAlignment {
   width: number;
   /** Preview screen height in metres, rounded to 0.1m, minimum 1m. */
   height: number;
+  /** Unit vector the wall faces in before the turn, snapped to the X or Z axis. */
+  facing: Vec3;
+  /** How far the wall's front face sits in front of its centre, in metres. */
+  halfDepth: number;
 }
 
 /** Gap between the wall's front face and the preview screen, so they don't z-fight. */
@@ -75,5 +79,22 @@ export function alignScreenMesh(
     center: [cx, cy, cz + depth / 2 + SCREEN_STANDOFF],
     width: toTenth(oddQuarter ? sz : sx),
     height: toTenth(sy),
+    facing: [dx, 0, dz],
+    halfDepth: depth / 2,
   };
+}
+
+/** How far in front of the wall to look for the stage deck. */
+export const DECK_PROBE_DISTANCE = 1.0;
+
+/**
+ * Where to start a straight-down ray that finds the stage deck in front of a
+ * picked screen wall: DECK_PROBE_DISTANCE in front of its front face, at the
+ * wall's centre height so the ray starts above the deck but below the rig.
+ * Uses the pre-turn world coordinates the alignment was computed from.
+ */
+export function deckProbeOrigin(meshCenter: Vec3, alignment: ScreenMeshAlignment): Vec3 {
+  const reach = alignment.halfDepth + DECK_PROBE_DISTANCE;
+  const [fx, , fz] = alignment.facing;
+  return [meshCenter[0] + fx * reach, meshCenter[1], meshCenter[2] + fz * reach];
 }

@@ -209,7 +209,10 @@ export const PresenterSilhouette: React.FC = () => {
   const showPanel = useStageStore((s) => s.showPanel);
   const panelOffset = useStageStore((s) => s.panelOffset);
 
-  const stageHeight = useStageStore((s) => s.stageHeight);
+  // Props stand on the demo ballroom's deck, or on the deck found in a custom venue
+  const deckHeight = useStageStore((s) =>
+    s.venueSource === 'custom-glb' ? s.customDeckHeight : s.stageHeight
+  );
   const screenPosition = useStageStore((s) => s.screenPosition);
 
   // Shared by all three props, so toggling one doesn't recompile shaders
@@ -224,7 +227,7 @@ export const PresenterSilhouette: React.FC = () => {
           materials={materials}
           position={[
             screenPosition[0] + presenterOffset[0],
-            stageHeight,
+            deckHeight,
             screenPosition[2] + presenterOffset[1],
           ]}
         />
@@ -236,7 +239,7 @@ export const PresenterSilhouette: React.FC = () => {
           materials={materials}
           position={[
             screenPosition[0] + lecternOffset[0],
-            stageHeight,
+            deckHeight,
             screenPosition[2] + lecternOffset[1],
           ]}
         />
@@ -248,7 +251,7 @@ export const PresenterSilhouette: React.FC = () => {
           materials={materials}
           position={[
             screenPosition[0] + panelOffset[0],
-            stageHeight,
+            deckHeight,
             screenPosition[2] + panelOffset[1],
           ]}
         />

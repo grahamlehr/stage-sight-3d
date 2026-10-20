@@ -100,3 +100,22 @@ describe('venue rotation', () => {
     expect(useStageStore.getState().venueYaw).toBe(0);
   });
 });
+
+describe('custom venue deck height', () => {
+  beforeEach(() => {
+    useStageStore.setState(initial, true);
+  });
+
+  it('never goes below the floor', () => {
+    useStageStore.getState().setCustomDeckHeight(-0.5);
+    expect(useStageStore.getState().customDeckHeight).toBe(0);
+  });
+
+  it('resets when a different model is loaded', () => {
+    // Regression: the props stood on the ballroom's 1m deck in every custom
+    // venue, floating 0.7m above a real venue's 0.3m stage
+    useStageStore.setState({ customGlbUrl: '/a.glb', customDeckHeight: 0.3 });
+    useStageStore.getState().setCustomGlbUrl('/b.glb');
+    expect(useStageStore.getState().customDeckHeight).toBe(0);
+  });
+});

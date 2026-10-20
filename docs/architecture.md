@@ -43,7 +43,7 @@ All app state lives in [`src/store/useStageStore.ts`](../src/store/useStageStore
 
 | Slice | Holds |
 | --- | --- |
-| Venue | Source (`default-ballroom` or `custom-glb`), the uploaded blob URL, the custom venue's quarter-turn `venueYaw`, stage height, room size, lighting preset and intensities |
+| Venue | Source (`default-ballroom` or `custom-glb`), the uploaded blob URL, the custom venue's quarter-turn `venueYaw` and deck height (`customDeckHeight`), the ballroom's stage height, room size, lighting preset and intensities |
 | Screen | Width and height in meters, world position and rotation, gizmo toggle, mesh-picking state and the bound mesh name |
 | Content | Source type, rasterized slide canvases, current slide, the live `MediaStream`, and the UV crop mode and its manual values |
 | Camera | Orbit or seated navigation, seat position and FOV mode |
@@ -81,7 +81,7 @@ Store actions do the work that has to happen whenever a value changes. For examp
 
 ### Occlusion props
 
-The presenter, lectern and panel are procedural, built from three.js primitives in [`stagePropGeometry.ts`](../src/components/canvas/stagePropGeometry.ts). Each prop faces +Z and stands on its own origin, and the Screen tab's offsets place it relative to the screen at stage height.
+The presenter, lectern and panel are procedural, built from three.js primitives in [`stagePropGeometry.ts`](../src/components/canvas/stagePropGeometry.ts). Each prop faces +Z and stands on its own origin, and the Screen tab's offsets place it relative to the screen. It stands on the ballroom's `stageHeight`, or on `customDeckHeight` in a custom venue.
 
 - **Real scale.** The presenter is 1.8m tall. The lectern is 0.62m wide and 0.5m deep, 1.15m at the front edge of its sloped desk, with its front panel toward the audience and an open back with a shelf. Panelists sit in 0.8m tub chairs with 0.47m seats, scaled 0.92–0.98 so seated head heights land between 1.3m and 1.4m.
 - **Merged by material.** Each prop is merged into one geometry per material, with colors baked in as vertex colors. A person is three draw calls (cloth, skin, gloss), a chair two, and every material is shared. With all three props on they add 32 draw calls and about 51k triangles per pass, down from about 125 draw calls. A unit test holds each figure under 12k triangles and the panel under 60k.

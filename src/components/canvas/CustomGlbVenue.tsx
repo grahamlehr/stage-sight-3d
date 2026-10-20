@@ -3,7 +3,7 @@ import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { ThreeEvent } from '@react-three/fiber';
 import { useStageStore } from '../../store/useStageStore';
-import { alignScreenMesh } from '../../utils/venueAlignment';
+import { alignScreenMesh, deckProbeOrigin } from '../../utils/venueAlignment';
 
 interface ErrorBoundaryProps {
   children: ReactNode;
@@ -58,6 +58,7 @@ const LoadedGlbModel: React.FC<LoadedGlbProps> = ({ url }) => {
   const setNavigationMode = useStageStore((s) => s.setNavigationMode);
   const venueYaw = useStageStore((s) => s.venueYaw);
   const setVenueYaw = useStageStore((s) => s.setVenueYaw);
+  const setCustomDeckHeight = useStageStore((s) => s.setCustomDeckHeight);
 
   useEffect(() => {
     const loader = new GLTFLoader();
@@ -102,6 +103,15 @@ const LoadedGlbModel: React.FC<LoadedGlbProps> = ({ url }) => {
         // wall does too, then bind to where the wall lands after the turn.
         // The wall's front is the side the user clicked it from.
         const aligned = alignScreenMesh(center.toArray(), size.toArray(), e.ray.origin.toArray());
+
+        // Stand the occlusion props on the stage: the first surface straight
+        // down from just in front of the wall. A turn about Y doesn't change
+        // heights, so probing before the turn is applied is fine.
+        if (scene) {
+          const origin = new THREE.Vector3(...deckProbeOrigin(center.toArray(), aligned));
+          const hit = new THREE.Raycaster(origin, new THREE.Vector3(0, -1, 0)).intersectObject(scene, true)[0];
+          setCustomDeckHeight(hit ? Math.round(hit.point.y * 100) / 100 : 0);
+        }
 
         setVenueYaw(venueYaw + aligned.yawDelta);
         setScreenDimensions(aligned.width, aligned.height);
