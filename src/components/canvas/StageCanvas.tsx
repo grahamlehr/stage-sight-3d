@@ -3,7 +3,7 @@ import { Canvas } from '@react-three/fiber';
 import { useStageStore } from '../../store/useStageStore';
 import { DemoBallroom } from './DemoBallroom';
 import { CustomGlbVenue } from './CustomGlbVenue';
-import { ScreenSurface } from './ScreenSurface';
+import { ScreenArray } from './ScreenArray';
 import { PresenterSilhouette } from './PresenterSilhouette';
 import { CameraController } from './CameraController';
 import { VrControllerRig } from './VrControllerRig';
@@ -129,7 +129,7 @@ export const StageCanvas: React.FC = () => {
             <CustomGlbVenue />
           )}
 
-          <ScreenSurface />
+          <ScreenArray />
           <PresenterSilhouette />
         </Suspense>
 

@@ -22,6 +22,7 @@ import {
 } from 'lucide-react';
 import {
   useStageStore,
+  selectSelectedScreen,
   ASPECT_RATIO_PRESETS,
   UvCropMode,
 } from '../../store/useStageStore';
@@ -81,15 +82,15 @@ export const Sidebar: React.FC = () => {
   const manualUvOffsetY = useStageStore((s) => s.manualUvOffsetY);
   const setManualUvOffsetY = useStageStore((s) => s.setManualUvOffsetY);
 
-  const screenWidth = useStageStore((s) => s.screenWidth);
-  const screenHeight = useStageStore((s) => s.screenHeight);
+  const screenWidth = useStageStore((s) => selectSelectedScreen(s).width);
+  const screenHeight = useStageStore((s) => selectSelectedScreen(s).height);
   const setScreenDimensions = useStageStore((s) => s.setScreenDimensions);
   const setScreenPreset = useStageStore((s) => s.setScreenPreset);
   const showTransformGizmo = useStageStore((s) => s.showTransformGizmo);
   const setShowTransformGizmo = useStageStore((s) => s.setShowTransformGizmo);
   const isPickingMesh = useStageStore((s) => s.isPickingMesh);
   const setIsPickingMesh = useStageStore((s) => s.setIsPickingMesh);
-  const boundMeshName = useStageStore((s) => s.boundMeshName);
+  const boundMeshName = useStageStore((s) => selectSelectedScreen(s).boundMeshName);
 
   // 3 Occlusion Test Items
   const showPresenter = useStageStore((s) => s.showPresenter);

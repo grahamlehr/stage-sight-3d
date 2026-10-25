@@ -1,4 +1,4 @@
-import { DiscasTelemetry } from '../store/useStageStore';
+import { DiscasTelemetry, WorstScreenTelemetry } from '../store/useStageStore';
 
 export interface ComputeDiscasParams {
   cameraPos: [number, number, number];
@@ -86,5 +86,51 @@ export function computeDiscasTelemetry({
     dhLabel,
     angleStatus,
     angleLabel,
+  };
+}
+
+const DH_RANK: Record<DiscasTelemetry['dhStatus'], number> = { detail: 0, reading: 1, marginal: 2, fail: 3 };
+const ANGLE_RANK: Record<DiscasTelemetry['angleStatus'], number> = { optimal: 0, steep: 1, extreme: 2 };
+
+export interface ScreenTelemetryResult {
+  id: string;
+  name: string;
+  telemetry: DiscasTelemetry;
+}
+
+/**
+ * The non-primary screen with the worst reading, but only when it is in a
+ * strictly worse D/H band or a strictly worse angle band than the primary.
+ * Ranked by D/H band first, then angle band; the first screen wins a tie.
+ */
+export function worstScreenTelemetry(
+  primaryId: string,
+  results: ScreenTelemetryResult[],
+): WorstScreenTelemetry | null {
+  const primary = results.find((r) => r.id === primaryId);
+  if (!primary) return null;
+  const pDh = DH_RANK[primary.telemetry.dhStatus];
+  const pAngle = ANGLE_RANK[primary.telemetry.angleStatus];
+
+  let worst: ScreenTelemetryResult | null = null;
+  for (const r of results) {
+    if (r.id === primaryId) continue;
+    const dh = DH_RANK[r.telemetry.dhStatus];
+    const angle = ANGLE_RANK[r.telemetry.angleStatus];
+    if (dh <= pDh && angle <= pAngle) continue;
+    if (
+      !worst ||
+      dh > DH_RANK[worst.telemetry.dhStatus] ||
+      (dh === DH_RANK[worst.telemetry.dhStatus] && angle > ANGLE_RANK[worst.telemetry.angleStatus])
+    ) {
+      worst = r;
+    }
+  }
+  if (!worst) return null;
+  return {
+    screenId: worst.id,
+    screenName: worst.name,
+    dhStatus: worst.telemetry.dhStatus,
+    angleStatus: worst.telemetry.angleStatus,
   };
 }

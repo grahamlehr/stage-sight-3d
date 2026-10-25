@@ -2,7 +2,7 @@ import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from 're
 import * as THREE from 'three';
 import { useThree } from '@react-three/fiber';
 import { Html, OrthographicCamera } from '@react-three/drei';
-import { useStageStore, CUSTOM_VIEW_COUNT, CustomSeatView } from '../../store/useStageStore';
+import { useStageStore, selectPrimaryScreen, CUSTOM_VIEW_COUNT, CustomSeatView } from '../../store/useStageStore';
 import {
   defaultCutHeight,
   firstHitBelow,
@@ -68,9 +68,8 @@ export const FloorPlanView: React.FC = () => {
   const cutHeight = useStageStore((s) => s.floorPlanCutHeight);
   const customSeatViews = useStageStore((s) => s.customSeatViews);
   const slot = useStageStore((s) => s.floorPlanSlot);
-  const screenPosition = useStageStore((s) => s.screenPosition);
-  const screenRotation = useStageStore((s) => s.screenRotation);
-  const screenWidth = useStageStore((s) => s.screenWidth);
+  const screens = useStageStore((s) => s.screens);
+  const primaryScreenId = useStageStore((s) => s.primaryScreenId);
 
   const cameraRef = useRef<THREE.OrthographicCamera>(null);
   const [zoomScale, setZoomScale] = useState(1);
@@ -132,7 +131,7 @@ export const FloorPlanView: React.FC = () => {
     };
 
     const defaultYaw = (position: [number, number, number]) =>
-      yawBetween(position, useStageStore.getState().screenPosition);
+      yawBetween(position, selectPrimaryScreen(useStageStore.getState()).position);
 
     const onDown = (e: PointerEvent) => {
       if (e.button !== 0 || !setRay(e)) return;
@@ -200,7 +199,7 @@ export const FloorPlanView: React.FC = () => {
   if (!bounds || !frame) return null;
 
   const farClip = bounds.max[1] - bounds.min[1] + 100;
-  const markerY = Math.min(cutY - 0.05, Math.max(bounds.min[1] + 0.05, screenPosition[1]));
+  const markerYFor = (y: number) => Math.min(cutY - 0.05, Math.max(bounds.min[1] + 0.05, y));
 
   return (
     <>
@@ -219,18 +218,31 @@ export const FloorPlanView: React.FC = () => {
       )}
       {preview && <ViewMarker view={preview} label={slot + 1} active />}
 
-      {/* Where the screen is, for orientation: a bar as wide as the screen */}
-      <group position={[screenPosition[0], markerY, screenPosition[2]]} rotation={[0, screenRotation[1], 0]}>
-        <mesh renderOrder={9}>
-          <boxGeometry args={[screenWidth, 0.05, 0.2]} />
-          <meshBasicMaterial color="#e2e8f0" depthTest={false} toneMapped={false} />
-        </mesh>
-        <Html center zIndexRange={[20, 0]} style={{ pointerEvents: 'none' }} position={[0, 0, -0.8]}>
-          <div className="pointer-events-none select-none text-[10px] font-extrabold uppercase tracking-wider text-ink/80 whitespace-nowrap">
-            Screen
-          </div>
-        </Html>
-      </group>
+      {/* Where each screen is, for orientation: a bar as wide as the screen, primary brightest */}
+      {screens.map((screen) => {
+        const isPrimary = screen.id === primaryScreenId;
+        return (
+          <group
+            key={screen.id}
+            position={[screen.position[0], markerYFor(screen.position[1]), screen.position[2]]}
+            rotation={[0, screen.rotation[1], 0]}
+          >
+            <mesh renderOrder={isPrimary ? 9 : 8}>
+              <boxGeometry args={[screen.width, 0.05, isPrimary ? 0.3 : 0.2]} />
+              <meshBasicMaterial color={isPrimary ? '#e2e8f0' : '#64748b'} depthTest={false} toneMapped={false} />
+            </mesh>
+            <Html center zIndexRange={[20, 0]} style={{ pointerEvents: 'none' }} position={[0, 0, -0.8]}>
+              <div
+                className={`pointer-events-none select-none text-[10px] font-extrabold uppercase tracking-wider whitespace-nowrap ${
+                  isPrimary ? 'text-ink' : 'text-ink/60'
+                }`}
+              >
+                {isPrimary ? `${screen.name} (primary)` : screen.name}
+              </div>
+            </Html>
+          </group>
+        );
+      })}
     </>
   );
 };

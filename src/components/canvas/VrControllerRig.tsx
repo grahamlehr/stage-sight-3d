@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import * as THREE from 'three';
 import { useFrame, useThree } from '@react-three/fiber';
-import { useStageStore, getActiveSeatPresets } from '../../store/useStageStore';
+import { useStageStore, getActiveSeatPresets, selectPrimaryScreen } from '../../store/useStageStore';
 
 const FLOOR_PLANE = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
 
@@ -20,8 +20,8 @@ export const VrControllerRig: React.FC = () => {
   const sourceType = useStageStore((s) => s.sourceType);
   const slides = useStageStore((s) => s.slides);
   const currentSlideIndex = useStageStore((s) => s.currentSlideIndex);
-  const screenWidth = useStageStore((s) => s.screenWidth);
-  const screenHeight = useStageStore((s) => s.screenHeight);
+  const screenWidth = useStageStore((s) => selectPrimaryScreen(s).width);
+  const screenHeight = useStageStore((s) => selectPrimaryScreen(s).height);
   const lightingPreset = useStageStore((s) => s.lightingPreset);
   const venueWidth = useStageStore((s) => s.venueWidth);
   const venueLength = useStageStore((s) => s.venueLength);
@@ -262,7 +262,7 @@ export const VrControllerRig: React.FC = () => {
         useStageStore.getState().seatPosition[1] + SEATED_EYE_HEIGHT,
         useStageStore.getState().seatPosition[2]
       );
-      camera.lookAt(...useStageStore.getState().screenPosition);
+      camera.lookAt(...selectPrimaryScreen(useStageStore.getState()).position);
     };
 
     gl.xr.addEventListener('sessionstart', handleSessionStart);

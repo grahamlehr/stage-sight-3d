@@ -3,8 +3,8 @@ import * as THREE from 'three';
 import { useThree, useFrame } from '@react-three/fiber';
 import { OrbitControls as OrbitControlsImpl } from 'three-stdlib';
 import { OrbitControls } from '@react-three/drei';
-import { useStageStore, getActiveSeatPresets } from '../../store/useStageStore';
-import { computeDiscasTelemetry } from '../../utils/discasMath';
+import { useStageStore, getActiveSeatPresets, selectPrimaryScreen } from '../../store/useStageStore';
+import { computeDiscasTelemetry, worstScreenTelemetry } from '../../utils/discasMath';
 import { rotateAboutY } from '../../utils/venueAlignment';
 import { seatedLookTarget } from '../../utils/floorPlan';
 
@@ -24,9 +24,7 @@ export const CameraController: React.FC = () => {
   const seatYaw = useStageStore((s) => s.seatYaw);
   const isFloorPlanOpen = useStageStore((s) => s.isFloorPlanOpen);
   const fovMode = useStageStore((s) => s.fovMode);
-  const screenPosition = useStageStore((s) => s.screenPosition);
-  const screenRotation = useStageStore((s) => s.screenRotation);
-  const screenHeight = useStageStore((s) => s.screenHeight);
+  const screenPosition = useStageStore((s) => selectPrimaryScreen(s).position);
   const setTelemetry = useStageStore((s) => s.setTelemetry);
   const isVrPresenting = useStageStore((s) => s.isVrPresenting);
 
@@ -226,14 +224,19 @@ export const CameraController: React.FC = () => {
         worldPosRef.current.z,
       ];
 
-      const tel = computeDiscasTelemetry({
-        cameraPos: camPos,
-        screenPos: screenPosition,
-        screenRotation,
-        screenHeight,
-      });
-
-      setTelemetry(tel);
+      const { screens, primaryScreenId } = useStageStore.getState();
+      const results = screens.map((screen) => ({
+        id: screen.id,
+        name: screen.name,
+        telemetry: computeDiscasTelemetry({
+          cameraPos: camPos,
+          screenPos: screen.position,
+          screenRotation: screen.rotation,
+          screenHeight: screen.height,
+        }),
+      }));
+      const primary = results.find((r) => r.id === primaryScreenId) ?? results[0];
+      setTelemetry({ ...primary.telemetry, worst: worstScreenTelemetry(primary.id, results) });
     }
   });
 
