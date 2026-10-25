@@ -6,7 +6,7 @@ All notable changes to StageSight 3D are listed here. The format follows [Keep a
 
 ## [Unreleased]
 
-## [1.0.0] - 2026-10-20
+## [1.0.0] - 2026-10-25
 
 First stable release. It covers everything built since the MVP on 2026-10-15.
 
@@ -29,6 +29,7 @@ First stable release. It covers everything built since the MVP on 2026-10-15.
 
 ### Changed
 
+- **About panel copy.** The subtitle now reads "Screen, Content & Sightline Previewer", the four feature cards describe live content, custom screen ratios, bespoke venue models and content masking, the version tag drops "MVP" and the footer is just "StageSight 3D" (2026-10-20).
 - **Occlusion props.** The presenter, panelists, lectern, tub chairs and side tables were rebuilt to look like real people and furniture at real scale. People have proportioned heads, necks, shoulders, hands and shoes, suits with shirts, lapels and ties, skin tones and hair, and seated poses with crossed legs and arms on armrests. The lectern is walnut with a sloped desk, notes and a gooseneck mic. Each person is three draw calls, and the full set is about a quarter of the old draw calls (2026-10-19).
 - **CI and deploy.** The deploy workflow moved from Node 20 (end of life) to Node 24, and the checkout and setup-node actions moved to v5 (2026-10-19).
 - **Test deck.** `StageSightTest.pptx`, `.DS_Store` and duplicate root logo files are no longer tracked (2026-10-19).
