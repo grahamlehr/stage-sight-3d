@@ -6,6 +6,17 @@ All notable changes to StageSight 3D are listed here. The format follows [Keep a
 
 ## [Unreleased]
 
+### Added
+
+- **Several screens.** The Screen tab lists every screen: select, rename, remove, set the primary one, and give each a **Repeat** or **Split** role. Repeat screens show the whole source; split screens share one source, sliced contiguously by physical width in left-to-right order (automatic by position, or reordered by hand). A slice diagram shows each screen's share. **Repeat on all** and **Split across all** set every role at once (2026-10-25).
+- **Several screens from a custom venue.** After the first pick, **Add screen from mesh** adds a screen over each further mesh; shift-click adds several in a row. A screen's facing follows its mesh, so angled wing screens are turned to match, and picking a bound mesh again selects its screen (2026-10-25).
+- **Demo ballroom side screens.** A **Side screens** toggle adds two angled screens for trying out repeat and split (2026-10-25).
+- **Worst-screen flag.** The telemetry reads from the primary screen. When another screen is in a worse band from the current seat, the HUD and the VR HUD add a line such as "Worst: Left screen · Marginal" (2026-10-25).
+
+### Changed
+
+- **One texture, per-screen UVs.** `ScreenArray` replaces `ScreenSurface`. Video crop applies to the combined split group; stills are shown whole and sliced; the test pattern is drawn at the combined size (2026-10-25).
+
 ## [1.0.0] - 2026-10-25
 
 First stable release. It covers everything built since the MVP on 2026-10-15.

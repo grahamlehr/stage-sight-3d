@@ -2,13 +2,80 @@ import { create } from 'zustand';
 import { hasDismissedGuide } from '../utils/firstRunGuide';
 import { normaliseQuarterTurn, rotateAboutY } from '../utils/venueAlignment';
 import { normaliseYaw } from '../utils/floorPlan';
+import { orderSplitScreens } from '../utils/screenLayout';
 
 export type VenueSource = 'default-ballroom' | 'custom-glb';
-export type ScreenMode = 'procedural' | 'mesh-bind';
 export type SourceType = 'test-pattern' | 'pdf' | 'hdmi-capture' | 'screen-share';
 export type UvCropMode = 'auto-letterbox' | 'top-aligned' | 'fill-1-to-1' | 'manual';
 export type NavigationMode = 'orbit' | 'seated';
 export type FovMode = 'room-context' | 'eye-focus';
+
+/** How a screen uses the video source: a slice of a split, or the whole source repeated. */
+export type ScreenRole = 'split' | 'repeat';
+
+export interface StageScreen {
+  id: string;
+  name: string;
+  width: number; // metres
+  height: number; // metres
+  position: [number, number, number];
+  rotation: [number, number, number]; // only Y is used
+  role: ScreenRole;
+  /** Name of the custom-venue mesh this screen was picked from, or null for a free screen. */
+  boundMeshName: string | null;
+}
+
+export const DEFAULT_SCREEN_ID = 'main';
+export const DEMO_LEFT_SCREEN_ID = 'demo-left';
+export const DEMO_RIGHT_SCREEN_ID = 'demo-right';
+
+/** The single 32:9 screen on the ballroom stage that every session starts with. */
+export const createDefaultScreen = (): StageScreen => ({
+  id: DEFAULT_SCREEN_ID,
+  name: 'Main screen',
+  width: 16.0,
+  height: 4.5,
+  position: [0, 3.4, -12],
+  rotation: [0, 0, 0],
+  role: 'split',
+  boundMeshName: null,
+});
+
+/** Splayed side screens for the demo ballroom, turned in towards the audience. */
+const createDemoSideScreens = (): StageScreen[] => [
+  {
+    id: DEMO_LEFT_SCREEN_ID,
+    name: 'Left side screen',
+    width: 3.2,
+    height: 1.8,
+    position: [-8.6, 3.4, -10.5],
+    rotation: [0, 0.45, 0], // at -X, +Y turn points the normal to +X/+Z
+    role: 'repeat',
+    boundMeshName: null,
+  },
+  {
+    id: DEMO_RIGHT_SCREEN_ID,
+    name: 'Right side screen',
+    width: 3.2,
+    height: 1.8,
+    position: [8.6, 3.4, -10.5],
+    rotation: [0, -0.45, 0],
+    role: 'repeat',
+    boundMeshName: null,
+  },
+];
+
+const isDemoScreen = (id: string) => id === DEMO_LEFT_SCREEN_ID || id === DEMO_RIGHT_SCREEN_ID;
+
+type ScreenPatch = Partial<Omit<StageScreen, 'id'>>;
+
+/** The screen that drives telemetry, the camera target, stage props and VR. */
+export const selectPrimaryScreen = (state: Pick<StageState, 'screens' | 'primaryScreenId'>): StageScreen =>
+  state.screens.find((s) => s.id === state.primaryScreenId) ?? state.screens[0];
+
+/** The screen the size inputs, presets and gizmo edit. */
+export const selectSelectedScreen = (state: Pick<StageState, 'screens' | 'selectedScreenId'>): StageScreen =>
+  state.screens.find((s) => s.id === state.selectedScreenId) ?? state.screens[0];
 
 export interface AspectRatioPreset {
   id: string;
@@ -108,6 +175,15 @@ export interface DiscasTelemetry {
   dhLabel: string;
   angleStatus: 'optimal' | 'steep' | 'extreme';
   angleLabel: string;
+  /** Another screen in a strictly worse band than the primary from this seat, if any. */
+  worst?: WorstScreenTelemetry | null;
+}
+
+export interface WorstScreenTelemetry {
+  screenId: string;
+  screenName: string;
+  dhStatus: DiscasTelemetry['dhStatus'];
+  angleStatus: DiscasTelemetry['angleStatus'];
 }
 
 export interface StageState {
@@ -137,13 +213,17 @@ export interface StageState {
   showCeilingFixtures: boolean;
 
   // Screen Mapping State
-  screenMode: ScreenMode;
+  /** Every screen in the venue; never empty. */
+  screens: StageScreen[];
+  /** Telemetry, the camera look target, stage props and VR use this screen. */
+  primaryScreenId: string;
+  /** The screen the size inputs, presets and gizmo edit. */
+  selectedScreenId: string;
+  /** Left-to-right order of split screens; null means auto (ascending X). */
+  splitOrder: string[] | null;
+  /** True while the demo ballroom's two angled side screens are present. */
+  demoSideScreens: boolean;
   isPickingMesh: boolean;
-  boundMeshName: string | null;
-  screenWidth: number;
-  screenHeight: number;
-  screenPosition: [number, number, number];
-  screenRotation: [number, number, number];
   showTransformGizmo: boolean;
   /** True while a gizmo handle is held, so camera navigation stands down. */
   isTransformDragging: boolean;
@@ -208,9 +288,17 @@ export interface StageState {
   cycleLightingPreset: () => void;
   setShowCeilingFixtures: (show: boolean) => void;
 
-  setScreenMode: (mode: ScreenMode) => void;
+  addScreen: (screen?: ScreenPatch & { id?: string }) => string;
+  updateScreen: (id: string, patch: ScreenPatch) => void;
+  removeScreen: (id: string) => void;
+  setPrimaryScreen: (id: string) => void;
+  setSelectedScreen: (id: string) => void;
+  setScreenRole: (id: string, role: ScreenRole) => void;
+  setAllScreenRoles: (role: ScreenRole) => void;
+  moveScreenInSplit: (id: string, direction: -1 | 1) => void;
+  resetSplitOrder: () => void;
+  setDemoSideScreens: (on: boolean) => void;
   setIsPickingMesh: (picking: boolean) => void;
-  setBoundMeshName: (name: string | null) => void;
   setScreenDimensions: (width: number, height: number) => void;
   setScreenPreset: (presetId: string) => void;
   setScreenPosition: (pos: [number, number, number]) => void;
@@ -253,6 +341,30 @@ export interface StageState {
   setIsGuideOpen: (open: boolean) => void;
 }
 
+/** State that puts the screens back to the single default one. */
+const screenReset = (): Pick<
+  StageState,
+  'screens' | 'primaryScreenId' | 'selectedScreenId' | 'splitOrder' | 'demoSideScreens'
+> => ({
+  screens: [createDefaultScreen()],
+  primaryScreenId: DEFAULT_SCREEN_ID,
+  selectedScreenId: DEFAULT_SCREEN_ID,
+  splitOrder: null,
+  demoSideScreens: false,
+});
+
+/** Drops the demo side screens, keeping primary, selected and the split order valid. */
+function withoutDemoScreens(state: StageState): Partial<StageState> {
+  const screens = state.screens.filter((s) => !isDemoScreen(s.id));
+  if (screens.length === 0) return { demoSideScreens: false };
+  const next: Partial<StageState> = { demoSideScreens: false, screens };
+  const has = (id: string) => screens.some((s) => s.id === id);
+  if (!has(state.primaryScreenId)) next.primaryScreenId = screens[0].id;
+  if (!has(state.selectedScreenId)) next.selectedScreenId = screens[0].id;
+  if (state.splitOrder) next.splitOrder = state.splitOrder.filter(has);
+  return next;
+}
+
 export const useStageStore = create<StageState>((set, get) => ({
   // Venue Defaults
   venueSource: 'default-ballroom',
@@ -273,13 +385,12 @@ export const useStageStore = create<StageState>((set, get) => ({
   showCeilingFixtures: true,
 
   // Screen Defaults (32:9 Super-Wide, 16m x 4.5m on stage deck)
-  screenMode: 'procedural',
+  screens: [createDefaultScreen()],
+  primaryScreenId: DEFAULT_SCREEN_ID,
+  selectedScreenId: DEFAULT_SCREEN_ID,
+  splitOrder: null,
+  demoSideScreens: false,
   isPickingMesh: false,
-  boundMeshName: null,
-  screenWidth: 16.0,
-  screenHeight: 4.5,
-  screenPosition: [0, 3.4, -12],
-  screenRotation: [0, 0, 0],
   showTransformGizmo: false,
   isTransformDragging: false,
 
@@ -336,12 +447,14 @@ export const useStageStore = create<StageState>((set, get) => ({
   isGuideOpen: !hasDismissedGuide(),
 
   // Actions
-  setVenueSource: (venueSource) =>
-    set(
-      venueSource === 'default-ballroom'
-        ? { venueSource, isFloorPlanOpen: false, seatYaw: null }
-        : { venueSource }
-    ),
+  setVenueSource: (venueSource) => {
+    if (venueSource === 'default-ballroom') {
+      set({ venueSource, isFloorPlanOpen: false, seatYaw: null });
+    } else {
+      // The side screens are placed for the ballroom, so they make no sense in a custom room
+      set((state) => ({ venueSource, ...withoutDemoScreens(state) }));
+    }
+  },
   setCustomGlbUrl: (customGlbUrl) => {
     // Single choke point for the uploaded venue blob: release the URL we are
     // replacing, otherwise every upload pins its whole file (often 10s–100s of
@@ -365,6 +478,8 @@ export const useStageStore = create<StageState>((set, get) => ({
             floorPlanSlot: 0,
             floorPlanCutHeight: null,
             seatYaw: null,
+            // Screens bound to the last model's meshes mean nothing in this one
+            ...screenReset(),
           }
     );
   },
@@ -373,7 +488,7 @@ export const useStageStore = create<StageState>((set, get) => ({
     // rather than being left wherever that world position now lands
     // and every placed view with it, keeping each one's position and heading
     // fixed relative to the room
-    const { venueYaw, seatPosition, seatYaw, customSeatViews } = get();
+    const { venueYaw, seatPosition, seatYaw, customSeatViews, screens } = get();
     const next = normaliseQuarterTurn(yaw);
     const delta = next - venueYaw;
     set({
@@ -382,6 +497,16 @@ export const useStageStore = create<StageState>((set, get) => ({
       seatYaw: seatYaw === null ? null : normaliseYaw(seatYaw + delta),
       customSeatViews: customSeatViews.map((view) =>
         view ? { position: rotateAboutY(view.position, delta), yaw: normaliseYaw(view.yaw + delta) } : null
+      ),
+      // Screens picked from the room's meshes turn with it; free screens stay put
+      screens: screens.map((screen) =>
+        screen.boundMeshName === null
+          ? screen
+          : {
+              ...screen,
+              position: rotateAboutY(screen.position, delta),
+              rotation: [screen.rotation[0], normaliseYaw(screen.rotation[1] + delta), screen.rotation[2]],
+            }
       ),
     });
   },
@@ -437,18 +562,77 @@ export const useStageStore = create<StageState>((set, get) => ({
   },
   setShowCeilingFixtures: (showCeilingFixtures) => set({ showCeilingFixtures }),
 
-  setScreenMode: (screenMode) => set({ screenMode }),
+  addScreen: (partial = {}) => {
+    const { id: wanted, ...patch } = partial;
+    const { screens } = get();
+    const taken = new Set(screens.map((s) => s.id));
+    let n = screens.length + 1;
+    let id = wanted && !taken.has(wanted) ? wanted : `screen-${n}`;
+    while (taken.has(id)) id = `screen-${++n}`;
+    const screen: StageScreen = {
+      name: `Screen ${screens.length + 1}`,
+      width: 8.0,
+      height: 4.5,
+      position: [0, 3.4, -12],
+      rotation: [0, 0, 0],
+      role: 'repeat',
+      boundMeshName: null,
+      ...patch,
+      id,
+    };
+    set({ screens: [...screens, screen] });
+    return id;
+  },
+  updateScreen: (id, patch) =>
+    set((state) => ({
+      screens: state.screens.map((s) => (s.id === id ? { ...s, ...patch, id } : s)),
+    })),
+  removeScreen: (id) =>
+    set((state) => {
+      // There is always at least one screen to look at
+      if (state.screens.length <= 1 || !state.screens.some((s) => s.id === id)) return {};
+      const screens = state.screens.filter((s) => s.id !== id);
+      const next = { screens } as Partial<StageState>;
+      if (state.primaryScreenId === id) next.primaryScreenId = screens[0].id;
+      if (state.selectedScreenId === id) next.selectedScreenId = screens[0].id;
+      if (state.splitOrder) next.splitOrder = state.splitOrder.filter((sid) => sid !== id);
+      if (isDemoScreen(id) && !screens.some((s) => isDemoScreen(s.id))) next.demoSideScreens = false;
+      return next;
+    }),
+  setPrimaryScreen: (id) =>
+    set((state) => (state.screens.some((s) => s.id === id) ? { primaryScreenId: id } : {})),
+  setSelectedScreen: (id) =>
+    set((state) => (state.screens.some((s) => s.id === id) ? { selectedScreenId: id } : {})),
+  setScreenRole: (id, role) => get().updateScreen(id, { role }),
+  setAllScreenRoles: (role) =>
+    set((state) => ({ screens: state.screens.map((s) => ({ ...s, role })) })),
+  moveScreenInSplit: (id, direction) => {
+    const { screens, splitOrder } = get();
+    // Start from what the user sees now, so the first move pins the auto order
+    const order = orderSplitScreens(screens, splitOrder).map((s) => s.id);
+    const from = order.indexOf(id);
+    const to = from + direction;
+    if (from === -1 || to < 0 || to >= order.length) return;
+    [order[from], order[to]] = [order[to], order[from]];
+    set({ splitOrder: order });
+  },
+  resetSplitOrder: () => set({ splitOrder: null }),
+  setDemoSideScreens: (on) =>
+    set((state) => {
+      if (!on) return withoutDemoScreens(state);
+      const missing = createDemoSideScreens().filter((d) => !state.screens.some((s) => s.id === d.id));
+      return { demoSideScreens: true, screens: [...state.screens, ...missing] };
+    }),
   setIsPickingMesh: (isPickingMesh) => set({ isPickingMesh }),
-  setBoundMeshName: (boundMeshName) => set({ boundMeshName }),
-  setScreenDimensions: (screenWidth, screenHeight) => set({ screenWidth, screenHeight }),
+  setScreenDimensions: (width, height) => get().updateScreen(get().selectedScreenId, { width, height }),
   setScreenPreset: (presetId) => {
     const preset = ASPECT_RATIO_PRESETS.find((p) => p.id === presetId);
     if (preset) {
-      set({ screenWidth: preset.width, screenHeight: preset.height });
+      get().updateScreen(get().selectedScreenId, { width: preset.width, height: preset.height });
     }
   },
-  setScreenPosition: (screenPosition) => set({ screenPosition }),
-  setScreenRotation: (screenRotation) => set({ screenRotation }),
+  setScreenPosition: (position) => get().updateScreen(get().selectedScreenId, { position }),
+  setScreenRotation: (rotation) => get().updateScreen(get().selectedScreenId, { rotation }),
   setShowTransformGizmo: (showTransformGizmo) => set({ showTransformGizmo }),
   setIsTransformDragging: (isTransformDragging) => set({ isTransformDragging }),
 

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import {
   Layers,
   Monitor,
@@ -13,6 +13,10 @@ import {
   Sparkles,
   Move,
   MousePointer,
+  Star,
+  ChevronLeft,
+  ChevronRight,
+  Trash2,
   RefreshCw,
   Sun,
   Users,
@@ -22,10 +26,12 @@ import {
 } from 'lucide-react';
 import {
   useStageStore,
+  selectSelectedScreen,
   ASPECT_RATIO_PRESETS,
   UvCropMode,
 } from '../../store/useStageStore';
 import { defaultCutHeight } from '../../utils/floorPlan';
+import { orderSplitScreens } from '../../utils/screenLayout';
 import {
   rasterizePdf,
   rasterizeImageFile,
@@ -61,6 +67,31 @@ const SliderRow: React.FC<
   </div>
 );
 
+/** Name field that commits on Enter or blur, and reverts on Escape. Keyed on the name so it resets when the store changes it. */
+const ScreenNameInput: React.FC<{ name: string; onCommit: (name: string) => void }> = ({ name, onCommit }) => (
+  <input
+    key={name}
+    type="text"
+    defaultValue={name}
+    aria-label="Screen name"
+    maxLength={40}
+    onBlur={(e) => {
+      const trimmed = e.currentTarget.value.trim();
+      if (trimmed && trimmed !== name) onCommit(trimmed);
+      else e.currentTarget.value = name;
+    }}
+    onKeyDown={(e) => {
+      if (e.key === 'Enter') e.currentTarget.blur();
+      else if (e.key === 'Escape') {
+        e.currentTarget.value = name;
+        e.currentTarget.blur();
+      }
+    }}
+    onClick={(e) => e.stopPropagation()}
+    className="input min-w-0 flex-1 font-semibold"
+  />
+);
+
 export const Sidebar: React.FC = () => {
   const isSidebarOpen = useStageStore((s) => s.isSidebarOpen);
   const activeSidebarTab = useStageStore((s) => s.activeSidebarTab);
@@ -81,15 +112,29 @@ export const Sidebar: React.FC = () => {
   const manualUvOffsetY = useStageStore((s) => s.manualUvOffsetY);
   const setManualUvOffsetY = useStageStore((s) => s.setManualUvOffsetY);
 
-  const screenWidth = useStageStore((s) => s.screenWidth);
-  const screenHeight = useStageStore((s) => s.screenHeight);
+  const screens = useStageStore((s) => s.screens);
+  const primaryScreenId = useStageStore((s) => s.primaryScreenId);
+  const selectedScreenId = useStageStore((s) => s.selectedScreenId);
+  const splitOrder = useStageStore((s) => s.splitOrder);
+  const demoSideScreens = useStageStore((s) => s.demoSideScreens);
+  const selectedScreenName = useStageStore((s) => selectSelectedScreen(s).name);
+  const updateScreen = useStageStore((s) => s.updateScreen);
+  const removeScreen = useStageStore((s) => s.removeScreen);
+  const setPrimaryScreen = useStageStore((s) => s.setPrimaryScreen);
+  const setSelectedScreen = useStageStore((s) => s.setSelectedScreen);
+  const setScreenRole = useStageStore((s) => s.setScreenRole);
+  const setAllScreenRoles = useStageStore((s) => s.setAllScreenRoles);
+  const moveScreenInSplit = useStageStore((s) => s.moveScreenInSplit);
+  const resetSplitOrder = useStageStore((s) => s.resetSplitOrder);
+  const setDemoSideScreens = useStageStore((s) => s.setDemoSideScreens);
+  const screenWidth = useStageStore((s) => selectSelectedScreen(s).width);
+  const screenHeight = useStageStore((s) => selectSelectedScreen(s).height);
   const setScreenDimensions = useStageStore((s) => s.setScreenDimensions);
   const setScreenPreset = useStageStore((s) => s.setScreenPreset);
   const showTransformGizmo = useStageStore((s) => s.showTransformGizmo);
   const setShowTransformGizmo = useStageStore((s) => s.setShowTransformGizmo);
   const isPickingMesh = useStageStore((s) => s.isPickingMesh);
   const setIsPickingMesh = useStageStore((s) => s.setIsPickingMesh);
-  const boundMeshName = useStageStore((s) => s.boundMeshName);
 
   // 3 Occlusion Test Items
   const showPresenter = useStageStore((s) => s.showPresenter);
@@ -108,6 +153,9 @@ export const Sidebar: React.FC = () => {
   const setPanelOffset = useStageStore((s) => s.setPanelOffset);
 
   const venueSource = useStageStore((s) => s.venueSource);
+  const splitScreens = useMemo(() => orderSplitScreens(screens, splitOrder), [screens, splitOrder]);
+  const splitTotalWidth = splitScreens.reduce((sum, sc) => sum + sc.width, 0) || 1;
+  const hasBoundScreen = screens.some((sc) => sc.boundMeshName);
   const setVenueSource = useStageStore((s) => s.setVenueSource);
   const setCustomGlbUrl = useStageStore((s) => s.setCustomGlbUrl);
   const venueYaw = useStageStore((s) => s.venueYaw);
@@ -461,7 +509,166 @@ export const Sidebar: React.FC = () => {
         {/* ================= TAB 2: SCREEN & STAGE ================= */}
         {activeSidebarTab === 'screen' && (
           <>
-            <Section title="Aspect Ratio Presets">
+            <Section title="Screens" meta={`${screens.length} in the room`}>
+              <ul className="space-y-1.5">
+                {screens.map((screen) => {
+                  const isSelected = screen.id === selectedScreenId;
+                  const isPrimary = screen.id === primaryScreenId;
+                  return (
+                    <li
+                      key={screen.id}
+                      onClick={() => setSelectedScreen(screen.id)}
+                      aria-current={isSelected ? 'true' : undefined}
+                      className={`space-y-1.5 p-2 border cursor-pointer ${
+                        isSelected ? 'border-ink bg-ink/[0.07]' : 'border-ink/20 hover:border-ink/45'
+                      }`}
+                    >
+                      <div className="flex items-center gap-1.5">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setPrimaryScreen(screen.id);
+                          }}
+                          aria-pressed={isPrimary}
+                          title={isPrimary ? 'Primary screen: the telemetry reads from it' : 'Make this the primary screen'}
+                          aria-label={isPrimary ? 'Primary screen' : `Make ${screen.name} the primary screen`}
+                          className="btn btn-ghost btn-icon flex-none"
+                        >
+                          <Star size={14} fill={isPrimary ? 'currentColor' : 'none'} />
+                        </button>
+                        <ScreenNameInput name={screen.name} onCommit={(name) => updateScreen(screen.id, { name })} />
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            removeScreen(screen.id);
+                          }}
+                          disabled={screens.length <= 1}
+                          title={screens.length <= 1 ? 'There must be at least one screen' : 'Remove this screen'}
+                          aria-label={`Remove ${screen.name}`}
+                          className="btn btn-ghost btn-icon flex-none"
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      </div>
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="seg" role="group" aria-label={`${screen.name} role`} onClick={(e) => e.stopPropagation()}>
+                          <button
+                            className="seg-opt"
+                            aria-pressed={screen.role === 'split'}
+                            onClick={() => setScreenRole(screen.id, 'split')}
+                            title="Shows its own slice of the source"
+                          >
+                            Split
+                          </button>
+                          <button
+                            className="seg-opt"
+                            aria-pressed={screen.role === 'repeat'}
+                            onClick={() => setScreenRole(screen.id, 'repeat')}
+                            title="Shows the whole source"
+                          >
+                            Repeat
+                          </button>
+                        </div>
+                        <span className="flex items-center gap-1.5 min-w-0">
+                          {isPrimary && <span className="tag tag-outline">Primary</span>}
+                          {screen.boundMeshName && (
+                            <span className="tag tag-outline truncate max-w-[110px]" title={`Bound to mesh ${screen.boundMeshName}`}>
+                              {screen.boundMeshName}
+                            </span>
+                          )}
+                        </span>
+                      </div>
+                    </li>
+                  );
+                })}
+              </ul>
+
+              {screens.length > 1 && (
+                <div className="grid grid-cols-2 gap-2">
+                  <button onClick={() => setAllScreenRoles('repeat')} className="btn btn-secondary">
+                    Repeat on all
+                  </button>
+                  <button onClick={() => setAllScreenRoles('split')} className="btn btn-secondary">
+                    Split across all
+                  </button>
+                </div>
+              )}
+
+              {venueSource === 'default-ballroom' && (
+                <button
+                  onClick={() => setDemoSideScreens(!demoSideScreens)}
+                  aria-pressed={demoSideScreens}
+                  className="option w-full justify-between"
+                >
+                  <span className="flex items-center gap-2">
+                    <Monitor size={15} />
+                    Side screens
+                  </span>
+                  <span className="text-[10px] font-extrabold">{demoSideScreens ? 'ON' : 'OFF'}</span>
+                </button>
+              )}
+            </Section>
+
+            {splitScreens.length >= 1 && (
+              <Section
+                title="Split Order"
+                meta={splitOrder ? 'Manual' : 'Auto: left to right'}
+              >
+                <ol className="space-y-1">
+                  {splitScreens.map((screen, i) => (
+                    <li key={screen.id} className="flex items-center gap-1.5 text-xs">
+                      <span className="tabular-nums text-ink/60 w-4">{i + 1}</span>
+                      <span className="flex-1 truncate font-semibold">{screen.name}</span>
+                      <button
+                        onClick={() => moveScreenInSplit(screen.id, -1)}
+                        disabled={i === 0}
+                        aria-label={`Move ${screen.name} left`}
+                        title="Move left"
+                        className="btn btn-ghost btn-icon"
+                      >
+                        <ChevronLeft size={14} />
+                      </button>
+                      <button
+                        onClick={() => moveScreenInSplit(screen.id, 1)}
+                        disabled={i === splitScreens.length - 1}
+                        aria-label={`Move ${screen.name} right`}
+                        title="Move right"
+                        className="btn btn-ghost btn-icon"
+                      >
+                        <ChevronRight size={14} />
+                      </button>
+                    </li>
+                  ))}
+                </ol>
+                {splitOrder && (
+                  <button onClick={resetSplitOrder} className="btn btn-secondary w-full">
+                    Auto order
+                  </button>
+                )}
+                <div>
+                  <div className="flex gap-px h-9" aria-label="How the source is sliced across the split screens">
+                    {splitScreens.map((screen) => (
+                      <div
+                        key={screen.id}
+                        style={{ flexGrow: screen.width, flexBasis: 0 }}
+                        className="min-w-0 flex flex-col items-center justify-center bg-ink/[0.12] border border-ink/30 text-[10px] leading-tight overflow-hidden"
+                        title={`${screen.name}: ${Math.round((screen.width / splitTotalWidth) * 100)}% of the source width`}
+                      >
+                        <span className="truncate max-w-full px-1 font-semibold">{screen.name}</span>
+                        <span className="tabular-nums text-ink/60">
+                          {Math.round((screen.width / splitTotalWidth) * 100)}%
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                  <p className="text-[10px] text-ink/60 mt-1">
+                    Each split screen shows a slice of the source as wide as the screen is.
+                  </p>
+                </div>
+              </Section>
+            )}
+
+            <Section title="Aspect Ratio Presets" meta={selectedScreenName}>
               <div className="space-y-1">
                 {ASPECT_RATIO_PRESETS.map((p) => {
                   const isSelected =
@@ -485,7 +692,7 @@ export const Sidebar: React.FC = () => {
             </Section>
 
             {/* Manual Dimensions Input */}
-            <Section title="Custom Physical Dimensions (Meters)">
+            <Section title="Custom Physical Dimensions (Meters)" meta={selectedScreenName}>
               <div className="grid grid-cols-2 gap-2">
                 <label>
                   <span className="text-[10px] text-ink/60 block mb-1">Width (m)</span>
@@ -532,22 +739,26 @@ export const Sidebar: React.FC = () => {
                 <span className="text-[10px] font-extrabold">{showTransformGizmo ? 'ON' : 'OFF'}</span>
               </button>
 
-              <button
-                onClick={() => setIsPickingMesh(!isPickingMesh)}
-                data-state={isPickingMesh ? 'standby' : undefined}
-                className="option w-full justify-between"
-              >
-                <span className="flex items-center gap-2">
-                  <MousePointer size={15} />
-                  {isPickingMesh ? 'Click Mesh in 3D View...' : 'Pick Screen Mesh from GLB'}
-                </span>
-                {isPickingMesh && <span className="tag tag-outline">Stby</span>}
-                {boundMeshName && !isPickingMesh && (
-                  <span className="text-[10px] opacity-70 truncate max-w-[100px]">
-                    {boundMeshName}
-                  </span>
-                )}
-              </button>
+              {venueSource === 'custom-glb' && (
+                <div className="space-y-1">
+                  <button
+                    onClick={() => setIsPickingMesh(!isPickingMesh)}
+                    data-state={isPickingMesh ? 'standby' : undefined}
+                    className="option w-full justify-between"
+                  >
+                    <span className="flex items-center gap-2">
+                      <MousePointer size={15} />
+                      {isPickingMesh
+                        ? 'Click Mesh in 3D View...'
+                        : hasBoundScreen
+                        ? 'Add screen from mesh'
+                        : 'Pick screen mesh'}
+                    </span>
+                    {isPickingMesh && <span className="tag tag-outline">Stby</span>}
+                  </button>
+                  <p className="text-[10px] text-ink/60">Shift-click to add several.</p>
+                </div>
+              )}
             </Section>
 
             {/* ================= 3 Stage Occlusion Test Items ================= */}
@@ -565,7 +776,7 @@ export const Sidebar: React.FC = () => {
                     onChange={(e) => setCustomDeckHeight(parseFloat(e.target.value))}
                   />
                   <p className="text-[10px] text-ink/60">
-                    Where the props stand. Picking the screen mesh sets this from the stage in front of it.
+                    Where the props stand. Picking a screen mesh sets this from the stage in front of it.
                   </p>
                 </div>
               )}
@@ -772,7 +983,7 @@ export const Sidebar: React.FC = () => {
                   <div className="space-y-1">
                     <p className="text-xs font-semibold">Custom GLB Venue Loaded</p>
                     <p className="text-[10px] text-ink/60">
-                      Use &quot;Pick Screen Mesh from GLB&quot; on the Screen tab, then place your camera views on
+                      Use &quot;Pick screen mesh&quot; on the Screen tab, then place your camera views on
                       the floor plan below. Shift + click the floor to sit anywhere.
                     </p>
                   </div>

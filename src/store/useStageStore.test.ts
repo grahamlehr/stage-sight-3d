@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it } from 'vitest';
-import { getActiveSeatPresets, SEAT_PRESETS, useStageStore } from './useStageStore';
+import { getActiveSeatPresets, SEAT_PRESETS, selectPrimaryScreen, selectSelectedScreen, useStageStore } from './useStageStore';
 import { STAGE } from '../components/canvas/venue/roomLayout';
 
 // Floor footprints (half-widths, meters) of the props in PresenterSilhouette,
@@ -31,8 +31,9 @@ const overlaps = (a: Footprint, b: Footprint) =>
   a.minX < b.maxX && b.minX < a.maxX && a.minZ < b.maxZ && b.minZ < a.maxZ;
 
 const defaultFootprints = () => {
-  const { screenPosition, presenterOffset, lecternOffset, panelOffset } = useStageStore.getState();
-  const [sx, , sz] = screenPosition;
+  const state = useStageStore.getState();
+  const { presenterOffset, lecternOffset, panelOffset } = state;
+  const [sx, , sz] = selectPrimaryScreen(state).position;
   const presenter = around(sx + presenterOffset[0], sz + presenterOffset[1], PRESENTER_HALF.x, PRESENTER_HALF.z);
   const lectern = around(sx + lecternOffset[0], sz + lecternOffset[1], LECTERN_HALF.x, LECTERN_HALF.z);
   const seats = PANEL_SEAT_XS.map((x) =>
@@ -53,7 +54,7 @@ describe('default occlusion prop offsets', () => {
 
   it('keep every prop on the default stage deck, back from its front edge', () => {
     const { presenter, lectern, seats } = defaultFootprints();
-    const screenZ = useStageStore.getState().screenPosition[2];
+    const screenZ = selectPrimaryScreen(useStageStore.getState()).position[2];
     [presenter, lectern, ...seats].forEach((prop) => {
       expect(prop.minX).toBeGreaterThan(-STAGE.width / 2);
       expect(prop.maxX).toBeLessThan(STAGE.width / 2);
@@ -231,5 +232,193 @@ describe('custom camera views', () => {
     useStageStore.setState({ isFloorPlanOpen: true });
     useStageStore.getState().setIsVrPresenting(true);
     expect(useStageStore.getState().isFloorPlanOpen).toBe(false);
+  });
+});
+
+describe('screens', () => {
+  const store = () => useStageStore.getState();
+  beforeEach(() => {
+    useStageStore.setState(initial, true);
+  });
+
+  it('start as one default 32:9 screen that is primary and selected', () => {
+    expect(store().screens).toHaveLength(1);
+    const screen = selectPrimaryScreen(store());
+    expect(screen).toMatchObject({ width: 16, height: 4.5, position: [0, 3.4, -12], role: 'split', boundMeshName: null });
+    expect(selectSelectedScreen(store())).toBe(screen);
+    expect(store().splitOrder).toBeNull();
+    expect(store().demoSideScreens).toBe(false);
+  });
+
+  it('add screens with unique ids, repeat role and a numbered name', () => {
+    const a = store().addScreen();
+    const b = store().addScreen();
+    const c = store().addScreen({ id: a, name: 'Clash' });
+    expect(new Set([a, b, c, 'main']).size).toBe(4);
+    expect(store().screens.find((s) => s.id === a)).toMatchObject({ name: 'Screen 2', role: 'repeat' });
+    expect(store().screens.find((s) => s.id === c)?.name).toBe('Clash');
+  });
+
+  it('keep ids unique after a removal frees a number', () => {
+    const a = store().addScreen();
+    store().addScreen();
+    store().removeScreen(a);
+    const c = store().addScreen();
+    expect(new Set(store().screens.map((s) => s.id)).size).toBe(store().screens.length);
+    expect(store().screens.some((s) => s.id === c)).toBe(true);
+  });
+
+  it('refuse to remove the last screen', () => {
+    store().removeScreen('main');
+    expect(store().screens).toHaveLength(1);
+  });
+
+  it('move primary and selected on when their screen is removed', () => {
+    const a = store().addScreen();
+    store().setPrimaryScreen(a);
+    store().setSelectedScreen(a);
+    store().removeScreen(a);
+    expect(store().primaryScreenId).toBe('main');
+    expect(store().selectedScreenId).toBe('main');
+  });
+
+  it('ignore unknown ids when choosing primary or selected', () => {
+    store().setPrimaryScreen('nope');
+    store().setSelectedScreen('nope');
+    expect(store().primaryScreenId).toBe('main');
+    expect(store().selectedScreenId).toBe('main');
+  });
+
+  it('edit only the selected screen with the size, preset, position and rotation setters', () => {
+    const a = store().addScreen();
+    store().setSelectedScreen(a);
+    store().setScreenDimensions(5, 3);
+    store().setScreenPreset('16-9');
+    store().setScreenPosition([1, 2, 3]);
+    store().setScreenRotation([0, 0.5, 0]);
+    expect(store().screens.find((s) => s.id === a)).toMatchObject({
+      width: 8,
+      height: 4.5,
+      position: [1, 2, 3],
+      rotation: [0, 0.5, 0],
+    });
+    expect(selectPrimaryScreen(store())).toMatchObject({ width: 16, position: [0, 3.4, -12] });
+  });
+
+  it('set roles one at a time and all at once', () => {
+    const a = store().addScreen();
+    store().setScreenRole(a, 'split');
+    expect(store().screens.find((s) => s.id === a)?.role).toBe('split');
+    store().setAllScreenRoles('repeat');
+    expect(store().screens.every((s) => s.role === 'repeat')).toBe(true);
+  });
+
+  it('materialise the auto split order on the first move, then swap', () => {
+    const left = store().addScreen({ id: 'l', role: 'split', position: [-10, 3, -12] });
+    const right = store().addScreen({ id: 'r', role: 'split', position: [10, 3, -12] });
+    // Auto order is by X: l, main, r
+    store().moveScreenInSplit(right, -1);
+    expect(store().splitOrder).toEqual([left, 'r', 'main']);
+    store().moveScreenInSplit(left, -1); // already first
+    expect(store().splitOrder).toEqual([left, 'r', 'main']);
+    store().resetSplitOrder();
+    expect(store().splitOrder).toBeNull();
+  });
+
+  it('drop a removed screen from the split order', () => {
+    store().addScreen({ id: 'l', role: 'split', position: [-10, 3, -12] });
+    store().moveScreenInSplit('l', 1);
+    store().removeScreen('l');
+    expect(store().splitOrder).toEqual(['main']);
+  });
+});
+
+describe('demo side screens', () => {
+  const store = () => useStageStore.getState();
+  beforeEach(() => {
+    useStageStore.setState(initial, true);
+  });
+
+  it('add an angled repeat pair, turned in towards the audience, once only', () => {
+    store().setDemoSideScreens(true);
+    store().setDemoSideScreens(true);
+    expect(store().screens).toHaveLength(3);
+    const left = store().screens.find((s) => s.id === 'demo-left')!;
+    const right = store().screens.find((s) => s.id === 'demo-right')!;
+    expect(left).toMatchObject({ width: 3.2, height: 1.8, position: [-8.6, 3.4, -10.5], role: 'repeat' });
+    expect(right.position).toEqual([8.6, 3.4, -10.5]);
+    expect(left.rotation[1]).toBeCloseTo(0.45);
+    expect(right.rotation[1]).toBeCloseTo(-0.45);
+    expect(store().demoSideScreens).toBe(true);
+  });
+
+  it('go away when switched off, and re-point primary and selected', () => {
+    store().setDemoSideScreens(true);
+    store().setPrimaryScreen('demo-left');
+    store().setSelectedScreen('demo-right');
+    store().setDemoSideScreens(false);
+    expect(store().screens.map((s) => s.id)).toEqual(['main']);
+    expect(store().primaryScreenId).toBe('main');
+    expect(store().selectedScreenId).toBe('main');
+    expect(store().demoSideScreens).toBe(false);
+  });
+
+  it('are removed on switching to a custom venue', () => {
+    store().setDemoSideScreens(true);
+    store().setVenueSource('custom-glb');
+    expect(store().screens.map((s) => s.id)).toEqual(['main']);
+    expect(store().demoSideScreens).toBe(false);
+  });
+});
+
+describe('screens and the custom venue', () => {
+  const store = () => useStageStore.getState();
+  beforeEach(() => {
+    useStageStore.setState(initial, true);
+  });
+
+  it('turn mesh-bound screens with the venue and leave free ones alone', () => {
+    const bound = store().addScreen({
+      id: 'wall',
+      position: [-3, 3, -14.3],
+      rotation: [0, 0.2, 0],
+      boundMeshName: 'Screen_Mesh',
+    });
+    store().setVenueYaw(Q);
+    const turned = store().screens.find((s) => s.id === bound)!;
+    expect(turned.position[0]).toBeCloseTo(-14.3);
+    expect(turned.position[1]).toBe(3);
+    expect(turned.position[2]).toBeCloseTo(3);
+    expect(turned.rotation[1]).toBeCloseTo(0.2 + Q);
+    expect(selectPrimaryScreen(store())).toMatchObject({ position: [0, 3.4, -12], rotation: [0, 0, 0] });
+  });
+
+  it('wrap a turned screen rotation into [0, 2π)', () => {
+    store().addScreen({ id: 'wall', boundMeshName: 'm', rotation: [0, 1.9 * Math.PI, 0] });
+    store().setVenueYaw(Math.PI);
+    const y = store().screens.find((s) => s.id === 'wall')!.rotation[1];
+    expect(y).toBeGreaterThanOrEqual(0);
+    expect(y).toBeLessThan(2 * Math.PI);
+    expect(y).toBeCloseTo(0.9 * Math.PI);
+  });
+
+  it('go back to the single default screen when a different model is loaded', () => {
+    useStageStore.setState({ customGlbUrl: '/a.glb' });
+    const id = store().addScreen({ boundMeshName: 'm' });
+    store().setPrimaryScreen(id);
+    store().setSelectedScreen(id);
+    store().setCustomGlbUrl('/b.glb');
+    expect(store().screens).toHaveLength(1);
+    expect(store().screens[0].id).toBe('main');
+    expect(store().primaryScreenId).toBe('main');
+    expect(store().selectedScreenId).toBe('main');
+    expect(store().splitOrder).toBeNull();
+  });
+
+  it('keep the screens when the same URL is set again', () => {
+    useStageStore.setState({ customGlbUrl: '/a.glb' });
+    store().addScreen();
+    store().setCustomGlbUrl('/a.glb');
+    expect(store().screens).toHaveLength(2);
   });
 });

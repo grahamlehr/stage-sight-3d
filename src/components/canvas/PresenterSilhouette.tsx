@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo } from 'react';
 import * as THREE from 'three';
-import { useStageStore } from '../../store/useStageStore';
+import { useStageStore, selectPrimaryScreen } from '../../store/useStageStore';
 import {
   SEATED_CROSSED_POSE,
   SEATED_OPEN_POSE,
@@ -213,7 +213,7 @@ export const PresenterSilhouette: React.FC = () => {
   const deckHeight = useStageStore((s) =>
     s.venueSource === 'custom-glb' ? s.customDeckHeight : s.stageHeight
   );
-  const screenPosition = useStageStore((s) => s.screenPosition);
+  const screenPosition = useStageStore((s) => selectPrimaryScreen(s).position);
 
   // Shared by all three props, so toggling one doesn't recompile shaders
   const materials = useMemo(() => createPropMaterials(), []);

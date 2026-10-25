@@ -7,7 +7,7 @@ Start with the [project README](../README.md) for features, controls and setup. 
 | Doc | Read it to |
 | --- | --- |
 | [Content sources and cropping](content-sources.md) | Get decks, capture cards and screen shares onto the screen, and choose an ultra-wide crop mode |
-| [Custom venues](custom-venues.md) | Prepare and load your own `.glb`, and bind the screen to a mesh in it |
+| [Custom venues](custom-venues.md) | Prepare and load your own `.glb`, and pick screens from meshes in it |
 | [VR preview](vr-preview.md) | Set up a Quest, get calibrated and fix common VR problems |
 
 ## Reference and background

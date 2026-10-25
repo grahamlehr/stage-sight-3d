@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { computeDiscasTelemetry } from './discasMath';
+import { computeDiscasTelemetry, worstScreenTelemetry } from './discasMath';
 
 const deg = (d: number) => (d * Math.PI) / 180;
 
@@ -110,5 +110,56 @@ describe('computeDiscasTelemetry', () => {
     expect(t.viewingDistance).toBe(0.1);
     expect(t.dhRatio).toBe(1); // 0.1 / 0.1
     expect(Number.isFinite(t.offAxisAngle)).toBe(true);
+  });
+});
+
+describe('worstScreenTelemetry', () => {
+  const tel = (dhStatus: 'detail' | 'reading' | 'marginal' | 'fail', angleStatus: 'optimal' | 'steep' | 'extreme') => ({
+    viewingDistance: 1,
+    dhRatio: 1,
+    offAxisAngle: 0,
+    dhStatus,
+    dhLabel: '',
+    angleStatus,
+    angleLabel: '',
+  });
+
+  it('returns null when the primary is the only screen', () => {
+    expect(worstScreenTelemetry('a', [{ id: 'a', name: 'A', telemetry: tel('reading', 'optimal') }])).toBeNull();
+  });
+
+  it('returns null when no other screen is strictly worse', () => {
+    const r = worstScreenTelemetry('a', [
+      { id: 'a', name: 'A', telemetry: tel('marginal', 'steep') },
+      { id: 'b', name: 'B', telemetry: tel('marginal', 'steep') },
+      { id: 'c', name: 'C', telemetry: tel('reading', 'optimal') },
+    ]);
+    expect(r).toBeNull();
+  });
+
+  it('flags a screen in a worse D/H band', () => {
+    const r = worstScreenTelemetry('a', [
+      { id: 'a', name: 'A', telemetry: tel('reading', 'optimal') },
+      { id: 'b', name: 'B', telemetry: tel('marginal', 'optimal') },
+    ]);
+    expect(r).toEqual({ screenId: 'b', screenName: 'B', dhStatus: 'marginal', angleStatus: 'optimal' });
+  });
+
+  it('flags a screen in a worse angle band', () => {
+    const r = worstScreenTelemetry('a', [
+      { id: 'a', name: 'A', telemetry: tel('reading', 'optimal') },
+      { id: 'b', name: 'B', telemetry: tel('reading', 'extreme') },
+    ]);
+    expect(r?.screenId).toBe('b');
+  });
+
+  it('picks the worst by D/H first, then angle', () => {
+    const r = worstScreenTelemetry('a', [
+      { id: 'a', name: 'A', telemetry: tel('detail', 'optimal') },
+      { id: 'b', name: 'B', telemetry: tel('marginal', 'extreme') },
+      { id: 'c', name: 'C', telemetry: tel('fail', 'optimal') },
+      { id: 'd', name: 'D', telemetry: tel('fail', 'steep') },
+    ]);
+    expect(r?.screenId).toBe('d');
   });
 });

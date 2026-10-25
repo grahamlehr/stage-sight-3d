@@ -14,6 +14,7 @@ import {
 import { useStageStore, getActiveSeatPresets } from '../../store/useStageStore';
 import { Logo } from './Logo';
 import { AboutModal } from './AboutModal';
+import { describeWorstScreen } from '../../utils/worstScreenFlag';
 
 // Tag text below 2xl, where the full DISCAS labels don't fit beside the controls
 const DH_SHORT_LABEL: Record<string, string> = {
@@ -68,6 +69,8 @@ export const TelemetryHUD: React.FC = () => {
 
   const angleLevel =
     telemetry.angleStatus === 'optimal' ? 'go' : telemetry.angleStatus === 'steep' ? 'warn' : 'fail';
+
+  const worstFlag = describeWorstScreen(telemetry.worst);
 
   const lightingPresets = [
     { id: 'conference-bright', label: 'Bright' },
@@ -136,6 +139,18 @@ export const TelemetryHUD: React.FC = () => {
             <span className="2xl:hidden">{ANGLE_SHORT_LABEL[telemetry.angleStatus] ?? telemetry.angleStatus}</span>
           </span>
         </div>
+
+        {/* Worst other screen, when it reads worse than the primary */}
+        {worstFlag && (
+          <div className="flex items-center pl-3 border-l border-ink/20">
+            <span
+              className={`tag ${statusTag(worstFlag.level)}`}
+              title="The screen that reads worst from this seat. The numbers beside it are for the primary screen."
+            >
+              {worstFlag.text}
+            </span>
+          </div>
+        )}
       </div>
 
       {/* Right: Camera Mode, Dual-FOV, Seat Presets & Lighting */}

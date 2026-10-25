@@ -3,7 +3,28 @@ import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { ThreeEvent } from '@react-three/fiber';
 import { useStageStore } from '../../store/useStageStore';
-import { alignScreenMesh, deckProbeOrigin } from '../../utils/venueAlignment';
+import { alignScreenMesh, deckProbeOrigin, rotateAboutY } from '../../utils/venueAlignment';
+import { measureScreenMesh } from '../../utils/screenMeshMeasure';
+import { normaliseYaw } from '../../utils/floorPlan';
+
+/** The mesh's triangles as world-space xyz triples, for indexed and non-indexed geometry. */
+function worldTriangles(mesh: THREE.Mesh): Float32Array {
+  mesh.updateWorldMatrix(true, false);
+  const position = mesh.geometry.getAttribute('position');
+  if (!position) return new Float32Array(0);
+  const index = mesh.geometry.getIndex();
+  const count = index ? index.count : position.count;
+  const triangleVertices = count - (count % 3);
+  const out = new Float32Array(triangleVertices * 3);
+  const v = new THREE.Vector3();
+  for (let i = 0; i < triangleVertices; i++) {
+    v.fromBufferAttribute(position, index ? index.getX(i) : i).applyMatrix4(mesh.matrixWorld);
+    out[i * 3] = v.x;
+    out[i * 3 + 1] = v.y;
+    out[i * 3 + 2] = v.z;
+  }
+  return out;
+}
 
 interface ErrorBoundaryProps {
   children: ReactNode;
@@ -47,9 +68,9 @@ interface LoadedGlbProps {
 const LoadedGlbModel: React.FC<LoadedGlbProps> = ({ url }) => {
   const [scene, setScene] = useState<THREE.Group | null>(null);
   const isPickingMesh = useStageStore((s) => s.isPickingMesh);
-  const setScreenDimensions = useStageStore((s) => s.setScreenDimensions);
-  const setScreenPosition = useStageStore((s) => s.setScreenPosition);
-  const setBoundMeshName = useStageStore((s) => s.setBoundMeshName);
+  const addScreen = useStageStore((s) => s.addScreen);
+  const updateScreen = useStageStore((s) => s.updateScreen);
+  const setSelectedScreen = useStageStore((s) => s.setSelectedScreen);
   const setIsPickingMesh = useStageStore((s) => s.setIsPickingMesh);
   const setVenueSource = useStageStore((s) => s.setVenueSource);
   const setCustomGlbUrl = useStageStore((s) => s.setCustomGlbUrl);
@@ -112,30 +133,61 @@ const LoadedGlbModel: React.FC<LoadedGlbProps> = ({ url }) => {
       // Mesh Click-to-Bind mode. Measure in WORLD space: a geometry-local box
       // ignores the mesh's and its ancestors' scale, so a centimetre-authored GLB
       // imported at 0.01 root scale would report an 800m-wide screen.
+      const tris = worldTriangles(mesh);
       const bbox = new THREE.Box3().setFromObject(mesh);
-      if (!bbox.isEmpty()) {
-        const size = bbox.getSize(new THREE.Vector3());
-        const center = bbox.getCenter(new THREE.Vector3());
+      if (tris.length >= 9 && !bbox.isEmpty()) {
+        const measured = measureScreenMesh(tris, e.ray.origin.toArray());
+        const boundMeshName = mesh.name || `Mesh_${mesh.id}`;
+        const { screens } = useStageStore.getState();
+        const isFirstPick = screens.length === 1 && screens[0].boundMeshName === null;
+        // The preview plane doesn't catch clicks, so a bound mesh can be picked
+        // again through it: select its screen rather than adding a duplicate
+        const alreadyBound = screens.find((s) => s.boundMeshName === boundMeshName);
 
-        // The preview screen only faces +Z, so turn the venue until the picked
-        // wall does too, then bind to where the wall lands after the turn.
-        // The wall's front is the side the user clicked it from.
-        const aligned = alignScreenMesh(center.toArray(), size.toArray(), e.ray.origin.toArray());
+        if (alreadyBound) {
+          setSelectedScreen(alreadyBound.id);
+        } else if (isFirstPick) {
+          // The first pick turns the venue so the wall faces +Z, and stands the
+          // occlusion props on the stage in front of it. The wall's front is the
+          // side the user clicked it from.
+          const size = bbox.getSize(new THREE.Vector3());
+          const center = bbox.getCenter(new THREE.Vector3());
+          const aligned = alignScreenMesh(center.toArray(), size.toArray(), e.ray.origin.toArray());
 
-        // Stand the occlusion props on the stage: the first surface straight
-        // down from just in front of the wall. A turn about Y doesn't change
-        // heights, so probing before the turn is applied is fine.
-        if (scene) {
-          const origin = new THREE.Vector3(...deckProbeOrigin(center.toArray(), aligned));
-          const hit = new THREE.Raycaster(origin, new THREE.Vector3(0, -1, 0)).intersectObject(scene, true)[0];
-          setCustomDeckHeight(hit ? Math.round(hit.point.y * 100) / 100 : 0);
+          // A turn about Y doesn't change heights, so probing before the turn is fine
+          if (scene) {
+            const origin = new THREE.Vector3(...deckProbeOrigin(center.toArray(), aligned));
+            const hit = new THREE.Raycaster(origin, new THREE.Vector3(0, -1, 0)).intersectObject(scene, true)[0];
+            setCustomDeckHeight(hit ? Math.round(hit.point.y * 100) / 100 : 0);
+          }
+
+          // Turn the venue first: setVenueYaw also turns screens already bound to
+          // the room, and this one isn't bound until the update below.
+          setVenueYaw(venueYaw + aligned.yawDelta);
+          // The measurement is in pre-turn world coordinates, so carry it round
+          // with the room. Any angle beyond the quarter turn stays as the screen's own yaw.
+          updateScreen(screens[0].id, {
+            width: measured.width,
+            height: measured.height,
+            position: rotateAboutY(measured.center, aligned.yawDelta),
+            rotation: [0, normaliseYaw(measured.yaw + aligned.yawDelta), 0],
+            boundMeshName,
+          });
+        } else {
+          // Further picks add a screen where the mesh already is: no venue turn
+          addScreen({
+            name: `Screen ${screens.length + 1}`,
+            role: 'repeat',
+            width: measured.width,
+            height: measured.height,
+            position: measured.center,
+            rotation: [0, measured.yaw, 0],
+            boundMeshName,
+          });
         }
 
-        setVenueYaw(venueYaw + aligned.yawDelta);
-        setScreenDimensions(aligned.width, aligned.height);
-        setScreenPosition(aligned.center);
-        setBoundMeshName(mesh.name || `Mesh_${mesh.id}`);
-        setIsPickingMesh(false);
+        // Shift-click keeps picking so several meshes can be added in a row
+        if (!e.shiftKey) setIsPickingMesh(false);
       }
       return;
     }
