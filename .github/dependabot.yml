@@ -6,6 +6,19 @@ updates:
     groups:
       minor-and-patch:
         update-types: [minor, patch]
+    # React 19 needs React, React DOM, R3F 9 and drei 10 to move together, which
+    # Dependabot can't do in one PR, so take that upgrade by hand.
+    ignore:
+      - dependency-name: "react"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "react-dom"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "@types/react"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "@types/react-dom"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "@react-three/*"
+        update-types: ["version-update:semver-major"]
   - package-ecosystem: github-actions
     directory: /
     schedule: { interval: weekly }
