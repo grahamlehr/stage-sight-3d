@@ -2,9 +2,13 @@
 
 All notable changes to StageSight 3D are listed here. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the project uses [Semantic Versioning](https://semver.org/).
 
-No release has been tagged yet. `main` deploys continuously to GitHub Pages, and `package.json` is at `0.1.0`.
+`main` deploys continuously to GitHub Pages. Changes merged since the last release collect under Unreleased until the next version is cut.
 
 ## [Unreleased]
+
+## [1.0.0] - 2026-10-25
+
+First stable release. It covers everything built since the MVP on 2026-10-15.
 
 ### Added
 
@@ -51,3 +55,6 @@ No release has been tagged yet. `main` deploys continuously to GitHub Pages, and
 - **VR calibration.** Calibration now happens once on the first valid pose, ordinary leaning no longer snaps the view, and a failure while ending a session no longer leaves the app stuck in VR mode (2026-10-19).
 - **VR entry height.** VR now starts at a 1.2m seated eye height, and the view no longer drops through the floor (2026-10-16).
 - **Panel chairs.** The tub chairs in the panel prop were rotated so they face the right way (2026-10-15).
+
+[Unreleased]: https://github.com/grahamlehr/stage-sight-3d/compare/v1.0.0...HEAD
+[1.0.0]: https://github.com/grahamlehr/stage-sight-3d/releases/tag/v1.0.0

@@ -50,7 +50,7 @@ export const AboutModal: React.FC<AboutModalProps> = ({ isOpen, onClose, onStart
           <div className="mt-3 text-center">
             <h2 className="text-xl flex items-center justify-center gap-2">
               StageSight 3D
-              <span className="tag tag-outline">v0.1.0</span>
+              <span className="tag tag-outline">v{__APP_VERSION__}</span>
             </h2>
             <p className="text-xs text-ink/60 mt-1 max-w-sm">
               Screen, Content &amp; Sightline Previewer
