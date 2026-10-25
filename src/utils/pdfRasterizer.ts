@@ -72,7 +72,8 @@ export async function rasterizePdf(
   } finally {
     // Releases the worker-side document plus its font/image/operator caches,
     // which would otherwise stay alive for every PDF opened this session.
-    await pdfDoc.destroy();
+    // pdf.js 5 removed PDFDocumentProxy.destroy(); the loading task owns teardown.
+    await loadingTask.destroy();
   }
 
   return canvases;
