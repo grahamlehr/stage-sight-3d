@@ -91,6 +91,6 @@ Steps 1 to 4 done. Lint, 149 tests and build pass. Checked by hand in `npm run d
 
 Not checked: HDMI capture and screen share (they need a browser permission prompt), crop modes on a split video, and VR (no headset).
 
-Follow-ups:
-- A repeat screen showing a still (test pattern or slide) stretches it to the screen's shape.
-- A split across screens of different heights uses one vertical range, so shorter screens are squashed.
+Follow-ups (both fixed in the follow-up PR, branch `fix/multiscreen-stills-and-split-heights`):
+- ~~A repeat screen showing a still stretches it to the screen's shape.~~ With two or more screens, repeat screens now crop a still with the crop mode (Graham chose crop-to-fill over black bars, and to keep a lone screen showing the whole slide).
+- ~~A split across screens of different heights uses one vertical range.~~ Each split screen now takes a centred V band in proportion to its height against the tallest.
