@@ -173,4 +173,63 @@ describe('computeScreenRegions', () => {
     expect(regions.left.u1).toBeCloseTo(0.5);
     expect(regions.right.u0).toBeCloseTo(0.5);
   });
+
+  it('crops a still to a repeat side screen instead of stretching it', () => {
+    // 32:9 test pattern drawn for a 32:9 split centre; the 16:9 side screen shows its middle half
+    const wideCentre = screen('centre', { width: 16, height: 4.5 });
+    const side = screen('side', { role: 'repeat', width: 8, height: 4.5, position: [-14, 3, -12] });
+    const regions = computeScreenRegions({
+      ...base,
+      screens: [side, wideCentre],
+      frame: null,
+      still: { width: 4096, height: 1152 },
+    });
+    expect(regions.side.u1 - regions.side.u0).toBeCloseTo(0.5);
+    expect(regions.side.u0).toBeCloseTo(0.25);
+    expect(regions.side.v0).toBeCloseTo(0);
+    expect(regions.side.v1).toBeCloseTo(1);
+    expect(regions.centre).toEqual({ u0: 0, u1: 1, v0: 0, v1: 1 });
+  });
+
+  it('still shows a still whole on a lone screen', () => {
+    const regions = computeScreenRegions({
+      ...base,
+      screens: [screen('a', { role: 'repeat', width: 16, height: 4.5 })],
+      frame: null,
+      still: { width: 1920, height: 1080 },
+    });
+    expect(regions.a).toEqual({ u0: 0, u1: 1, v0: 0, v1: 1 });
+  });
+
+  it('gives a shorter split screen a centred band of the vertical range', () => {
+    // Combined canvas is 16 x 4.5; the 3 m tall screen covers the middle 2/3 of it
+    const regions = computeScreenRegions({
+      ...base,
+      screens: [
+        screen('short', { width: 8, height: 3, position: [-5, 3, -12] }),
+        screen('tall', { width: 8, height: 4.5, position: [5, 3, -12] }),
+      ],
+      frame: null,
+    });
+    expect(regions.tall.v0).toBeCloseTo(0);
+    expect(regions.tall.v1).toBeCloseTo(1);
+    expect(regions.short.v1 - regions.short.v0).toBeCloseTo(3 / 4.5);
+    expect(regions.short.v0).toBeCloseTo((1 - 3 / 4.5) / 2);
+  });
+
+  it('nests a shorter split screen band inside a letterboxed frame', () => {
+    // Combined 16 x 4.5 (32:9) from a 16:9 frame: the group uses the middle half of V
+    const regions = computeScreenRegions({
+      ...base,
+      screens: [
+        screen('short', { width: 8, height: 3, position: [-5, 3, -12] }),
+        screen('tall', { width: 8, height: 4.5, position: [5, 3, -12] }),
+      ],
+      frame: { width: 1920, height: 1080 },
+    });
+    expect(regions.tall.v0).toBeCloseTo(0.25);
+    expect(regions.tall.v1).toBeCloseTo(0.75);
+    expect(regions.short.v1 - regions.short.v0).toBeCloseTo(0.5 * (3 / 4.5));
+    expect((regions.short.v0 + regions.short.v1) / 2).toBeCloseTo(0.5);
+  });
 });

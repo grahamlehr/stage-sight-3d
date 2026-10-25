@@ -57,6 +57,12 @@ export interface ScreenRegionParams {
   splitOrder: string[] | null;
   /** Source frame in pixels, or null for a still (PDF, image, test pattern), which is shown whole. */
   frame: { width: number; height: number } | null;
+  /**
+   * Pixel size of the still being shown, when `frame` is null. With two or more
+   * screens, repeat screens crop it to their own shape instead of stretching it;
+   * a lone screen and the split group still show it whole.
+   */
+  still?: { width: number; height: number } | null;
   cropMode: UvCropMode;
   manualRepeatY?: number;
   manualOffsetY?: number;
@@ -68,22 +74,29 @@ export interface ScreenRegionParams {
  * Repeat screens each show the whole source, cropped to their own shape.
  * Split screens share one crop worked out for the group's combined size, then
  * take contiguous slices of it in left-to-right order, each as wide as the
- * screen is (gaps between screens are ignored).
+ * screen is (gaps between screens are ignored). A split screen shorter than
+ * the group's tallest takes a vertically centred band of that crop, as tall as
+ * it is relative to the tallest, so it isn't squashed.
  */
 export function computeScreenRegions({
   screens,
   splitOrder,
   frame,
+  still = null,
   cropMode,
   manualRepeatY,
   manualOffsetY,
 }: ScreenRegionParams): Record<string, UvRegion> {
-  const baseFor = (width: number, height: number): UvRegion => {
-    if (!frame) return FULL_FRAME;
+  const cropFor = (
+    source: { width: number; height: number } | null,
+    width: number,
+    height: number,
+  ): UvRegion => {
+    if (!source) return FULL_FRAME;
     const crop = computeUvCrop({
       cropMode,
-      captureWidth: frame.width,
-      captureHeight: frame.height,
+      captureWidth: source.width,
+      captureHeight: source.height,
       screenWidth: width,
       screenHeight: height,
       manualRepeatY,
@@ -97,10 +110,15 @@ export function computeScreenRegions({
     };
   };
 
+  const baseFor = (width: number, height: number): UvRegion => cropFor(frame, width, height);
+
+  // A lone screen keeps showing a still whole; with several, repeat screens crop it
+  const repeatSource = frame ?? (screens.length > 1 ? still : null);
+
   const regions: Record<string, UvRegion> = {};
 
   for (const screen of screens) {
-    if (screen.role === 'repeat') regions[screen.id] = baseFor(screen.width, screen.height);
+    if (screen.role === 'repeat') regions[screen.id] = cropFor(repeatSource, screen.width, screen.height);
   }
 
   const group = orderSplitScreens(screens, splitOrder);
@@ -108,13 +126,16 @@ export function computeScreenRegions({
   if (canvas) {
     const base = baseFor(canvas.width, canvas.height);
     const baseWidth = base.u1 - base.u0;
+    const baseHeight = base.v1 - base.v0;
     let before = 0;
     for (const screen of group) {
+      const vSpan = baseHeight * (screen.height / canvas.height);
+      const v0 = base.v0 + (baseHeight - vSpan) / 2;
       regions[screen.id] = {
         u0: base.u0 + baseWidth * (before / canvas.width),
         u1: base.u0 + baseWidth * ((before + screen.width) / canvas.width),
-        v0: base.v0,
-        v1: base.v1,
+        v0,
+        v1: v0 + vSpan,
       };
       before += screen.width;
     }

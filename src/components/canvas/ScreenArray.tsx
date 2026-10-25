@@ -208,17 +208,24 @@ export const ScreenArray: React.FC = () => {
   // 2. Which part of the source each screen shows. Plain numbers, so derived
   // during render; the panels write them into their plane geometries.
   const isLive = (sourceType === 'hdmi-capture' || sourceType === 'screen-share') && activeVideoStream !== null;
+  // Pixel size of a still (slide or test pattern canvas), so repeat screens can crop it to their shape
+  const stillCanvas = !isLive && activeTexture instanceof THREE.CanvasTexture
+    ? (activeTexture.image as HTMLCanvasElement)
+    : null;
+  const stillWidth = stillCanvas?.width ?? 0;
+  const stillHeight = stillCanvas?.height ?? 0;
   const regions = useMemo(
     () =>
       computeScreenRegions({
         screens,
         splitOrder,
         frame: isLive ? frameSize : null,
+        still: stillWidth > 0 && stillHeight > 0 ? { width: stillWidth, height: stillHeight } : null,
         cropMode: uvCropMode,
         manualRepeatY: manualUvRepeatY,
         manualOffsetY: manualUvOffsetY,
       }),
-    [screens, splitOrder, isLive, frameSize, uvCropMode, manualUvRepeatY, manualUvOffsetY],
+    [screens, splitOrder, isLive, frameSize, stillWidth, stillHeight, uvCropMode, manualUvRepeatY, manualUvOffsetY],
   );
 
   const selectedGroup = groups[selectedScreenId] ?? null;

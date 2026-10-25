@@ -17,6 +17,11 @@ All notable changes to StageSight 3D are listed here. The format follows [Keep a
 
 - **One texture, per-screen UVs.** `ScreenArray` replaces `ScreenSurface`. Video crop applies to the combined split group; stills are shown whole and sliced; the test pattern is drawn at the combined size (2026-10-25).
 
+### Fixed
+
+- **Repeat screens no longer stretch stills.** With several screens, a repeat screen crops a slide or the test pattern to its own shape using the crop mode, instead of stretching it. A single screen still shows the whole slide (2026-10-25).
+- **Shorter split screens are no longer squashed.** Each split screen takes a vertically centred band of the source in proportion to its height against the group's tallest screen (2026-10-25).
+
 ## [1.0.0] - 2026-10-25
 
 First stable release. It covers everything built since the MVP on 2026-10-15.
