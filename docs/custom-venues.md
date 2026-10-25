@@ -1,6 +1,6 @@
 # Custom venues
 
-The **Venue** tab can swap the procedural ballroom for your own model of the room. This page covers how to prepare the model and how to bind the screen to it.
+The **Venue** tab can swap the procedural ballroom for your own model of the room. This page covers how to prepare the model and how to bind screens to it.
 
 ## Preparing the model
 
@@ -32,7 +32,7 @@ Picking the screen mesh (below) chooses the rotation for you, so you usually won
 
 If your model contains the screen or LED wall as its own mesh, you can make the preview screen match it:
 
-1. On the **Screen** tab, choose **Pick Screen Mesh from GLB**.
+1. On the **Screen** tab, choose **Pick screen mesh**.
 2. Click the screen mesh in the 3D view.
 
 First, the venue is turned in quarter turns so the wall faces +Z:
@@ -50,11 +50,21 @@ Binding also finds the stage, so the presenter, lectern and panel stand on it in
 
 **Stage Floor Height** sits at the top of **Stage Occlusion Items** on the Screen tab, for custom venues only. Use it if the stage in front of your wall isn't level, or if the ray hit something else first, such as a lectern in the model. A newly uploaded model starts at 0m.
 
-The picked mesh's name appears next to the button.
+The picked mesh's name appears as a tag on that screen in the list.
 
-**Binding copies size and position, and snaps the facing to a quarter turn.** The preview screen is still a flat plane facing +Z. A wall that is curved or angled off the X and Z axes is approximated, not reproduced, and its telemetry is graded as if it faced the nearest axis.
+### Adding several screens
 
-Picking only works on a custom venue. Clicks on the demo ballroom don't bind.
+After the first pick the button reads **Add screen from mesh**. Each further pick adds another screen over the mesh you click, in the **Repeat** role. **Shift-click** a mesh to keep picking mode on and add several in a row; a plain click adds one and switches picking off. These later picks don't turn the venue again, because only the first pick aligns the room.
+
+Clicking a mesh that is already bound selects its screen instead of adding a duplicate. Use the screen list to rename, reorder, set the primary screen or remove screens. See [Several screens](content-sources.md#several-screens-repeat-and-split) for repeat and split.
+
+### Angled screens
+
+Each picked screen is a flat plane laid over the mesh. It takes the mesh's size and centre, and its **facing comes from the mesh's surface**, so a wing screen set at an angle to the main wall is turned to match (only the yaw, about the vertical axis). The first pick also snaps the venue to a quarter turn; any angle left over beyond that stays on the screen as its own yaw, and the telemetry uses it.
+
+**A curved wall, or one pitched or rolled, is still approximated** by a flat vertical plane.
+
+Picking only works on a custom venue. Clicks on the demo ballroom don't bind. (The demo ballroom has a **Side screens** toggle on the Screen tab that adds two angled screens for trying out repeat and split.)
 
 ## Camera views and the floor plan
 

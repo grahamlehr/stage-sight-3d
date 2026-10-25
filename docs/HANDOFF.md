@@ -85,4 +85,12 @@ See `docs/DECISIONS.md` (2026-10-25: multi-screen repeat and split). Summary: pl
 - three r170: writing to a geometry's `uv` attribute needs `needsUpdate = true`.
 
 ## State
-Plan written; implementation not started.
+Steps 1 to 4 done. Lint, 149 tests and build pass. Checked by hand in `npm run dev` (desktop browser):
+- Demo ballroom: side screens on and off, Repeat on all, Split across all. The test pattern and sample deck slice contiguously across left, main and right.
+- Custom GLB: a synthetic venue with a centre LED and two LEDs angled at ±0.5 rad. Shift-click picking, a plain click ending picking, the angled overlays, the 20/60/20 auto order, re-clicking a bound mesh selecting its screen, the gizmo moving a non-primary screen, and the worst-screen flag in the HUD.
+
+Not checked: HDMI capture and screen share (they need a browser permission prompt), crop modes on a split video, and VR (no headset).
+
+Follow-ups:
+- A repeat screen showing a still (test pattern or slide) stretches it to the screen's shape.
+- A split across screens of different heights uses one vertical range, so shorter screens are squashed.

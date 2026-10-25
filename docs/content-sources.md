@@ -21,7 +21,7 @@ The **Source** tab chooses what is shown on the screen. Everything is processed 
 
 ## Slides are stretched to fit
 
-PDF, image and sample-deck slides are mapped onto the whole screen with no cropping or letterboxing. **A slide with a different aspect ratio from the screen will look stretched.** To preview a 32:9 wall, export the deck at 32:9 (for example 5760 × 1620 or 7680 × 2160). Then the preview matches what the wall will show.
+PDF, image and sample-deck slides are mapped onto the whole screen (or, on a split group, the whole group; see [several screens](#several-screens-repeat-and-split)) with no cropping or letterboxing. **A slide with a different aspect ratio from the screen will look stretched.** To preview a 32:9 wall, export the deck at 32:9 (for example 5760 × 1620 or 7680 × 2160). Then the preview matches what the wall will show.
 
 To move between slides, use the transport bar, <kbd>←</kbd> <kbd>→</kbd>, <kbd>Page Up</kbd> <kbd>Page Down</kbd> or <kbd>Space</kbd>, or the VR thumbstick.
 
@@ -46,3 +46,26 @@ The crop is recalculated whenever the source's real resolution becomes known or 
 - **Top-Aligned** is for a processor that packs ultra-wide content at the top of the frame.
 - **Fill 1-to-1** is for a source whose native resolution already matches the wall.
 - **Manual** is for any other layout. Adjust it until the band covers exactly the active content.
+
+## Several screens: repeat and split
+
+A room can hold more than one screen (the **Screen** tab lists them). Each screen has a role:
+
+- **Repeat** shows the whole source, cropped to that screen's own shape. Use it for confidence monitors and side screens that mirror the main picture.
+- **Split** shows its own slice of the source. Split screens form one group that the source is spread across.
+
+**Repeat on all** and **Split across all** set every screen's role at once.
+
+### How the split is cut
+
+- The slices are **contiguous and sized by physical width**. A 12m screen beside a 4m screen takes 75% and 25% of the source width. Gaps between the screens are ignored.
+- The slices run **left to right as the audience sees them**. By default the order follows each screen's X position (**auto order**). The **Split Order** list on the Screen tab moves a screen left or right; that pins a manual order until you press **Auto order**. The slice diagram under it shows each screen's share of the source width.
+- The group's **combined size** is its widths added up by its tallest height. That size, not any single screen, is what the source is cropped to.
+
+### Cropping and stills
+
+- **Video** (HDMI capture, screen share): the crop mode applies once, to the combined split group, and the slices are cut from the cropped area. A repeat screen is cropped by itself.
+- **Stills** (PDF, images, the sample deck) are never cropped. A repeat screen shows the whole slide; the split group shows the whole slide sliced across its screens. So a slide for a split group should be exported at the combined aspect ratio.
+- The **test pattern** is drawn at the split group's combined size, so its grid and circles are not distorted across the slices.
+
+All screens share one texture. Each screen only changes which part of it its panel's UVs point at, so extra screens cost almost nothing extra to render. The maths is in [`src/utils/screenLayout.ts`](../src/utils/screenLayout.ts).

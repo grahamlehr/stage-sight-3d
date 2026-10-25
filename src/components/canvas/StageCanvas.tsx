@@ -158,7 +158,7 @@ export const StageCanvas: React.FC = () => {
             <strong className="font-extrabold text-ink">Floor Plan:</strong> click the floor to place View {floorPlanSlot + 1}, drag to aim it &bull; <kbd className="kbd">Esc</kbd> to close
           </span>
         ) : isPickingMesh ? (
-          <span className="font-semibold text-ink">Click any mesh in the 3D model to bind the LED screen</span>
+          <span className="font-semibold text-ink">Click a mesh in the 3D model to make it a screen &bull; <kbd className="kbd">Shift + Click</kbd> to add several</span>
         ) : navigationMode === 'seated' ? (
           <span>
             <strong className="font-extrabold text-ink">Seated View:</strong> Click & drag to look around &bull; Click any floor area to change seats &bull; Keys <kbd className="kbd">1–4</kbd> Seat Presets

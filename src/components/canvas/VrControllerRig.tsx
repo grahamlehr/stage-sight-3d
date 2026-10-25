@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import * as THREE from 'three';
 import { useFrame, useThree } from '@react-three/fiber';
 import { useStageStore, getActiveSeatPresets, selectPrimaryScreen } from '../../store/useStageStore';
+import { describeWorstScreen } from '../../utils/worstScreenFlag';
 
 const FLOOR_PLANE = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
 
@@ -401,6 +402,16 @@ export const VrControllerRig: React.FC = () => {
         level: angleLevel,
       },
     ];
+
+    const worstFlag = describeWorstScreen(telemetry.worst);
+    if (worstFlag) {
+      ctx.fillStyle = worstFlag.level === 'fail' ? LIVE : SIGNAL.warn;
+      ctx.fillRect(40, 232, 12, 12);
+      ctx.fillStyle = INK;
+      ctx.font = font(800, 18);
+      ctx.textAlign = 'left';
+      ctx.fillText(worstFlag.text, 62, 243);
+    }
 
     const cardW = (W - 80 - 32) / 3;
     const cardY = 82;
