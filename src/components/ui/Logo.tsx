@@ -32,7 +32,7 @@ export const Logo: React.FC<LogoProps> = ({
       <svg
         xmlns="http://www.w3.org/2000/svg"
         viewBox={viewBox}
-        className={`${className} flex-shrink-0 transition-transform duration-200`}
+        className={`${className} shrink-0 transition-transform duration-200`}
         fill="none"
       >
         <defs>

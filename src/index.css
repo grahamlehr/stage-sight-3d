@@ -1,28 +1,59 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
 
 /* CueSmith design language, Backstage (dark) theme: ink on ground with one red.
    Ground, surface and ink are cooled from CueSmith's warm neutrals to a dark
-   blue and a cool white; the red and signal colors are CueSmith's own.
-   Tokens are RGB channels so Tailwind opacity modifiers work (see tailwind.config.js). */
+   blue and a cool white; the red and signal colours are CueSmith's own.
+   The palette, corners, type and weights replace Tailwind's defaults on purpose
+   (the `initial` resets), so stray zinc/cyan utilities fail to build into anything. */
+@theme {
+  --color-*: initial;
+  --color-transparent: transparent;
+  --color-current: currentColor;
+  --color-black: #000000;
+  --color-white: #ffffff;
+
+  --color-ground: #0d121b;
+  --color-surface: #151c28;
+  --color-ink: #f2f5f9;
+
+  /* One red means now: only the live state (VR session, live feed, slide on screen). */
+  --color-accent: #ec3013;
+  --color-accent-400: #ff9783; /* accent text on dark */
+  --color-accent-600: #dd2b0f;
+  --color-accent-700: #ae1800;
+
+  /* Armed / up-next states, CueSmith's standby fill. */
+  --color-standby: #1e2c44;
+
+  /* Health signals only: sightline pass and marginal. */
+  --color-signal-go: #399d57; /* oklch(0.62 0.14 150) */
+  --color-signal-warn: #f0b135; /* oklch(0.8 0.15 80) */
+  --color-signal-warn-fg: #151c28;
+
+  /* Square corners everywhere; only rounded-full survives */
+  --radius-*: initial;
+  --radius: 0;
+
+  --font-*: initial;
+  --font-sans: Archivo, system-ui, sans-serif;
+
+  /* Tailwind 3's fixed line heights. Tailwind 4 makes them ratios, which shrinks
+     rows wherever text-xs is paired with a smaller arbitrary size (text-[11px]). */
+  --text-xs--line-height: 1rem;
+  --text-sm--line-height: 1.25rem;
+  --text-base--line-height: 1.5rem;
+  --text-lg--line-height: 1.75rem;
+  --text-xl--line-height: 1.75rem;
+  --text-2xl--line-height: 2rem;
+
+  --font-weight-*: initial;
+  --font-weight-normal: 400;
+  --font-weight-semibold: 600;
+  --font-weight-extrabold: 800;
+}
+
 :root {
   color-scheme: dark;
-
-  --ground: 13 18 27; /* #0d121b */
-  --surface: 21 28 40; /* #151c28 */
-  --ink: 242 245 249; /* #f2f5f9 */
-
-  --accent: 236 48 19; /* #ec3013 */
-  --accent-400: 255 151 131; /* #ff9783, accent text on dark */
-  --accent-600: 221 43 15; /* #dd2b0f */
-  --accent-700: 174 24 0; /* #ae1800 */
-
-  --standby: 30 44 68; /* #1e2c44 */
-
-  --signal-go: 57 157 87; /* oklch(0.62 0.14 150) */
-  --signal-warn: 240 177 53; /* oklch(0.8 0.15 80) */
-  --signal-warn-fg: 21 28 40;
 }
 
 @layer base {
@@ -45,21 +76,27 @@
     letter-spacing: -0.015em;
   }
 
+  /* Tailwind 4 dropped the pointer cursor on buttons; keep it */
+  button:not(:disabled),
+  [role='button']:not(:disabled) {
+    cursor: pointer;
+  }
+
   :focus {
     outline: none;
   }
 
   :focus-visible {
-    outline: 2px solid rgb(var(--ink));
+    outline: 2px solid var(--color-ink);
     outline-offset: 2px;
   }
 
   ::selection {
-    background: rgb(var(--ink) / 0.18);
+    background: --alpha(var(--color-ink) / 18%);
   }
 
   input[type='checkbox'] {
-    accent-color: rgb(var(--ink));
+    accent-color: var(--color-ink);
   }
 
   /* Square thumb on a 2px rule, so sliders read as part of the grid */
@@ -74,12 +111,12 @@
 
   input[type='range']::-webkit-slider-runnable-track {
     height: 2px;
-    background: rgb(var(--ink) / 0.22);
+    background: --alpha(var(--color-ink) / 22%);
   }
 
   input[type='range']::-moz-range-track {
     height: 2px;
-    background: rgb(var(--ink) / 0.22);
+    background: --alpha(var(--color-ink) / 22%);
   }
 
   input[type='range']::-webkit-slider-thumb {
@@ -87,14 +124,14 @@
     width: 12px;
     height: 12px;
     margin-top: -5px;
-    background: rgb(var(--ink));
+    background: var(--color-ink);
     border: 0;
   }
 
   input[type='range']::-moz-range-thumb {
     width: 12px;
     height: 12px;
-    background: rgb(var(--ink));
+    background: var(--color-ink);
     border: 0;
     border-radius: 0;
   }
@@ -110,11 +147,11 @@
   }
 
   ::-webkit-scrollbar-thumb {
-    background: rgb(var(--ink) / 0.2);
+    background: --alpha(var(--color-ink) / 20%);
   }
 
   ::-webkit-scrollbar-thumb:hover {
-    background: rgb(var(--ink) / 0.35);
+    background: --alpha(var(--color-ink) / 35%);
   }
 }
 
@@ -213,7 +250,7 @@
   /* — forms — */
   .input {
     @apply w-full px-2.5 py-1.5 text-xs bg-ground text-ink border border-ink/20 hover:border-ink/45 focus-visible:border-ink tabular-nums;
-    caret-color: rgb(var(--ink));
+    caret-color: var(--color-ink);
   }
   .input:focus-visible {
     outline-offset: 0;

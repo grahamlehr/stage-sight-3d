@@ -63,7 +63,7 @@ export const AboutModal: React.FC<AboutModalProps> = ({ isOpen, onClose, onStart
           <div className="grid grid-cols-2 gap-x-5 gap-y-4">
             {features.map(({ icon: Icon, title, body }) => (
               <div key={title} className="flex items-start gap-2.5 pt-3 border-t border-ink/20">
-                <Icon size={16} strokeWidth={1.5} className="text-ink/60 flex-shrink-0 mt-0.5" />
+                <Icon size={16} strokeWidth={1.5} className="text-ink/60 shrink-0 mt-0.5" />
                 <div>
                   <div className="font-semibold">{title}</div>
                   <div className="text-[11px] text-ink/60">{body}</div>

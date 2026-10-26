@@ -95,7 +95,7 @@ export const TransportBar: React.FC = () => {
       </div>
 
       {/* Horizontal Thumbnail Tray */}
-      <div className="flex items-center gap-2 overflow-x-auto py-1 max-w-[60vw] scrollbar-thin">
+      <div className="flex items-center gap-2 overflow-x-auto py-1 max-w-[60vw]">
         {thumbnails.map((thumb, index) => {
           const isSelected = index === currentSlideIndex;
           return (
@@ -103,7 +103,7 @@ export const TransportBar: React.FC = () => {
               key={index}
               onClick={() => setCurrentSlideIndex(index)}
               aria-current={isSelected ? 'true' : undefined}
-              className={`relative flex-shrink-0 h-11 overflow-hidden border-2 transition ${
+              className={`relative shrink-0 h-11 overflow-hidden border-2 transition ${
                 isSelected
                   ? 'border-accent'
                   : 'border-transparent opacity-50 hover:opacity-100 hover:border-ink/45'
