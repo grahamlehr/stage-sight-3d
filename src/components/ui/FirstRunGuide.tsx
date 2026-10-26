@@ -336,7 +336,7 @@ export const FirstRunGuide: React.FC = () => {
         }`}
       >
         <div className="flex items-start gap-3 p-4 pb-3">
-          <div className="flex items-center justify-center w-9 h-9 border border-ink/20 text-ink flex-shrink-0">
+          <div className="flex items-center justify-center w-9 h-9 border border-ink/20 text-ink shrink-0">
             <Icon size={18} strokeWidth={1.5} />
           </div>
           <div className="flex-1 min-w-0">

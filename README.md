@@ -107,7 +107,7 @@ docs/         Guides, reference and architecture (see docs/README.md)
 
 The math in `src/utils/discasMath.ts` and `src/utils/uvCropMath.ts` is pure and has unit tests next to it.
 
-Built with React 18, TypeScript, Vite, three.js through React Three Fiber and drei, Zustand, Tailwind CSS and pdf.js.
+Built with React 18, TypeScript, Vite, three.js through React Three Fiber and drei, Zustand, Tailwind CSS 4 and pdf.js.
 
 ## CI and deployment
 
