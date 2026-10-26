@@ -6,7 +6,7 @@
 A client-only web app for previewing ultra-wide event screens and LED walls from any seat in a 3D venue before load-in. Users put their own content (PDF deck, image, HDMI capture, screen share) on a to-scale screen and read live AVIXA DISCAS sightline telemetry (viewing distance, D/H ratio, off-axis angle), on desktop or in a WebXR headset. Good means the numbers are physically right and nothing leaks while the user switches content.
 
 ## Stack
-- React 18 + TypeScript + Vite 5, three.js via React Three Fiber and drei, Zustand, Tailwind CSS 4 (Vite plugin; theme tokens in `src/index.css` `@theme`, no config file), pdf.js
+- React 18 + TypeScript + Vite 8, three.js via React Three Fiber and drei, Zustand, Tailwind CSS 4 (Vite plugin; theme tokens in `src/index.css` `@theme`, no config file), pdf.js
 - Vitest for tests, ESLint (zero warnings) for lint. Node 24 (`.nvmrc`, `engines`)
 - No backend. Static bundle hosted on GitHub Pages
 
