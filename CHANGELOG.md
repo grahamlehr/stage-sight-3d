@@ -16,6 +16,7 @@ All notable changes to StageSight 3D are listed here. The format follows [Keep a
 ### Changed
 
 - **One texture, per-screen UVs.** `ScreenArray` replaces `ScreenSurface`. Video crop applies to the combined split group; stills are shown whole and sliced; the test pattern is drawn at the combined size (2026-10-25).
+- **Tailwind CSS 4.** The theme (CueSmith colours, square corners, Archivo, three weights) moves from `tailwind.config.js` into an `@theme` block in `src/index.css`, and Tailwind runs as a Vite plugin (`@tailwindcss/vite`), so `postcss.config.js` and `autoprefixer` are gone. The UI looks the same: Tailwind 3's fixed line heights are kept, and the thumbnail tray keeps its slim scrollbar. Hover styles now apply only on devices that can hover (2026-10-26).
 
 ### Fixed
 
