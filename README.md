@@ -34,7 +34,7 @@ A short tour walks through these on first visit. Tick **Don't show again** to st
 | --- | --- |
 | Left-drag | Orbit (orbit view) · look around (seated view) |
 | Right-drag · scroll | Pan · zoom (orbit view) |
-| Click floor | Sit there (seated view) |
+| Click floor | Sit there (seated view). A drag only looks around, and a click on a screen never moves the seat |
 | <kbd>Shift</kbd> + click floor | Sit there (orbit view) |
 | <kbd>1</kbd>–<kbd>4</kbd> | Seat presets |
 | <kbd>L</kbd> | Cycle lighting preset |

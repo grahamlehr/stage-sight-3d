@@ -12,7 +12,7 @@ interface RoomShellProps {
   envMap: THREE.Texture | null;
   /** 0–1 house light level; drives sconces, downlights and the bounce fill. */
   houseLevel: number;
-  onFloorPointerDown: (e: ThreeEvent<PointerEvent>) => void;
+  onFloorClick: (e: ThreeEvent<MouseEvent>) => void;
 }
 
 const WAINSCOT_TOP = 1.1;
@@ -263,7 +263,7 @@ export const RoomShell: React.FC<RoomShellProps> = ({
   textures,
   envMap,
   houseLevel,
-  onFloorPointerDown,
+  onFloorClick,
 }) => {
   const maps = useMemo(
     () => ({
@@ -282,7 +282,7 @@ export const RoomShell: React.FC<RoomShellProps> = ({
         rotation={[-Math.PI / 2, 0, 0]}
         position={[0, 0, room.centerZ]}
         receiveShadow
-        onPointerDown={onFloorPointerDown}
+        onClick={onFloorClick}
       >
         <planeGeometry args={[room.width, room.length]} />
         <meshStandardMaterial

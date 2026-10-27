@@ -1,11 +1,12 @@
 import React, { Component, ReactNode, useEffect, useRef, useState } from 'react';
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
-import { ThreeEvent } from '@react-three/fiber';
+import { ThreeEvent, useThree } from '@react-three/fiber';
 import { useStageStore } from '../../store/useStageStore';
 import { alignScreenMesh, deckProbeOrigin, rotateAboutY } from '../../utils/venueAlignment';
 import { measureScreenMesh } from '../../utils/screenMeshMeasure';
 import { normaliseYaw } from '../../utils/floorPlan';
+import { shouldSitOnClick } from '../../utils/clickToSit';
 
 /** The mesh's triangles as world-space xyz triples, for indexed and non-indexed geometry. */
 function worldTriangles(mesh: THREE.Mesh): Float32Array {
@@ -82,6 +83,9 @@ const LoadedGlbModel: React.FC<LoadedGlbProps> = ({ url }) => {
   const setCustomDeckHeight = useStageStore((s) => s.setCustomDeckHeight);
   const setCustomVenueBounds = useStageStore((s) => s.setCustomVenueBounds);
   const groupRef = useRef<THREE.Group>(null);
+  const sceneRoot = useThree((s) => s.scene);
+  // Set when a press binds a screen mesh, so the click that follows doesn't also sit
+  const pressPickedRef = useRef(false);
 
   useEffect(() => {
     const loader = new GLTFLoader();
@@ -125,11 +129,13 @@ const LoadedGlbModel: React.FC<LoadedGlbProps> = ({ url }) => {
 
   const handleMeshClick = (e: ThreeEvent<PointerEvent>) => {
     // The floor plan places views itself; a click on the model must not also bind or sit
+    pressPickedRef.current = false;
     if (useStageStore.getState().isFloorPlanOpen) return;
     e.stopPropagation();
     const mesh = e.object as THREE.Mesh;
 
     if (isPickingMesh && mesh.geometry) {
+      pressPickedRef.current = true;
       // Mesh Click-to-Bind mode. Measure in WORLD space: a geometry-local box
       // ignores the mesh's and its ancestors' scale, so a centimetre-authored GLB
       // imported at 0.01 root scale would report an 800m-wide screen.
@@ -189,11 +195,16 @@ const LoadedGlbModel: React.FC<LoadedGlbProps> = ({ url }) => {
         // Shift-click keeps picking so several meshes can be added in a row
         if (!e.shiftKey) setIsPickingMesh(false);
       }
-      return;
     }
+  };
 
-    // Otherwise, check for seated raycast
-    if (navigationMode === 'seated' || e.shiftKey) {
+  // Click-to-sit. A click, not a press, because seated look-around drags start
+  // with the same left press; and only when nothing (a screen) is in front of
+  // the model where it was clicked.
+  const handleSeatClick = (e: ThreeEvent<MouseEvent>) => {
+    if (useStageStore.getState().isFloorPlanOpen || pressPickedRef.current) return;
+    e.stopPropagation();
+    if ((navigationMode === 'seated' || e.shiftKey) && shouldSitOnClick(e, sceneRoot)) {
       const pt = e.point;
       setSeatPosition([pt.x, 0, pt.z]);
       if (navigationMode !== 'seated') {
@@ -210,6 +221,7 @@ const LoadedGlbModel: React.FC<LoadedGlbProps> = ({ url }) => {
       <primitive
         object={scene}
         onPointerDown={handleMeshClick}
+        onClick={handleSeatClick}
       />
     </group>
   );

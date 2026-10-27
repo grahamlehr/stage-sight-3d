@@ -85,4 +85,4 @@ Things to know:
 
 ## Moving around
 
-Click-to-sit works on any part of the model: in seated view, click; in orbit view, <kbd>Shift</kbd> + click. The seat goes at the clicked X and Z, always at floor height `y = 0`, and looks at the screen centre. Clicking a balcony or a raked tier puts you on the main floor below it; use a floor plan view for those.
+Click-to-sit works on any part of the model: in seated view, click; in orbit view, <kbd>Shift</kbd> + click. A drag only looks around, and a click on a screen in front of the model doesn't sit. The seat goes at the clicked X and Z, always at floor height `y = 0`, and looks at the screen centre. Clicking a balcony or a raked tier puts you on the main floor below it; use a floor plan view for those.
