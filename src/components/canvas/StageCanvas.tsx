@@ -8,6 +8,7 @@ import { PresenterSilhouette } from './PresenterSilhouette';
 import { CameraController } from './CameraController';
 import { VrControllerRig } from './VrControllerRig';
 import { FloorPlanView } from './FloorPlanView';
+import { sideLightColours } from '../../utils/sideLightColours';
 
 export const StageCanvas: React.FC = () => {
   const venueSource = useStageStore((s) => s.venueSource);
@@ -20,6 +21,7 @@ export const StageCanvas: React.FC = () => {
   const isFloorPlanOpen = useStageStore((s) => s.isFloorPlanOpen);
   const floorPlanSlot = useStageStore((s) => s.floorPlanSlot);
   const showFloorPlan = venueSource === 'custom-glb' && isFloorPlanOpen && !isVrPresenting;
+  const sideLights = sideLightColours(venueSource);
 
   // Background color subtle tone adjustment based on preset
   const bgColor =
@@ -109,16 +111,17 @@ export const StageCanvas: React.FC = () => {
           castShadow
         />
 
-        {/* Warm & Cool Side Kickers for Architectural Depth */}
+        {/* Side kickers for depth: cool and warm in the ballroom, white in an
+            uploaded venue so plain materials keep their own colours */}
         <directionalLight
           position={[-15, 8, -5]}
           intensity={stageLightsIntensity * 0.5}
-          color="#38bdf8"
+          color={sideLights.left}
         />
         <directionalLight
           position={[15, 8, -5]}
           intensity={stageLightsIntensity * 0.5}
-          color="#f59e0b"
+          color={sideLights.right}
         />
 
         {/* ================= 3D Scene Elements ================= */}
