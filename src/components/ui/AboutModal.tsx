@@ -26,7 +26,7 @@ export const AboutModal: React.FC<AboutModalProps> = ({ isOpen, onClose, onStart
     { icon: Presentation, title: 'Live Content', body: 'Import and preview slides and videos' },
     { icon: Ratio, title: 'Custom Screen Ratios', body: 'Super widescreen mapped and cropped automatically' },
     { icon: Building2, title: 'Bespoke Venue Models', body: 'Upload your venue to preview in situ' },
-    { icon: Users, title: 'Content Masking', body: 'Presenter, lectern, and 4-person panel check' },
+    { icon: Users, title: 'Content Masking', body: 'Two presenters, lectern and 4-person panel check' },
   ];
 
   return (
@@ -102,6 +102,24 @@ export const AboutModal: React.FC<AboutModalProps> = ({ isOpen, onClose, onStart
               </a>
             </div>
           </div>
+
+          {/* CC-BY 3.0 asks for attribution where the models are used */}
+          <p className="text-[10px] text-ink/60">
+            Presenter models: "Business Man" and "Suit" by{' '}
+            <a href="https://poly.pizza/u/Quaternius" target="_blank" rel="noopener noreferrer" className="underline">
+              Quaternius
+            </a>
+            , licensed{' '}
+            <a
+              href="https://creativecommons.org/licenses/by/3.0/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="underline"
+            >
+              CC-BY 3.0
+            </a>
+            , via Poly Pizza. Scaled, posed and trimmed to one animation.
+          </p>
         </div>
       </div>
     </div>

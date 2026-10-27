@@ -1,10 +1,10 @@
-import React, { useEffect, useMemo } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import * as THREE from 'three';
+import { GLTFLoader, type GLTF } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { useStageStore, selectPrimaryScreen } from '../../store/useStageStore';
 import {
   SEATED_CROSSED_POSE,
   SEATED_OPEN_POSE,
-  STANDING_POSE,
   buildContactShadows,
   buildFigure,
   buildLectern,
@@ -17,6 +17,7 @@ import {
   type FigureSlot,
   type Vec3,
 } from './stagePropGeometry';
+import { PRESENTER_PAIR, fitToHeight, type PairFigure } from '../../utils/presenterPair';
 
 // The props' geometry lives in stagePropGeometry.ts: each one is merged into a
 // geometry per material slot with vertex colors, so these components only
@@ -54,38 +55,79 @@ const FigureMeshes: React.FC<{ geometry: SlotGeometries<FigureSlot>; materials: 
   </>
 );
 
-// ================= Standing Presenter (1.8m) =================
-const PRESENTER_LOOK: FigureLook = {
-  skin: '#c48a68',
-  hair: '#3b2a20',
-  hairStyle: 'short',
-  suit: '#3e4a5f',
-  shirt: '#f2f4f7',
-  tie: '#7a2733',
-  shoes: '#241a14',
-  scale: 1,
+// ================= Standing Presenters (1.8m and 1.68m) =================
+// Low-poly rigged models by Quaternius (CC-BY 3.0), credited in README.md.
+// Each file keeps one animation, and its first frame is the standing pose.
+const POSE_CLIP = 'CharacterArmature|Idle_Neutral';
+
+const modelUrl = (file: string) => `${import.meta.env.BASE_URL}models/${file}`;
+
+/** Disposes the geometry and materials a loaded model owns. */
+const disposeModel = (root: THREE.Object3D) =>
+  root.traverse((child) => {
+    const mesh = child as THREE.Mesh;
+    if (!mesh.isMesh) return;
+    mesh.geometry.dispose();
+    (Array.isArray(mesh.material) ? mesh.material : [mesh.material]).forEach((m) => m.dispose());
+  });
+
+/** Holds the model in its standing pose, scaled to height with its feet on y = 0. */
+const poseFigure = (gltf: GLTF, figure: PairFigure): THREE.Group => {
+  const model = gltf.scene;
+  const clip = THREE.AnimationClip.findByName(gltf.animations, POSE_CLIP);
+  if (clip) {
+    // Apply the first frame once; the mixer is dropped, so the pose stays put
+    const mixer = new THREE.AnimationMixer(model);
+    mixer.clipAction(clip).play();
+    mixer.update(0);
+  }
+  model.traverse((child) => {
+    if ((child as THREE.Mesh).isMesh) child.castShadow = true;
+  });
+  model.updateMatrixWorld(true);
+  // Skinned meshes measure their posed vertices, not the bind pose
+  const box = new THREE.Box3().setFromObject(model);
+  const { scale, lift } = fitToHeight(box.min.y, box.max.y, figure.height);
+  model.scale.setScalar(scale);
+  model.position.y = lift;
+
+  const placed = new THREE.Group();
+  placed.position.x = figure.x;
+  placed.rotation.y = figure.yaw;
+  placed.add(model);
+  return placed;
 };
 
-const PresenterMannequin: React.FC<{ position: Vec3; materials: PropMaterials }> = ({ position, materials }) => {
-  const geometry = useMemo(
-    () => ({
-      figure: buildFigure(STANDING_POSE, PRESENTER_LOOK),
-      shadow: buildContactShadows([[0, 0.02, 0.42, 0.36, 0.45]]),
-    }),
+const PresenterPair: React.FC<{ position: Vec3; materials: PropMaterials }> = ({ position, materials }) => {
+  const [figures, setFigures] = useState<THREE.Group[] | null>(null);
+  const shadow = useMemo(
+    () => buildContactShadows(PRESENTER_PAIR.map((f) => [f.x, 0.02, 0.36, 0.32, 0.45] as const)),
     []
   );
-  useEffect(
-    () => () => {
-      disposeAll(geometry.figure);
-      geometry.shadow.dispose();
-    },
-    [geometry]
-  );
+  useEffect(() => () => shadow.dispose(), [shadow]);
+
+  useEffect(() => {
+    let cancelled = false;
+    const loader = new GLTFLoader();
+    Promise.all(PRESENTER_PAIR.map((f) => loader.loadAsync(modelUrl(f.file))))
+      .then((gltfs) => {
+        if (cancelled) {
+          gltfs.forEach((g) => disposeModel(g.scene));
+          return;
+        }
+        setFigures(gltfs.map((g, i) => poseFigure(g, PRESENTER_PAIR[i])));
+      })
+      .catch((err) => console.error('Failed to load the presenter models:', err));
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+  useEffect(() => () => figures?.forEach(disposeModel), [figures]);
 
   return (
     <group position={position}>
-      <FigureMeshes geometry={geometry.figure} materials={materials} />
-      <mesh geometry={geometry.shadow} material={materials.shadow} />
+      {figures?.map((figure, i) => <primitive key={i} object={figure} />)}
+      <mesh geometry={shadow} material={materials.shadow} />
     </group>
   );
 };
@@ -221,9 +263,9 @@ export const PresenterSilhouette: React.FC = () => {
 
   return (
     <>
-      {/* 1. Standing Presenter (1.8m) */}
+      {/* 1. Two Standing Presenters (1.8m and 1.68m) */}
       {showPresenter && (
-        <PresenterMannequin
+        <PresenterPair
           materials={materials}
           position={[
             screenPosition[0] + presenterOffset[0],

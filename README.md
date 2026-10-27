@@ -11,7 +11,7 @@ Preview ultra-wide event screens and LED walls from any seat in the room before 
 - **Ultra-wide cropping** — fixes 16:9 EDID sources on ultra-wide walls: centered, top-aligned, 1:1 or manual crop.
 - **Venues** — a procedural ballroom with adjustable size and stage height, or upload your own `.glb` (or a self-contained `.gltf`) authored in meters.
 - **Sightline telemetry** — live D/H ratio and horizontal off-axis angle against the bands below, plus 50° room-context and 25° eye-focus FOV modes.
-- **Occlusion checks** — a 1.8m standing presenter, a lectern and a four-person seated panel, each movable on the stage.
+- **Occlusion checks** — two standing presenters (a 1.8m man and a 1.68m woman), a lectern and a four-person seated panel, each movable on the stage.
 - **Lighting** — conference, ballroom and keynote presets.
 - **VR preview** — sit in any seat with a WebXR headset, with an in-headset telemetry HUD and controller teleporting.
 
@@ -108,6 +108,10 @@ docs/         Guides, reference and architecture (see docs/README.md)
 The math in `src/utils/discasMath.ts` and `src/utils/uvCropMath.ts` is pure and has unit tests next to it.
 
 Built with React 18, TypeScript, Vite, three.js through React Three Fiber and drei, Zustand, Tailwind CSS 4 and pdf.js.
+
+## Credits
+
+The two presenters in `public/models/` are "Business Man" and "Suit" by [Quaternius](https://poly.pizza/u/Quaternius), licensed [CC-BY 3.0](https://creativecommons.org/licenses/by/3.0/), from Poly Pizza ([Business Man](https://poly.pizza/m/JFrLIKqvCH), [Suit](https://poly.pizza/m/sOUciDsoVV)). They are scaled and posed in the app, and each file was cut down to its one standing animation with `scripts/trim-glb-animations.py`. The About dialogue credits them too.
 
 ## CI and deployment
 

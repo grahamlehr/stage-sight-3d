@@ -781,12 +781,12 @@ export const Sidebar: React.FC = () => {
                 </div>
               )}
 
-              {/* 1. Presenter (Standing Person) */}
+              {/* 1. Presenters (Two Standing People) */}
               <div className="space-y-2.5">
                 <label className="flex items-center justify-between cursor-pointer">
                   <span className="font-semibold flex items-center gap-1.5">
                     <User size={14} strokeWidth={1.5} className="text-ink/60" />
-                    Presenter (1.8m)
+                    Presenters (1.8m, 1.68m)
                   </span>
                   <input
                     type="checkbox"
