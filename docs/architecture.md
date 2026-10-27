@@ -62,7 +62,7 @@ Store actions do the work that has to happen whenever a value changes. For examp
 
 ## The 3D scene
 
-[`StageCanvas.tsx`](../src/components/canvas/StageCanvas.tsx) owns the `<Canvas>`, the background, fog and the fixed lighting rig: a hemisphere fill, an ambient base, three house downlights, a shadow-casting stage key light, a presenter spotlight and two colored side lights. House and stage intensities scale those lights. The children are:
+[`StageCanvas.tsx`](../src/components/canvas/StageCanvas.tsx) owns the `<Canvas>`, the background, fog and the fixed lighting rig: a hemisphere fill, an ambient base, three house downlights, a shadow-casting stage key light, a presenter spotlight and two side lights, cool and warm in the ballroom and white in an uploaded venue ([`sideLightColours`](../src/utils/sideLightColours.ts)). House and stage intensities scale those lights. The children are:
 
 | Component | Responsibility |
 | --- | --- |

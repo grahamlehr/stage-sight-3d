@@ -12,6 +12,7 @@ The **Venue** tab can swap the procedural ballroom for your own model of the roo
 | **Audience toward +Z, screen wall facing +Z.** | The screen always faces +Z, and the off-axis angle is measured against that direction. A model facing another way can be turned after loading; see [Turning the venue](#turning-the-venue). |
 | **Nothing special about where it sits.** | Keys 1–4 don't use the ballroom's fixed seats in a custom venue. You place four camera views yourself on the [floor plan](#camera-views-and-the-floor-plan). |
 | **Keep it light.** | The whole file stays in memory while it's loaded. Every mesh casts and receives shadows, so high poly counts hit the frame rate directly, especially in VR. |
+| **Colour comes from your materials.** | The app lights an uploaded model with white light only. The blue and amber side lights are for the demo ballroom. |
 
 Most DCC tools, including Blender, SketchUp and Revit through an exporter, can export glTF in meters with Y up. Blender's glTF exporter converts from Z-up for you.
 
