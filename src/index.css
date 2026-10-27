@@ -180,8 +180,16 @@
   .btn-primary {
     @apply bg-ink text-ground font-semibold hover:opacity-90 active:opacity-80;
   }
+  /* Hover and press mix ink into the surface rather than replacing it with a
+     translucent tint, so the button stays opaque over the 3D view */
   .btn-secondary {
-    @apply bg-surface border-ink/20 hover:bg-ink/[0.07] active:bg-ink/[0.14];
+    @apply bg-surface border-ink/20;
+  }
+  .btn-secondary:hover:not(:disabled) {
+    background-color: color-mix(in oklab, var(--color-surface), var(--color-ink) 7%);
+  }
+  .btn-secondary:active:not(:disabled) {
+    background-color: color-mix(in oklab, var(--color-surface), var(--color-ink) 14%);
   }
   .btn-ghost {
     @apply px-2 hover:bg-ink/[0.08] active:bg-ink/[0.14];

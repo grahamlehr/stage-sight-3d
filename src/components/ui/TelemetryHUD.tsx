@@ -157,7 +157,7 @@ export const TelemetryHUD: React.FC = () => {
       <div className="pointer-events-auto flex items-center gap-1.5">
         {/* Venue Lighting Quick Selector */}
         <div data-guide="lighting" className="relative group">
-          <button className="btn btn-secondary" title="Venue Lighting Rig & House Lights">
+          <button className="btn btn-secondary" aria-label="Venue Lighting Rig & House Lights">
             <Sun size={14} />
             <span className="hidden min-[1440px]:inline">
               {lightingPreset === 'conference-bright'
@@ -167,70 +167,75 @@ export const TelemetryHUD: React.FC = () => {
                 : 'Keynote Dark'}
             </span>
           </button>
-          <div className="panel absolute right-0 top-full mt-1.5 w-64 p-3 hidden group-hover:block animate-in fade-in duration-100 space-y-3">
-            <span className="label flex items-center gap-1">
-              <Sun size={11} /> Room Lighting Rig
-            </span>
+          {/* The padding, not a margin, makes the gap: it is part of the hover area, so
+              the menu stays open while the pointer crosses from the button */}
+          <div className="absolute right-0 top-full pt-1.5 hidden group-hover:block z-30">
+            <div className="panel w-64 p-3 animate-in fade-in duration-100 space-y-3">
+              <span className="label flex items-center gap-1">
+                <Sun size={11} /> Room Lighting Rig
+              </span>
 
-            {/* Presets */}
-            <div className="seg w-full">
-              {lightingPresets.map((p) => (
-                <button
-                  key={p.id}
-                  onClick={() => setLightingPreset(p.id)}
-                  aria-pressed={lightingPreset === p.id}
-                  className="seg-opt flex-1 text-[11px]"
-                >
-                  {p.label}
-                </button>
-              ))}
-            </div>
-
-            {/* House Lights Slider */}
-            <div className="pt-2 border-t border-ink/20">
-              <div className="flex justify-between text-[11px] text-ink/60 mb-1">
-                <span>Audience House Lights</span>
-                <span className="font-extrabold text-ink tabular-nums">{Math.round(houseLightsIntensity * 100)}%</span>
+              {/* Presets */}
+              <div className="seg w-full">
+                {lightingPresets.map((p) => (
+                  <button
+                    key={p.id}
+                    onClick={() => setLightingPreset(p.id)}
+                    aria-pressed={lightingPreset === p.id}
+                    className="seg-opt flex-1 text-[11px]"
+                  >
+                    {p.label}
+                  </button>
+                ))}
               </div>
-              <input
-                type="range"
-                min="0.1"
-                max="2.2"
-                step="0.05"
-                value={houseLightsIntensity}
-                onChange={(e) => setHouseLightsIntensity(parseFloat(e.target.value))}
-              />
+
+              {/* House Lights Slider */}
+              <div className="pt-2 border-t border-ink/20">
+                <div className="flex justify-between text-[11px] text-ink/60 mb-1">
+                  <span>Audience House Lights</span>
+                  <span className="font-extrabold text-ink tabular-nums">{Math.round(houseLightsIntensity * 100)}%</span>
+                </div>
+                <input
+                  type="range"
+                  min="0.1"
+                  max="2.2"
+                  step="0.05"
+                  value={houseLightsIntensity}
+                  onChange={(e) => setHouseLightsIntensity(parseFloat(e.target.value))}
+                />
+              </div>
             </div>
           </div>
         </div>
 
         {/* Seat Presets Dropdown */}
         <div data-guide="seat-presets" className="relative group">
-          <button className="btn btn-secondary" title="Seat Presets">
+          <button className="btn btn-secondary" aria-label="Seat Presets">
             <Armchair size={14} />
             <span className="hidden min-[1440px]:inline">Seat Presets</span>
           </button>
-          <div className="panel absolute right-0 top-full mt-1.5 w-64 py-1.5 hidden group-hover:block animate-in fade-in duration-100">
-            <span className="label px-3 py-1 flex items-center gap-1">
-              <Info size={11} /> Quick Sightline Tests
-            </span>
-            {seatPresets.map((preset, i) => (
-              <button
-                key={preset.id}
-                onClick={() => applySeatPreset(preset.id)}
-                disabled={!preset.placed}
-                title={preset.placed ? undefined : 'Not placed yet — open the floor plan on the Venue tab'}
-                className="w-full text-left px-3 py-2 border-t border-ink/[0.12] hover:bg-ink/[0.07] text-xs transition flex items-start gap-2.5 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-transparent"
-              >
-                <span className="font-extrabold tabular-nums text-ink/60">{i + 1}</span>
-                <span className="flex flex-col">
-                  <span className="font-semibold">{preset.name}</span>
-                  <span className="text-[10px] text-ink/60">
-                    {preset.placed ? preset.description : 'Not placed yet — open the floor plan on the Venue tab'}
+          <div className="absolute right-0 top-full pt-1.5 hidden group-hover:block z-30">
+            <div className="panel w-64 py-1.5 animate-in fade-in duration-100">
+              <span className="label px-3 py-1 flex items-center gap-1">
+                <Info size={11} /> Quick Sightline Tests
+              </span>
+              {seatPresets.map((preset, i) => (
+                <button
+                  key={preset.id}
+                  onClick={() => applySeatPreset(preset.id)}
+                  disabled={!preset.placed}
+                  className="w-full text-left px-3 py-2 border-t border-ink/[0.12] hover:bg-ink/[0.07] text-xs transition flex items-start gap-2.5 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-transparent"
+                >
+                  <span className="font-extrabold tabular-nums text-ink/60">{i + 1}</span>
+                  <span className="flex flex-col">
+                    <span className="font-semibold">{preset.name}</span>
+                    <span className="text-[10px] text-ink/60">
+                      {preset.placed ? preset.description : 'Not placed yet — open the floor plan on the Venue tab'}
+                    </span>
                   </span>
-                </span>
-              </button>
-            ))}
+                </button>
+              ))}
+            </div>
           </div>
         </div>
 
