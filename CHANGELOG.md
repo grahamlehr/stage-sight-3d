@@ -8,7 +8,7 @@ All notable changes to StageSight 3D are listed here. The format follows [Keep a
 
 ### Added
 
-- **Two presenters on stage.** The standing presenter is now a man (1.8m) and a woman (1.68m) side by side, using low-poly CC-BY models by Quaternius from Poly Pizza, credited in the README and the About dialogue. The presenter offset places the pair's centre, and the Screen tab calls them **Presenters** (2026-10-27).
+- **Two presenters on stage.** The standing presenter is now a man (1.8m) and a woman (1.68m) side by side, using low-poly CC-BY models by Quaternius from Poly Pizza, credited in the README and the About dialogue. The presenter offset places the pair's centre, and the Screen tab calls them **Presenters**. The seated panel uses the same models, two men and two women, bent into a seated pose with hands in their laps; the procedural figures are gone (2026-10-27).
 - **Several screens.** The Screen tab lists every screen: select, rename, remove, set the primary one, and give each a **Repeat** or **Split** role. Repeat screens show the whole source; split screens share one source, sliced contiguously by physical width in left-to-right order (automatic by position, or reordered by hand). A slice diagram shows each screen's share. **Repeat on all** and **Split across all** set every role at once (2026-10-25).
 - **Several screens from a custom venue.** After the first pick, **Add screen from mesh** adds a screen over each further mesh; shift-click adds several in a row. A screen's facing follows its mesh, so angled wing screens are turned to match, and picking a bound mesh again selects its screen (2026-10-25).
 - **Demo ballroom side screens.** A **Side screens** toggle adds two angled screens for trying out repeat and split (2026-10-25).

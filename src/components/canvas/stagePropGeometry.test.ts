@@ -2,29 +2,13 @@ import { describe, expect, it } from 'vitest';
 import * as THREE from 'three';
 import {
   LECTERN_HEIGHT,
-  SEATED_CROSSED_POSE,
-  SEATED_OPEN_POSE,
-  STANDING_POSE,
   buildContactShadows,
-  buildFigure,
   buildLectern,
   buildSideTables,
   buildTubChair,
   triangleCount,
-  type FigureLook,
   type SlotGeometries,
 } from './stagePropGeometry';
-
-const LOOK: FigureLook = {
-  skin: '#c48a68',
-  hair: '#3b2a20',
-  hairStyle: 'short',
-  suit: '#3e4a5f',
-  shirt: '#f2f4f7',
-  tie: '#7a2733',
-  shoes: '#241a14',
-  scale: 1,
-};
 
 const boundsOf = (slots: SlotGeometries<string>) => {
   const box = new THREE.Box3();
@@ -47,54 +31,6 @@ const expectWellFormed = (slots: SlotGeometries<string>) => {
     expect(Array.from(g.attributes.normal.array as Float32Array).every(Number.isFinite)).toBe(true);
   });
 };
-
-describe('standing presenter', () => {
-  const figure = buildFigure(STANDING_POSE, LOOK);
-  const bounds = boundsOf(figure);
-
-  it('is 1.8m tall and stands on the floor', () => {
-    expect(bounds.max.y).toBeCloseTo(1.8, 2);
-    expect(bounds.min.y).toBeGreaterThan(-0.02);
-    expect(bounds.min.y).toBeLessThan(0.01);
-  });
-
-  it('has a human footprint', () => {
-    const size = bounds.getSize(new THREE.Vector3());
-    expect(size.x).toBeGreaterThan(0.45);
-    expect(size.x).toBeLessThan(0.7);
-    expect(size.z).toBeLessThan(0.55);
-  });
-
-  it('is three draw calls within the triangle budget', () => {
-    expect(Object.keys(figure)).toEqual(['cloth', 'skin', 'gloss']);
-    expectWellFormed(figure);
-    expect(totalTriangles(figure)).toBeLessThan(12000);
-  });
-});
-
-describe('seated panelist', () => {
-  it.each([
-    ['open', SEATED_OPEN_POSE],
-    ['crossed', SEATED_CROSSED_POSE],
-  ])('sits at a realistic height in the %s pose', (_name, pose) => {
-    const figure = buildFigure(pose, { ...LOOK, hairStyle: 'long', tie: null });
-    const bounds = boundsOf(figure);
-    expectWellFormed(figure);
-    // Seated head top for an adult in a 0.47m seat
-    expect(bounds.max.y).toBeGreaterThan(1.3);
-    expect(bounds.max.y).toBeLessThan(1.45);
-    expect(bounds.min.y).toBeGreaterThan(-0.02);
-    // Feet stay within the chair's floor footprint
-    expect(bounds.max.z).toBeLessThan(0.65);
-    expect(totalTriangles(figure)).toBeLessThan(12000);
-  });
-
-  it('scales with the look', () => {
-    const full = boundsOf(buildFigure(SEATED_OPEN_POSE, LOOK));
-    const small = boundsOf(buildFigure(SEATED_OPEN_POSE, { ...LOOK, scale: 0.9 }));
-    expect(small.max.y).toBeCloseTo(full.max.y * 0.9, 3);
-  });
-});
 
 describe('furniture', () => {
   it('builds a tub chair with a 0.47m seat inside a 0.82m footprint', () => {
@@ -142,12 +78,12 @@ describe('furniture', () => {
 });
 
 describe('four-person panel cost', () => {
+  // The panelists are the Quaternius people models, about 6,600 triangles each
+  const PERSON_TRIANGLES = 6700;
+
   it('stays within a Quest-friendly triangle budget', () => {
-    const figures = [SEATED_OPEN_POSE, SEATED_CROSSED_POSE, SEATED_OPEN_POSE, SEATED_CROSSED_POSE].map((pose) =>
-      totalTriangles(buildFigure(pose, LOOK))
-    );
     const chairs = totalTriangles(buildTubChair()) * 4;
     const tables = totalTriangles(buildSideTables([[-1.75, 0, 0.15], [1.75, 0, 0.15]]));
-    expect(figures.reduce((a, b) => a + b, 0) + chairs + tables).toBeLessThan(60000);
+    expect(PERSON_TRIANGLES * 4 + chairs + tables).toBeLessThan(60000);
   });
 });

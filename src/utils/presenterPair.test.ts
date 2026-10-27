@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { PAIR_FIGURE_HALF_WIDTH, PRESENTER_PAIR, fitToHeight, pairHalfWidth } from './presenterPair';
+import { FIGURE_MODELS, PAIR_FIGURE_HALF_WIDTH, PANEL_KINDS, PRESENTER_PAIR, fitToHeight, pairHalfWidth } from './presenterPair';
 
 describe('fitToHeight', () => {
   it('scales a model to the target height and stands it on the floor', () => {
@@ -18,7 +18,11 @@ describe('fitToHeight', () => {
 
 describe('PRESENTER_PAIR', () => {
   it('is a 1.8m man and a 1.68m woman', () => {
-    expect(PRESENTER_PAIR.map((f) => f.height)).toEqual([1.8, 1.68]);
+    expect(PRESENTER_PAIR.map((f) => FIGURE_MODELS[f.kind].height)).toEqual([1.8, 1.68]);
+  });
+
+  it('seats two men and two women on the panel, alternating', () => {
+    expect(PANEL_KINDS).toEqual(['man', 'woman', 'man', 'woman']);
   });
 
   it('stands the two figures apart without overlapping', () => {

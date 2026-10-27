@@ -11,7 +11,7 @@ Preview ultra-wide event screens and LED walls from any seat in the room before 
 - **Ultra-wide cropping** — fixes 16:9 EDID sources on ultra-wide walls: centered, top-aligned, 1:1 or manual crop.
 - **Venues** — a procedural ballroom with adjustable size and stage height, or upload your own `.glb` (or a self-contained `.gltf`) authored in meters.
 - **Sightline telemetry** — live D/H ratio and horizontal off-axis angle against the bands below, plus 50° room-context and 25° eye-focus FOV modes.
-- **Occlusion checks** — two standing presenters (a 1.8m man and a 1.68m woman), a lectern and a four-person seated panel, each movable on the stage.
+- **Occlusion checks** — two standing presenters (a 1.8m man and a 1.68m woman), a lectern and a seated panel of two men and two women, each movable on the stage.
 - **Lighting** — conference, ballroom and keynote presets.
 - **VR preview** — sit in any seat with a WebXR headset, with an in-headset telemetry HUD and controller teleporting.
 
