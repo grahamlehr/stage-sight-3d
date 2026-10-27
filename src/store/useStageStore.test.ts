@@ -1,10 +1,12 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import { getActiveSeatPresets, SEAT_PRESETS, selectPrimaryScreen, selectSelectedScreen, useStageStore } from './useStageStore';
 import { STAGE } from '../components/canvas/venue/roomLayout';
+import { pairHalfWidth } from '../utils/presenterPair';
 
 // Floor footprints (half-widths, meters) of the props in PresenterSilhouette,
 // taken from their contact shadows, which are wider than the props themselves
-const PRESENTER_HALF = { x: 0.42, z: 0.38 };
+// The presenters are two people side by side, so their footprint is the pair's
+const PRESENTER_HALF = { x: pairHalfWidth(), z: 0.38 };
 const LECTERN_HALF = { x: 0.5, z: 0.42 };
 const PANEL_SEAT_XS = [-2.6, -0.9, 0.9, 2.6];
 const PANEL_SEAT_RADIUS = 0.5;
