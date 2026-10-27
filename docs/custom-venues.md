@@ -69,7 +69,7 @@ Picking only works on a custom venue. Clicks on the demo ballroom don't bind. (T
 
 ## Camera views and the floor plan
 
-In a custom venue, keys <kbd>1</kbd>–<kbd>4</kbd>, the **Seat Presets** menu and the VR thumbstick all jump between four camera views that you place yourself. Until you place one it shows as **Not placed yet** and is skipped. In the ballroom they keep their fixed seats.
+In a custom venue, keys <kbd>1</kbd>–<kbd>4</kbd>, the **Seat Presets** menu and the VR thumbstick all jump between four camera views that you place yourself. Until you place one it shows as **Not placed yet** and is skipped. In the ballroom they keep their fixed seats. While none are placed, the **Seat Presets** menu has an **Open floor plan to place views** button that takes you straight to step 1, with View 1 selected.
 
 1. On the **Venue** tab, under **Camera Views**, choose **Open Floor Plan**. The 3D view is replaced by a top-down plan with the screen wall at the top. The mouse wheel zooms.
 2. Set the **Cut height** slider so the plan slices through the model below its roof and upper floors. It starts 2.5m above the model's lowest point, and the slider shows metres above that point.

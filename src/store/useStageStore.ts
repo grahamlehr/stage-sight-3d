@@ -277,6 +277,8 @@ export interface StageState {
   setCustomVenueBounds: (bounds: VenueBounds | null) => void;
   setIsFloorPlanOpen: (open: boolean) => void;
   setFloorPlanSlot: (slot: number) => void;
+  /** Shows the Venue tab with the floor plan open on the first unplaced view, ready to place one. */
+  openFloorPlanToPlaceViews: () => void;
   setFloorPlanCutHeight: (height: number | null) => void;
   setSeatView: (position: [number, number, number], yaw: number | null) => void;
   setCustomDeckHeight: (height: number) => void;
@@ -519,6 +521,17 @@ export const useStageStore = create<StageState>((set, get) => ({
   setCustomVenueBounds: (customVenueBounds) => set({ customVenueBounds }),
   setIsFloorPlanOpen: (isFloorPlanOpen) => set({ isFloorPlanOpen }),
   setFloorPlanSlot: (slot) => set({ floorPlanSlot: Math.max(0, Math.min(CUSTOM_VIEW_COUNT - 1, Math.round(slot))) }),
+  openFloorPlanToPlaceViews: () =>
+    set((state) => {
+      const firstUnplaced = state.customSeatViews.findIndex((view) => view === null);
+      return {
+        isSidebarOpen: true,
+        activeSidebarTab: 'venue',
+        // The floor plan needs the model's bounds, so it waits for the model to load
+        isFloorPlanOpen: state.venueSource === 'custom-glb' && state.customVenueBounds !== null,
+        floorPlanSlot: firstUnplaced === -1 ? state.floorPlanSlot : firstUnplaced,
+      };
+    }),
   setFloorPlanCutHeight: (floorPlanCutHeight) => set({ floorPlanCutHeight }),
   setCustomDeckHeight: (customDeckHeight) => set({ customDeckHeight: Math.max(0, customDeckHeight) }),
   setStageHeight: (stageHeight) => set({ stageHeight }),

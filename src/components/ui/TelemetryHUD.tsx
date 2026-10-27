@@ -10,6 +10,7 @@ import {
   Sun,
   Glasses,
   RotateCcw,
+  Map as MapIcon,
 } from 'lucide-react';
 import { useStageStore, getActiveSeatPresets } from '../../store/useStageStore';
 import { Logo } from './Logo';
@@ -42,6 +43,8 @@ export const TelemetryHUD: React.FC = () => {
   const venueSource = useStageStore((s) => s.venueSource);
   const customSeatViews = useStageStore((s) => s.customSeatViews);
   const seatPresets = getActiveSeatPresets({ venueSource, customSeatViews });
+  const openFloorPlanToPlaceViews = useStageStore((s) => s.openFloorPlanToPlaceViews);
+  const noViewsPlaced = venueSource === 'custom-glb' && seatPresets.every((p) => !p.placed);
   const isSidebarOpen = useStageStore((s) => s.isSidebarOpen);
   const setIsSidebarOpen = useStageStore((s) => s.setIsSidebarOpen);
   const lightingPreset = useStageStore((s) => s.lightingPreset);
@@ -230,11 +233,23 @@ export const TelemetryHUD: React.FC = () => {
                   <span className="flex flex-col">
                     <span className="font-semibold">{preset.name}</span>
                     <span className="text-[10px] text-ink/60">
-                      {preset.placed ? preset.description : 'Not placed yet — open the floor plan on the Venue tab'}
+                      {preset.placed
+                        ? preset.description
+                        : noViewsPlaced
+                        ? 'Not placed yet'
+                        : 'Not placed yet — open the floor plan on the Venue tab'}
                     </span>
                   </span>
                 </button>
               ))}
+              {noViewsPlaced && (
+                <div className="px-3 pt-2 pb-1 border-t border-ink/[0.12]">
+                  <button onClick={openFloorPlanToPlaceViews} className="btn btn-secondary w-full">
+                    <MapIcon size={14} />
+                    Open floor plan to place views
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         </div>

@@ -223,6 +223,30 @@ describe('custom camera views', () => {
     expect(ballroom.every((p) => p.placed)).toBe(true);
   });
 
+  it('open on the Venue tab at the first unplaced view, from the seat presets menu', () => {
+    useCustomVenue();
+    useStageStore.setState({
+      customVenueBounds: { min: [-10, 0, -10], max: [10, 6, 10] },
+      isSidebarOpen: false,
+      activeSidebarTab: 'source',
+      floorPlanSlot: 3,
+    });
+    useStageStore.getState().setCustomSeatView(0, { position: [1, 0, 4], yaw: 0 });
+    useStageStore.getState().openFloorPlanToPlaceViews();
+    const state = useStageStore.getState();
+    expect(state.isSidebarOpen).toBe(true);
+    expect(state.activeSidebarTab).toBe('venue');
+    expect(state.isFloorPlanOpen).toBe(true);
+    expect(state.floorPlanSlot).toBe(1);
+  });
+
+  it('wait for the model to load before opening the floor plan', () => {
+    useCustomVenue();
+    useStageStore.getState().openFloorPlanToPlaceViews();
+    expect(useStageStore.getState().activeSidebarTab).toBe('venue');
+    expect(useStageStore.getState().isFloorPlanOpen).toBe(false);
+  });
+
   it('close the floor plan on switching to the ballroom or entering VR', () => {
     useCustomVenue();
     useStageStore.setState({ isFloorPlanOpen: true });

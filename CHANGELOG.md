@@ -15,6 +15,7 @@ All notable changes to StageSight 3D are listed here. The format follows [Keep a
 
 ### Changed
 
+- **Seat Presets menu links to the floor plan.** In an uploaded venue with no camera views placed yet, the menu has an **Open floor plan to place views** button. It opens the sidebar on the Venue tab with the floor plan showing and the first empty view selected (2026-10-27).
 - **Uploaded venues get white side lights.** The two side lights stay blue and amber in the demo ballroom, but are white in an uploaded venue. Plain white or grey models came out blue on one side and brown on the other (2026-10-27).
 - **One texture, per-screen UVs.** `ScreenArray` replaces `ScreenSurface`. Video crop applies to the combined split group; stills are shown whole and sliced; the test pattern is drawn at the combined size (2026-10-25).
 - **Tailwind CSS 4.** The theme (CueSmith colours, square corners, Archivo, three weights) moves from `tailwind.config.js` into an `@theme` block in `src/index.css`, and Tailwind runs as a Vite plugin (`@tailwindcss/vite`), so `postcss.config.js` and `autoprefixer` are gone. The UI looks the same: Tailwind 3's fixed line heights are kept, and the thumbnail tray keeps its slim scrollbar. Hover styles now apply only on devices that can hover (2026-10-26).
