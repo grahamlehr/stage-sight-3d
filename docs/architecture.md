@@ -123,6 +123,7 @@ flowchart LR
 Most past bugs here were leaks or lifecycle mistakes, so treat these as invariants:
 
 - **Dispose every texture you create.** `ScreenArray` creates its texture in an effect and disposes it in that effect's cleanup and when it is replaced. Don't derive textures during render.
+- **Rebuild a material when its map switches between a still and video.** three.js adds a video's sRGB decode to the shader at compile time, and swapping `map` doesn't recompile. `ScreenArray` keys the display material with [`screenMaterialKey`](../src/utils/screenMaterialKey.ts) so the switch remounts it.
 - **Release blob URLs.** Route uploaded files through the store action that owns them (`setCustomGlbUrl`), which revokes the previous URL.
 - **Stop media tracks.** Before starting a new capture or screen share, stop the old stream's tracks.
 - **Destroy pdf.js documents.** `rasterizePdf` calls `pdfDoc.destroy()` in a `finally`, which frees the worker's caches.
