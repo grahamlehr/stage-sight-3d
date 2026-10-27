@@ -20,6 +20,7 @@ All notable changes to StageSight 3D are listed here. The format follows [Keep a
 
 ### Fixed
 
+- **Screen shares and capture keep their colours.** A live feed that replaced the test pattern or a slide reused a material built for a still, so it skipped the video's sRGB decode and came out washed out and shifted towards blue. Switching back made stills too dark. The screen's material is now rebuilt when it switches between a still and video (2026-10-27).
 - **Looking around no longer moves the seat.** In seated view, the press that started a look-around drag also counted as click-to-sit, and a press on a screen reached the floor behind it, so the seat jumped to the front of the stage. Click-to-sit now needs a click without a drag, on a floor or chair with nothing in front of it (2026-10-27).
 - **Repeat screens no longer stretch stills.** With several screens, a repeat screen crops a slide or the test pattern to its own shape using the crop mode, instead of stretching it. A single screen still shows the whole slide (2026-10-25).
 - **Shorter split screens are no longer squashed.** Each split screen takes a vertically centred band of the source in proportion to its height against the group's tallest screen (2026-10-25).

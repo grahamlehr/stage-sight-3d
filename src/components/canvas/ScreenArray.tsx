@@ -5,6 +5,7 @@ import { TransformControls } from '@react-three/drei';
 import { useStageStore, selectPrimaryScreen, type StageScreen } from '../../store/useStageStore';
 import { generateTestPatternCanvas } from '../../utils/testPatternGenerator';
 import { computeScreenRegions, splitCanvasSize, type UvRegion } from '../../utils/screenLayout';
+import { screenMaterialKey } from '../../utils/screenMaterialKey';
 
 const FULL_FRAME: UvRegion = { u0: 0, u1: 1, v0: 0, v1: 1 };
 
@@ -45,8 +46,15 @@ const ScreenPanel: React.FC<ScreenPanelProps> = ({ screen, region, texture, onGr
       {/* LED Screen Display Surface (Unlit Emissive Projection) */}
       <mesh position={[0, 0, 0]}>
         <planeGeometry ref={geometryRef} args={[width, height]} />
+        {/* Keyed so a switch between a still and live video rebuilds the
+            material: three.js only adds the video's sRGB decode at compile time */}
         {texture ? (
-          <meshBasicMaterial map={texture} toneMapped={false} side={THREE.DoubleSide} />
+          <meshBasicMaterial
+            key={screenMaterialKey(texture)}
+            map={texture}
+            toneMapped={false}
+            side={THREE.DoubleSide}
+          />
         ) : (
           <meshBasicMaterial color="#000000" />
         )}
