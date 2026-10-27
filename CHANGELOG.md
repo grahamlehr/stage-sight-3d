@@ -16,12 +16,14 @@ All notable changes to StageSight 3D are listed here. The format follows [Keep a
 
 ### Changed
 
+- **Seat Presets menu links to the floor plan.** In an uploaded venue with no camera views placed yet, the menu has an **Open floor plan to place views** button. It opens the sidebar on the Venue tab with the floor plan showing and the first empty view selected (2026-10-27).
 - **Uploaded venues get white side lights.** The two side lights stay blue and amber in the demo ballroom, but are white in an uploaded venue. Plain white or grey models came out blue on one side and brown on the other (2026-10-27).
 - **One texture, per-screen UVs.** `ScreenArray` replaces `ScreenSurface`. Video crop applies to the combined split group; stills are shown whole and sliced; the test pattern is drawn at the combined size (2026-10-25).
 - **Tailwind CSS 4.** The theme (CueSmith colours, square corners, Archivo, three weights) moves from `tailwind.config.js` into an `@theme` block in `src/index.css`, and Tailwind runs as a Vite plugin (`@tailwindcss/vite`), so `postcss.config.js` and `autoprefixer` are gone. The UI looks the same: Tailwind 3's fixed line heights are kept, and the thumbnail tray keeps its slim scrollbar. Hover styles now apply only on devices that can hover (2026-10-26).
 
 ### Fixed
 
+- **Header menus stay open and buttons stay solid.** The Lighting and Seat Presets menus sat a few pixels below their buttons, so the pointer could fall into the gap on its way down and the menu closed. The gap is now part of the menu's hover area. Hovering a header button also replaced its background with a faint tint, so the 3D view showed through it; the hover now darkens the button's own background. The buttons' browser tooltips, which covered the menus, are gone (2026-10-27).
 - **Screen shares and capture keep their colours.** A live feed that replaced the test pattern or a slide reused a material built for a still, so it skipped the video's sRGB decode and came out washed out and shifted towards blue. Switching back made stills too dark. The screen's material is now rebuilt when it switches between a still and video (2026-10-27).
 - **Looking around no longer moves the seat.** In seated view, the press that started a look-around drag also counted as click-to-sit, and a press on a screen reached the floor behind it, so the seat jumped to the front of the stage. Click-to-sit now needs a click without a drag, on a floor or chair with nothing in front of it (2026-10-27).
 - **Repeat screens no longer stretch stills.** With several screens, a repeat screen crops a slide or the test pattern to its own shape using the crop mode, instead of stretching it. A single screen still shows the whole slide (2026-10-25).
