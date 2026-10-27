@@ -2,26 +2,29 @@ import React, { useEffect, useMemo, useState } from 'react';
 import * as THREE from 'three';
 import { GLTFLoader, type GLTF } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { useStageStore, selectPrimaryScreen } from '../../store/useStageStore';
+import { clone as cloneSkinned } from 'three/examples/jsm/utils/SkeletonUtils.js';
 import {
-  SEATED_CROSSED_POSE,
-  SEATED_OPEN_POSE,
   buildContactShadows,
-  buildFigure,
   buildLectern,
   buildSideTables,
   buildTubChair,
   disposeAll,
-  type FigureLook,
-  type FigurePose,
-  type SlotGeometries,
-  type FigureSlot,
   type Vec3,
 } from './stagePropGeometry';
-import { PRESENTER_PAIR, fitToHeight, type PairFigure } from '../../utils/presenterPair';
+import {
+  FIGURE_KINDS,
+  FIGURE_MODELS,
+  PANEL_KINDS,
+  PRESENTER_PAIR,
+  fitToHeight,
+  type FigureKind,
+} from '../../utils/presenterPair';
+import { SEATED_POSE, SEAT_BONE_NAMES, applySeatedPose, type SeatBones } from '../../utils/figurePose';
 
-// The props' geometry lives in stagePropGeometry.ts: each one is merged into a
-// geometry per material slot with vertex colors, so these components only
-// place meshes. Geometry is built once per mount and disposed on unmount.
+// The lectern, chairs and tables come from stagePropGeometry.ts: each is merged
+// into a geometry per material slot with vertex colors, so these components only
+// place meshes. Geometry is built once per mount and disposed on unmount. The
+// people are rigged models, posed below.
 
 // ================= Shared Materials =================
 const createPropMaterials = () => {
@@ -43,21 +46,10 @@ const createPropMaterials = () => {
 };
 type PropMaterials = ReturnType<typeof createPropMaterials>;
 
-const FigureMeshes: React.FC<{ geometry: SlotGeometries<FigureSlot>; materials: PropMaterials }> = ({
-  geometry,
-  materials,
-}) => (
-  <>
-    <mesh geometry={geometry.cloth} material={materials.cloth} castShadow receiveShadow />
-    {/* Skin skips shadow receiving: the overhead key light otherwise darkens every jaw into a beard */}
-    <mesh geometry={geometry.skin} material={materials.skin} castShadow />
-    <mesh geometry={geometry.gloss} material={materials.gloss} castShadow />
-  </>
-);
-
-// ================= Standing Presenters (1.8m and 1.68m) =================
+// ================= People: standing presenters and seated panel =================
 // Low-poly rigged models by Quaternius (CC-BY 3.0), credited in README.md.
-// Each file keeps one animation, and its first frame is the standing pose.
+// Each file keeps one animation, whose first frame is the standing pose; the
+// panel bends that pose into a seated one.
 const POSE_CLIP = 'CharacterArmature|Idle_Neutral';
 
 const modelUrl = (file: string) => `${import.meta.env.BASE_URL}models/${file}`;
@@ -71,9 +63,52 @@ const disposeModel = (root: THREE.Object3D) =>
     (Array.isArray(mesh.material) ? mesh.material : [mesh.material]).forEach((m) => m.dispose());
   });
 
-/** Holds the model in its standing pose, scaled to height with its feet on y = 0. */
-const poseFigure = (gltf: GLTF, figure: PairFigure): THREE.Group => {
-  const model = gltf.scene;
+/**
+ * Loads the man and the woman, and disposes them on unmount. Figures are
+ * clones that share the loaded geometry and materials, so only these are disposed.
+ */
+const useFigureModels = (): Record<FigureKind, GLTF> | null => {
+  const [models, setModels] = useState<Record<FigureKind, GLTF> | null>(null);
+  useEffect(() => {
+    let cancelled = false;
+    const loader = new GLTFLoader();
+    Promise.all(FIGURE_KINDS.map((kind) => loader.loadAsync(modelUrl(FIGURE_MODELS[kind].file))))
+      .then((gltfs) => {
+        if (cancelled) {
+          gltfs.forEach((g) => disposeModel(g.scene));
+          return;
+        }
+        setModels(Object.fromEntries(FIGURE_KINDS.map((kind, i) => [kind, gltfs[i]])) as Record<FigureKind, GLTF>);
+      })
+      .catch((err) => console.error('Failed to load the people models:', err));
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+  useEffect(
+    () => () => {
+      if (models) Object.values(models).forEach((g) => disposeModel(g.scene));
+    },
+    [models]
+  );
+  return models;
+};
+
+/** Brings skinned meshes' bone matrices and bounds up to date after their bones move. */
+const refreshSkinning = (root: THREE.Object3D) => {
+  root.updateMatrixWorld(true);
+  root.traverse((child) => {
+    const mesh = child as THREE.SkinnedMesh;
+    if (!mesh.isSkinnedMesh) return;
+    mesh.skeleton.update();
+    mesh.computeBoundingBox();
+    mesh.computeBoundingSphere();
+  });
+};
+
+/** A copy of the model in its standing pose, scaled to height with its feet on y = 0. */
+const standingFigure = (gltf: GLTF, kind: FigureKind): THREE.Object3D => {
+  const model = cloneSkinned(gltf.scene);
   const clip = THREE.AnimationClip.findByName(gltf.animations, POSE_CLIP);
   if (clip) {
     // Apply the first frame once; the mixer is dropped, so the pose stays put
@@ -84,49 +119,68 @@ const poseFigure = (gltf: GLTF, figure: PairFigure): THREE.Group => {
   model.traverse((child) => {
     if ((child as THREE.Mesh).isMesh) child.castShadow = true;
   });
-  model.updateMatrixWorld(true);
-  // Skinned meshes measure their posed vertices, not the bind pose
+  refreshSkinning(model);
   const box = new THREE.Box3().setFromObject(model);
-  const { scale, lift } = fitToHeight(box.min.y, box.max.y, figure.height);
+  const { scale, lift } = fitToHeight(box.min.y, box.max.y, FIGURE_MODELS[kind].height);
   model.scale.setScalar(scale);
   model.position.y = lift;
-
-  const placed = new THREE.Group();
-  placed.position.x = figure.x;
-  placed.rotation.y = figure.yaw;
-  placed.add(model);
-  return placed;
+  refreshSkinning(model);
+  return model;
 };
 
+/**
+ * Where a seated figure's hip joints go in its chair, from the chair's origin
+ * on the floor: over the back half of the 0.48m cushion, high enough for the
+ * thighs to rest on it rather than sink in.
+ */
+const SEATED_HIP = { y: 0.56, z: -0.1 };
+
+/** A copy of the model sitting in a chair at the origin, feet on the floor, facing +Z. */
+const seatedFigure = (gltf: GLTF, kind: FigureKind, headYaw: number): THREE.Object3D => {
+  const model = standingFigure(gltf, kind);
+  // GLTFLoader strips characters such as '.' from node names
+  const bone = (name: string) => {
+    const found = model.getObjectByName(THREE.PropertyBinding.sanitizeNodeName(name));
+    if (!found) throw new Error(`Missing bone ${name}`);
+    return found;
+  };
+  const bones = Object.fromEntries(SEAT_BONE_NAMES.map((name) => [name, bone(name)])) as SeatBones;
+  const position = (o: THREE.Object3D) => o.getWorldPosition(new THREE.Vector3());
+
+  // Standing, the feet are on y = 0. Seating doesn't move the hip joints, so
+  // the drop that brings them to seat height is known now, and with it where
+  // the floor will be: the feet are posed onto it.
+  const hip = position(bones['UpperLeg.L']).add(position(bones['UpperLeg.R'])).multiplyScalar(0.5);
+  const drop = hip.y - SEATED_HIP.y;
+  applySeatedPose(bones, { ...SEATED_POSE, headYaw }, position(bones['Foot.L']).y + drop);
+
+  model.position.x -= hip.x;
+  model.position.y -= drop;
+  model.position.z += SEATED_HIP.z - hip.z;
+  refreshSkinning(model);
+  return model;
+};
+
+// ================= Standing Presenters (1.8m and 1.68m) =================
 const PresenterPair: React.FC<{ position: Vec3; materials: PropMaterials }> = ({ position, materials }) => {
-  const [figures, setFigures] = useState<THREE.Group[] | null>(null);
+  const models = useFigureModels();
+  const figures = useMemo(
+    () => models && PRESENTER_PAIR.map((f) => standingFigure(models[f.kind], f.kind)),
+    [models]
+  );
   const shadow = useMemo(
     () => buildContactShadows(PRESENTER_PAIR.map((f) => [f.x, 0.02, 0.36, 0.32, 0.45] as const)),
     []
   );
   useEffect(() => () => shadow.dispose(), [shadow]);
 
-  useEffect(() => {
-    let cancelled = false;
-    const loader = new GLTFLoader();
-    Promise.all(PRESENTER_PAIR.map((f) => loader.loadAsync(modelUrl(f.file))))
-      .then((gltfs) => {
-        if (cancelled) {
-          gltfs.forEach((g) => disposeModel(g.scene));
-          return;
-        }
-        setFigures(gltfs.map((g, i) => poseFigure(g, PRESENTER_PAIR[i])));
-      })
-      .catch((err) => console.error('Failed to load the presenter models:', err));
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-  useEffect(() => () => figures?.forEach(disposeModel), [figures]);
-
   return (
     <group position={position}>
-      {figures?.map((figure, i) => <primitive key={i} object={figure} />)}
+      {figures?.map((figure, i) => (
+        <group key={i} position={[PRESENTER_PAIR[i].x, 0, 0]} rotation={[0, PRESENTER_PAIR[i].yaw, 0]}>
+          <primitive object={figure} />
+        </group>
+      ))}
       <mesh geometry={shadow} material={materials.shadow} />
     </group>
   );
@@ -164,35 +218,16 @@ interface PanelSeat {
   x: number;
   /** Chair yaw, angled in toward center stage. */
   yaw: number;
-  pose: FigurePose;
-  look: FigureLook;
+  /** Head turn on top of the chair's, towards the figure's left (+X). */
+  headYaw: number;
 }
 
+// Two men and two women, alternating (PANEL_KINDS)
 const PANEL_SEATS: readonly PanelSeat[] = [
-  {
-    x: -2.6,
-    yaw: 0.22,
-    pose: { ...SEATED_OPEN_POSE, headYaw: 0.22 },
-    look: { skin: '#b57a5a', hair: '#2a211c', hairStyle: 'short', suit: '#3a3f48', shirt: '#eef1f5', tie: '#2f4f7a', shoes: '#1d1814', scale: 0.98 },
-  },
-  {
-    x: -0.9,
-    yaw: 0.07,
-    pose: { ...SEATED_CROSSED_POSE, headYaw: 0.1 },
-    look: { skin: '#8a5a3c', hair: '#17110e', hairStyle: 'long', suit: '#2e3b57', shirt: '#ece6dc', tie: null, shoes: '#1a1412', scale: 0.93 },
-  },
-  {
-    x: 0.9,
-    yaw: -0.07,
-    pose: { ...SEATED_OPEN_POSE, headYaw: -0.12 },
-    look: { skin: '#e0b096', hair: '#8f8b86', hairStyle: 'short', suit: '#5a606b', shirt: '#f4f6f8', tie: '#6b2430', shoes: '#2b1f17', scale: 0.97 },
-  },
-  {
-    x: 2.6,
-    yaw: -0.22,
-    pose: { ...SEATED_CROSSED_POSE, headYaw: -0.25 },
-    look: { skin: '#c9967a', hair: '#5a3422', hairStyle: 'long', suit: '#4a2c35', shirt: '#f1ede7', tie: null, shoes: '#18120f', scale: 0.92 },
-  },
+  { x: -2.6, yaw: 0.22, headYaw: 0.15 },
+  { x: -0.9, yaw: 0.07, headYaw: 0.05 },
+  { x: 0.9, yaw: -0.07, headYaw: -0.08 },
+  { x: 2.6, yaw: -0.22, headYaw: -0.2 },
 ];
 
 const TABLE_POSITIONS: readonly Vec3[] = [
@@ -201,9 +236,13 @@ const TABLE_POSITIONS: readonly Vec3[] = [
 ];
 
 const FourPersonPanel: React.FC<{ position: Vec3; materials: PropMaterials }> = ({ position, materials }) => {
+  const models = useFigureModels();
+  const figures = useMemo(
+    () => models && PANEL_SEATS.map((seat, i) => seatedFigure(models[PANEL_KINDS[i]], PANEL_KINDS[i], seat.headYaw)),
+    [models]
+  );
   const geometry = useMemo(
     () => ({
-      figures: PANEL_SEATS.map((seat) => buildFigure(seat.pose, seat.look)),
       // One chair geometry, drawn at each seat
       chair: buildTubChair(),
       tables: buildSideTables(TABLE_POSITIONS),
@@ -216,7 +255,6 @@ const FourPersonPanel: React.FC<{ position: Vec3; materials: PropMaterials }> = 
   );
   useEffect(
     () => () => {
-      geometry.figures.forEach(disposeAll);
       disposeAll(geometry.chair);
       disposeAll(geometry.tables);
       geometry.shadow.dispose();
@@ -230,7 +268,7 @@ const FourPersonPanel: React.FC<{ position: Vec3; materials: PropMaterials }> = 
         <group key={idx} position={[seat.x, 0, 0]} rotation={[0, seat.yaw, 0]}>
           <mesh geometry={geometry.chair.fabric} material={materials.upholstery} castShadow receiveShadow />
           <mesh geometry={geometry.chair.metal} material={materials.chrome} castShadow />
-          <FigureMeshes geometry={geometry.figures[idx]} materials={materials} />
+          {figures && <primitive object={figures[idx]} />}
         </group>
       ))}
 
