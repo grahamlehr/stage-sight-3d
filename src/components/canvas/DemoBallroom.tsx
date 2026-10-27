@@ -4,6 +4,7 @@ import { ThreeEvent, useThree } from '@react-three/fiber';
 import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js';
 import { useStageStore } from '../../store/useStageStore';
 import { computeSeatingLayout, SeatPlacement } from '../../utils/seatingLayout';
+import { shouldSitOnClick } from '../../utils/clickToSit';
 import {
   CEILING_HEIGHT,
   computeRoomBounds,
@@ -22,6 +23,7 @@ const STAIR_CLEARANCE = 0.5;
 
 export const DemoBallroom: React.FC = () => {
   const gl = useThree((s) => s.gl);
+  const sceneRoot = useThree((s) => s.scene);
   const venueWidth = useStageStore((s) => s.venueWidth);
   const venueLength = useStageStore((s) => s.venueLength);
   const stageHeight = useStageStore((s) => s.stageHeight);
@@ -79,17 +81,22 @@ export const DemoBallroom: React.FC = () => {
     }
   };
 
-  // Floor click handler: click-to-sit
-  const handleFloorClick = (e: ThreeEvent<PointerEvent>) => {
-    if (useStageStore.getState().navigationMode === 'seated' || e.shiftKey) {
+  // Click-to-sit. A click, not a press, because seated look-around drags start
+  // with the same left press; and only when nothing (a screen, the stage) is in
+  // front of the floor or chair.
+  const wantsToSit = (e: ThreeEvent<MouseEvent>) =>
+    (useStageStore.getState().navigationMode === 'seated' || e.shiftKey) && shouldSitOnClick(e, sceneRoot);
+
+  const handleFloorClick = (e: ThreeEvent<MouseEvent>) => {
+    if (wantsToSit(e)) {
       e.stopPropagation();
       sitAt(e.point.x, e.point.z);
     }
   };
 
   // Clicking a chair sits in exactly that chair
-  const handleSeatPick = (seat: SeatPlacement, e: ThreeEvent<PointerEvent>) => {
-    if (useStageStore.getState().navigationMode === 'seated' || e.shiftKey) {
+  const handleSeatPick = (seat: SeatPlacement, e: ThreeEvent<MouseEvent>) => {
+    if (wantsToSit(e)) {
       e.stopPropagation();
       sitAt(seat.x, seat.z);
     }
@@ -105,7 +112,7 @@ export const DemoBallroom: React.FC = () => {
         textures={textures}
         envMap={envTarget.texture}
         houseLevel={houseLevel}
-        onFloorPointerDown={handleFloorClick}
+        onFloorClick={handleFloorClick}
       />
 
       <StageDeck

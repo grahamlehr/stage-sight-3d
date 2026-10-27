@@ -10,7 +10,7 @@ interface ConferenceSeatingProps {
   seats: SeatPlacement[];
   textures: VenueTextures;
   envMap: THREE.Texture | null;
-  onSeatPick: (seat: SeatPlacement, e: ThreeEvent<PointerEvent>) => void;
+  onSeatPick: (seat: SeatPlacement, e: ThreeEvent<MouseEvent>) => void;
 }
 
 /** Deterministic per-chair jitter, so a set room looks hand-placed rather than stamped. */
@@ -54,7 +54,7 @@ export const ConferenceSeating: React.FC<ConferenceSeatingProps> = ({
     });
   }, [seats]);
 
-  const handlePick = (e: ThreeEvent<PointerEvent>) => {
+  const handlePick = (e: ThreeEvent<MouseEvent>) => {
     if (e.instanceId === undefined) return;
     const seat = seats[e.instanceId];
     if (seat) onSeatPick(seat, e);
@@ -70,7 +70,7 @@ export const ConferenceSeating: React.FC<ConferenceSeatingProps> = ({
         args={[geometry.upholstery, undefined, seats.length]}
         castShadow
         receiveShadow
-        onPointerDown={handlePick}
+        onClick={handlePick}
       >
         <meshStandardMaterial
           color="#2a3550"
@@ -87,7 +87,7 @@ export const ConferenceSeating: React.FC<ConferenceSeatingProps> = ({
         args={[geometry.frame, undefined, seats.length]}
         castShadow
         receiveShadow
-        onPointerDown={handlePick}
+        onClick={handlePick}
       >
         <meshStandardMaterial
           color="#8d939c"
