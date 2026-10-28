@@ -92,12 +92,12 @@ export const AboutModal: React.FC<AboutModalProps> = ({ isOpen, onClose, onStart
                 <span>Take the tour</span>
               </button>
               <a
-                href="./logo.svg"
+                href="https://grahamlehr.github.io"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="btn btn-ghost text-[11px]"
               >
-                <span>Vector Logo</span>
+                <span>grahamlehr.github.io</span>
                 <ExternalLink size={12} />
               </a>
             </div>

@@ -16,6 +16,7 @@ All notable changes to StageSight 3D are listed here. The format follows [Keep a
 
 ### Changed
 
+- **About dialogue footer link.** The "Vector Logo" link at the foot of the About dialogue is replaced by a link to grahamlehr.github.io (2026-10-28).
 - **Seat Presets menu links to the floor plan.** In an uploaded venue with no camera views placed yet, the menu has an **Open floor plan to place views** button. It opens the sidebar on the Venue tab with the floor plan showing and the first empty view selected (2026-10-27).
 - **Uploaded venues get white side lights.** The two side lights stay blue and amber in the demo ballroom, but are white in an uploaded venue. Plain white or grey models came out blue on one side and brown on the other (2026-10-27).
 - **One texture, per-screen UVs.** `ScreenArray` replaces `ScreenSurface`. Video crop applies to the combined split group; stills are shown whole and sliced; the test pattern is drawn at the combined size (2026-10-25).
