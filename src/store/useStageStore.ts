@@ -15,6 +15,13 @@ import {
 } from '../utils/roomFile';
 import { validateGlb } from '../utils/glbValidate';
 import { downloadBlob } from '../utils/download';
+import {
+  fovModeForFov,
+  MAX_EXTRA_SHOTS,
+  SEATED_EYE_HEIGHT,
+  storyboardShots,
+  type CameraShot,
+} from '../utils/storyboard';
 
 export type VenueSource = 'default-ballroom' | 'custom-glb';
 export type SourceType = 'test-pattern' | 'pdf' | 'hdmi-capture' | 'screen-share';
@@ -112,13 +119,58 @@ export interface SeatPreset {
   position: [number, number, number]; // [x, y, z] floor position (eye height +1.2 will be added by camera)
   /** Look direction in radians, as `Math.atan2(dx, dz)`. Omitted means face the screen. */
   yaw?: number;
+  /** Look pitch in radians (custom views only). Omitted means face the screen. */
+  pitch?: number;
+  /** Vertical field of view in degrees (custom views only). */
+  fov?: number;
 }
 
 /** A camera view placed by hand on a custom venue's floor plan. World coordinates, metres. */
 export interface CustomSeatView {
-  position: [number, number, number]; // y is the floor height that was clicked
+  position: [number, number, number]; // floor point that was clicked; the eye is 1.2m above
   yaw: number;
+  /** Radians, positive looks up. */
+  pitch: number;
+  /** Vertical field of view in degrees. */
+  fov: number;
+  /** Shown in the views list and the storyboard; '' means "View N". */
+  name: string;
 }
+
+/** A named storyboard camera that isn't one of the seat views. Eye is a world position (not a floor point). */
+export interface ExtraShot {
+  id: string;
+  name: string;
+  venue: VenueSource;
+  eye: [number, number, number];
+  yaw: number;
+  pitch: number;
+  fov: number;
+}
+
+/** The camera as it is right now, read from the perspective camera. */
+export interface LiveCameraPose {
+  eye: [number, number, number];
+  yaw: number;
+  pitch: number;
+  fov: number;
+}
+
+export interface StoryboardFrame {
+  id: string;
+  shot: CameraShot;
+  blob: Blob;
+  /** Object URL for thumbnails; revoked whenever the frame goes. */
+  url: string;
+}
+
+export interface StoryboardSet {
+  id: string;
+  label: string;
+  frames: StoryboardFrame[];
+}
+
+export type StoryboardCaptureResult = { ok: true; setId: string } | { ok: false; message: string };
 
 export const CUSTOM_VIEW_COUNT = ROOM_VIEW_COUNT;
 
@@ -144,10 +196,12 @@ export function getActiveSeatPresets(
   }
   return state.customSeatViews.map((view, i) => ({
     id: `custom-view-${i + 1}`,
-    name: `View ${i + 1}`,
+    name: view?.name || `View ${i + 1}`,
     description: view ? 'Placed on the floor plan' : 'Not placed yet',
     position: view ? view.position : [0, 0, 0],
     yaw: view ? view.yaw : undefined,
+    pitch: view ? view.pitch : undefined,
+    fov: view ? view.fov : undefined,
     placed: view !== null,
   }));
 }
@@ -255,6 +309,8 @@ export interface StageState {
   seatPosition: [number, number, number];
   /** Yaw the seated camera faces, or null to look at the screen centre. */
   seatYaw: number | null;
+  /** Pitch the seated camera faces (radians, + up); only used together with seatYaw. */
+  seatPitch: number | null;
   fovMode: FovMode;
 
   // WebXR / Meta Quest VR State
@@ -263,6 +319,16 @@ export interface StageState {
   vrHudVisible: boolean;
   vrRecenterCount: number;
   toggleVrSession: (() => Promise<void>) | null;
+
+  // Storyboard
+  /** Reads the live perspective camera; registered by CameraController. */
+  getLiveCameraPose: (() => LiveCameraPose) | null;
+  /** Renders shots off-screen to JPEG blobs; registered by StoryboardRenderer. */
+  renderStoryboardShots: ((shots: CameraShot[]) => Promise<Blob[]>) | null;
+  storyboardExtraShots: ExtraShot[];
+  storyboardSets: StoryboardSet[];
+  isStoryboardOpen: boolean;
+  isCapturing: boolean;
 
   // Stage Occlusion Overlays
   showPresenterSilhouette: boolean; // legacy alias
@@ -298,7 +364,10 @@ export interface StageState {
   /** Shows the Venue tab with the floor plan open on the first unplaced view, ready to place one. */
   openFloorPlanToPlaceViews: () => void;
   setFloorPlanCutHeight: (height: number | null) => void;
-  setSeatView: (position: [number, number, number], yaw: number | null) => void;
+  setSeatView: (position: [number, number, number], yaw: number | null, pitch?: number | null) => void;
+  renameCustomSeatView: (slot: number, name: string) => void;
+  /** Points a placed view at wherever the live camera is now. */
+  updateCustomSeatViewFromCamera: (slot: number) => void;
   setCustomDeckHeight: (height: number) => void;
   setStageHeight: (height: number) => void;
   setVenueDimensions: (width: number, length: number) => void;
@@ -347,6 +416,23 @@ export interface StageState {
   triggerVrRecenter: () => void;
   setToggleVrSession: (fn: (() => Promise<void>) | null) => void;
 
+  setGetLiveCameraPose: (fn: (() => LiveCameraPose) | null) => void;
+  setRenderStoryboardShots: (fn: ((shots: CameraShot[]) => Promise<Blob[]>) | null) => void;
+  addExtraShotFromCamera: (name: string) => string | null;
+  renameExtraShot: (id: string, name: string) => void;
+  removeExtraShot: (id: string) => void;
+  captureStoryboardSet: (label: string) => Promise<StoryboardCaptureResult>;
+  retakeStoryboardFrame: (setId: string, frameId: string) => Promise<StoryboardCaptureResult>;
+  /** Adds the live camera as a one-off frame to the given set, the last set, or a new one. */
+  captureCurrentViewFrame: (setId: string | null) => Promise<StoryboardCaptureResult>;
+  renameStoryboardSet: (setId: string, label: string) => void;
+  deleteStoryboardFrame: (setId: string, frameId: string) => void;
+  deleteStoryboardSet: (setId: string) => void;
+  /** Drops every frame and revokes its URL. */
+  clearStoryboard: () => void;
+  /** Closing the tray clears the frames: they live only while it is open. */
+  setIsStoryboardOpen: (open: boolean) => void;
+
   setShowPresenterSilhouette: (show: boolean) => void;
   setPresenterOffset: (offset: [number, number]) => void;
   setShowPresenter: (show: boolean) => void;
@@ -393,6 +479,33 @@ function withoutDemoScreens(state: StageState): Partial<StageState> {
   return next;
 }
 
+let storyboardIdCounter = 0;
+const nextStoryboardId = (prefix: string) => `${prefix}-${++storyboardIdCounter}`;
+
+const makeFrame = (shot: CameraShot, blob: Blob): StoryboardFrame => ({
+  id: nextStoryboardId('frame'),
+  shot,
+  blob,
+  url: URL.createObjectURL(blob),
+});
+
+const captureMessage = (err: unknown): string =>
+  err instanceof Error && err.message ? err.message : "The storyboard couldn't be captured. Please try again.";
+
+/**
+ * Waits for the scene to commit after the capture clears overlays (gizmo, mesh
+ * picker, floor plan). A hidden tab pauses requestAnimationFrame, so the wait
+ * is raced against a short timer.
+ */
+async function settleScene(): Promise<void> {
+  useStageStore.setState({ showTransformGizmo: false, isPickingMesh: false, isFloorPlanOpen: false });
+  const frames = new Promise<void>((resolve) => {
+    if (typeof requestAnimationFrame !== 'function') return resolve();
+    requestAnimationFrame(() => requestAnimationFrame(() => resolve()));
+  });
+  await Promise.race([frames, new Promise<void>((resolve) => setTimeout(resolve, 150))]);
+}
+
 export const useStageStore = create<StageState>((set, get) => ({
   // Venue Defaults
   venueSource: 'default-ballroom',
@@ -436,6 +549,7 @@ export const useStageStore = create<StageState>((set, get) => ({
   navigationMode: 'orbit',
   seatPosition: [0, 0, 2], // Mid-House Center
   seatYaw: null,
+  seatPitch: null,
   fovMode: 'room-context',
 
   // WebXR / Meta Quest VR Defaults
@@ -444,6 +558,14 @@ export const useStageStore = create<StageState>((set, get) => ({
   vrHudVisible: true,
   vrRecenterCount: 0,
   toggleVrSession: null,
+
+  // Storyboard Defaults
+  getLiveCameraPose: null,
+  renderStoryboardShots: null,
+  storyboardExtraShots: [],
+  storyboardSets: [],
+  isStoryboardOpen: false,
+  isCapturing: false,
 
   // Stage Occlusion Defaults. The screen sits 2m behind the deck's front edge,
   // so z offsets stay at or under 1.2m to keep the props off the lip. The
@@ -482,7 +604,7 @@ export const useStageStore = create<StageState>((set, get) => ({
   // Actions
   setVenueSource: (venueSource) => {
     if (venueSource === 'default-ballroom') {
-      set({ venueSource, isFloorPlanOpen: false, seatYaw: null });
+      set({ venueSource, isFloorPlanOpen: false, seatYaw: null, seatPitch: null });
     } else {
       // The side screens are placed for the ballroom, so they make no sense in a custom room
       set((state) => ({ venueSource, ...withoutDemoScreens(state) }));
@@ -511,6 +633,9 @@ export const useStageStore = create<StageState>((set, get) => ({
             floorPlanSlot: 0,
             floorPlanCutHeight: null,
             seatYaw: null,
+            seatPitch: null,
+            // Extra shots in the last model's coordinates mean nothing in this one
+            storyboardExtraShots: get().storyboardExtraShots.filter((e) => e.venue !== 'custom-glb'),
             // Screens bound to the last model's meshes mean nothing in this one
             ...screenReset(),
           }
@@ -521,7 +646,7 @@ export const useStageStore = create<StageState>((set, get) => ({
     // rather than being left wherever that world position now lands
     // and every placed view with it, keeping each one's position and heading
     // fixed relative to the room
-    const { venueYaw, seatPosition, seatYaw, customSeatViews, screens } = get();
+    const { venueYaw, seatPosition, seatYaw, customSeatViews, screens, storyboardExtraShots } = get();
     const next = normaliseQuarterTurn(yaw);
     const delta = next - venueYaw;
     set({
@@ -529,7 +654,10 @@ export const useStageStore = create<StageState>((set, get) => ({
       seatPosition: rotateAboutY(seatPosition, delta),
       seatYaw: seatYaw === null ? null : normaliseYaw(seatYaw + delta),
       customSeatViews: customSeatViews.map((view) =>
-        view ? { position: rotateAboutY(view.position, delta), yaw: normaliseYaw(view.yaw + delta) } : null
+        view ? { ...view, position: rotateAboutY(view.position, delta), yaw: normaliseYaw(view.yaw + delta) } : null
+      ),
+      storyboardExtraShots: storyboardExtraShots.map((e) =>
+        e.venue === 'custom-glb' ? { ...e, eye: rotateAboutY(e.eye, delta), yaw: normaliseYaw(e.yaw + delta) } : e
       ),
       // Screens picked from the room's meshes turn with it; free screens stay put
       screens: screens.map((screen) =>
@@ -546,9 +674,30 @@ export const useStageStore = create<StageState>((set, get) => ({
   setCustomSeatView: (slot, view) =>
     set((state) => ({
       customSeatViews: state.customSeatViews.map((existing, i) =>
-        i === slot ? (view ? { position: [...view.position], yaw: view.yaw } : null) : existing
+        i === slot
+          ? view
+            ? { position: [...view.position], yaw: view.yaw, pitch: view.pitch, fov: view.fov, name: view.name }
+            : null
+          : existing
       ),
     })),
+  renameCustomSeatView: (slot, name) =>
+    set((state) => ({
+      customSeatViews: state.customSeatViews.map((view, i) => (i === slot && view ? { ...view, name } : view)),
+    })),
+  updateCustomSeatViewFromCamera: (slot) => {
+    const { getLiveCameraPose, customSeatViews } = get();
+    const view = customSeatViews[slot];
+    const pose = getLiveCameraPose?.();
+    if (!view || !pose) return;
+    get().setCustomSeatView(slot, {
+      position: [pose.eye[0], pose.eye[1] - SEATED_EYE_HEIGHT, pose.eye[2]],
+      yaw: pose.yaw,
+      pitch: pose.pitch,
+      fov: pose.fov,
+      name: view.name,
+    });
+  },
   setCustomVenueBounds: (customVenueBounds) => set({ customVenueBounds }),
   setIsFloorPlanOpen: (isFloorPlanOpen) => set({ isFloorPlanOpen }),
   setFloorPlanSlot: (slot) => set({ floorPlanSlot: Math.max(0, Math.min(CUSTOM_VIEW_COUNT - 1, Math.round(slot))) }),
@@ -691,8 +840,8 @@ export const useStageStore = create<StageState>((set, get) => ({
 
   setNavigationMode: (navigationMode) => set({ navigationMode }),
   // Click-to-sit and VR teleports go back to looking at the screen
-  setSeatPosition: (seatPosition) => set({ seatPosition, seatYaw: null }),
-  setSeatView: (seatPosition, seatYaw) => set({ seatPosition, seatYaw }),
+  setSeatPosition: (seatPosition) => set({ seatPosition, seatYaw: null, seatPitch: null }),
+  setSeatView: (seatPosition, seatYaw, seatPitch = null) => set({ seatPosition, seatYaw, seatPitch }),
   setFovMode: (fovMode) => set({ fovMode }),
   applySeatPreset: (presetId) => {
     const preset = getActiveSeatPresets(get()).find((p) => p.id === presetId);
@@ -700,6 +849,8 @@ export const useStageStore = create<StageState>((set, get) => ({
       set({
         seatPosition: preset.position,
         seatYaw: preset.yaw ?? null,
+        seatPitch: preset.pitch ?? null,
+        ...(preset.fov === undefined ? {} : { fovMode: fovModeForFov(preset.fov) }),
         navigationMode: 'seated',
       });
     }
@@ -721,6 +872,8 @@ export const useStageStore = create<StageState>((set, get) => ({
     set({
       seatPosition: presets[nextIdx].position,
       seatYaw: presets[nextIdx].yaw ?? null,
+      seatPitch: presets[nextIdx].pitch ?? null,
+      ...(presets[nextIdx].fov === undefined ? {} : { fovMode: fovModeForFov(presets[nextIdx].fov as number) }),
       navigationMode: 'seated',
     });
   },
@@ -732,6 +885,156 @@ export const useStageStore = create<StageState>((set, get) => ({
   setVrHudVisible: (vrHudVisible) => set({ vrHudVisible }),
   triggerVrRecenter: () => set((state) => ({ vrRecenterCount: state.vrRecenterCount + 1 })),
   setToggleVrSession: (toggleVrSession) => set({ toggleVrSession }),
+
+  setGetLiveCameraPose: (getLiveCameraPose) => set({ getLiveCameraPose }),
+  setRenderStoryboardShots: (renderStoryboardShots) => set({ renderStoryboardShots }),
+  addExtraShotFromCamera: (name) => {
+    const { getLiveCameraPose, storyboardExtraShots, venueSource } = get();
+    const pose = getLiveCameraPose?.();
+    if (!pose) return null;
+    if (storyboardExtraShots.filter((e) => e.venue === venueSource).length >= MAX_EXTRA_SHOTS) return null;
+    const taken = new Set(storyboardExtraShots.map((e) => e.id));
+    let n = storyboardExtraShots.length + 1;
+    while (taken.has(`shot-${n}`)) n++;
+    const id = `shot-${n}`;
+    set({
+      storyboardExtraShots: [
+        ...storyboardExtraShots,
+        { id, name, venue: venueSource, eye: [...pose.eye], yaw: pose.yaw, pitch: pose.pitch, fov: pose.fov },
+      ],
+    });
+    return id;
+  },
+  renameExtraShot: (id, name) =>
+    set((state) => ({ storyboardExtraShots: state.storyboardExtraShots.map((e) => (e.id === id ? { ...e, name } : e)) })),
+  removeExtraShot: (id) =>
+    set((state) => ({ storyboardExtraShots: state.storyboardExtraShots.filter((e) => e.id !== id) })),
+
+  captureStoryboardSet: async (label) => {
+    const state = get();
+    if (state.isCapturing) return { ok: false, message: 'A capture is already running.' };
+    if (!state.renderStoryboardShots) return { ok: false, message: 'The 3D view is not ready to capture yet.' };
+    const shots = storyboardShots(state, SEAT_PRESETS);
+    if (shots.length === 0) return { ok: false, message: 'Place at least one camera view first.' };
+    set({ isCapturing: true });
+    try {
+      await settleScene();
+      const render = get().renderStoryboardShots;
+      if (!render) return { ok: false, message: 'The 3D view is not ready to capture yet.' };
+      const blobs = await render(shots);
+      const setId = nextStoryboardId('set');
+      const frames = blobs.map((blob, i) => makeFrame(shots[i], blob));
+      set((s) => ({ storyboardSets: [...s.storyboardSets, { id: setId, label, frames }] }));
+      return { ok: true, setId };
+    } catch (err) {
+      return { ok: false, message: captureMessage(err) };
+    } finally {
+      set({ isCapturing: false });
+    }
+  },
+  retakeStoryboardFrame: async (setId, frameId) => {
+    const state = get();
+    const frame = state.storyboardSets.find((x) => x.id === setId)?.frames.find((f) => f.id === frameId);
+    if (!frame) return { ok: false, message: 'That frame is no longer there.' };
+    if (state.isCapturing) return { ok: false, message: 'A capture is already running.' };
+    if (!state.renderStoryboardShots) return { ok: false, message: 'The 3D view is not ready to capture yet.' };
+    set({ isCapturing: true });
+    try {
+      await settleScene();
+      const render = get().renderStoryboardShots;
+      if (!render) return { ok: false, message: 'The 3D view is not ready to capture yet.' };
+      const [blob] = await render([frame.shot]);
+      const url = URL.createObjectURL(blob);
+      // The frame may have been deleted while rendering; then there's nothing to replace
+      const stillThere = get()
+        .storyboardSets.find((x) => x.id === setId)
+        ?.frames.some((f) => f.id === frameId);
+      if (!stillThere) {
+        URL.revokeObjectURL(url);
+        return { ok: true, setId };
+      }
+      set((s) => ({
+        storyboardSets: s.storyboardSets.map((x) =>
+          x.id === setId ? { ...x, frames: x.frames.map((f) => (f.id === frameId ? { ...f, blob, url } : f)) } : x
+        ),
+      }));
+      URL.revokeObjectURL(frame.url);
+      return { ok: true, setId };
+    } catch (err) {
+      return { ok: false, message: captureMessage(err) };
+    } finally {
+      set({ isCapturing: false });
+    }
+  },
+  captureCurrentViewFrame: async (setId) => {
+    const state = get();
+    const pose = state.getLiveCameraPose?.();
+    if (!pose) return { ok: false, message: 'The 3D view is not ready to capture yet.' };
+    if (state.isCapturing) return { ok: false, message: 'A capture is already running.' };
+    if (!state.renderStoryboardShots) return { ok: false, message: 'The 3D view is not ready to capture yet.' };
+    set({ isCapturing: true });
+    try {
+      const existing = get().storyboardSets;
+      const target =
+        (setId && existing.find((x) => x.id === setId)) || (setId ? undefined : existing[existing.length - 1]);
+      if (setId && !target) return { ok: false, message: 'That set is no longer there.' };
+      const customCount = existing.reduce((n, x) => n + x.frames.filter((f) => f.shot.id.startsWith('custom-')).length, 0);
+      const shot: CameraShot = {
+        id: nextStoryboardId('custom'),
+        name: `Custom view ${customCount + 1}`,
+        eye: [...pose.eye],
+        yaw: pose.yaw,
+        pitch: pose.pitch,
+        fov: pose.fov,
+      };
+      // The pose is already taken; this only clears the gizmo and picker out of the frame
+      await settleScene();
+      const [blob] = await get().renderStoryboardShots!([shot]);
+      const frame = makeFrame(shot, blob);
+      if (target) {
+        set((s) => ({
+          storyboardSets: s.storyboardSets.map((x) => (x.id === target.id ? { ...x, frames: [...x.frames, frame] } : x)),
+        }));
+        return { ok: true, setId: target.id };
+      }
+      const newId = nextStoryboardId('set');
+      set((s) => ({
+        storyboardSets: [...s.storyboardSets, { id: newId, label: `Set ${s.storyboardSets.length + 1}`, frames: [frame] }],
+      }));
+      return { ok: true, setId: newId };
+    } catch (err) {
+      return { ok: false, message: captureMessage(err) };
+    } finally {
+      set({ isCapturing: false });
+    }
+  },
+  renameStoryboardSet: (setId, label) =>
+    set((state) => ({ storyboardSets: state.storyboardSets.map((x) => (x.id === setId ? { ...x, label } : x)) })),
+  deleteStoryboardFrame: (setId, frameId) => {
+    const target = get().storyboardSets.find((x) => x.id === setId)?.frames.find((f) => f.id === frameId);
+    if (!target) return;
+    URL.revokeObjectURL(target.url);
+    set((state) => ({
+      storyboardSets: state.storyboardSets
+        .map((x) => (x.id === setId ? { ...x, frames: x.frames.filter((f) => f.id !== frameId) } : x))
+        // A set with nothing in it has nothing to show or export
+        .filter((x) => x.frames.length > 0),
+    }));
+  },
+  deleteStoryboardSet: (setId) => {
+    const target = get().storyboardSets.find((x) => x.id === setId);
+    if (!target) return;
+    target.frames.forEach((f) => URL.revokeObjectURL(f.url));
+    set((state) => ({ storyboardSets: state.storyboardSets.filter((x) => x.id !== setId) }));
+  },
+  clearStoryboard: () => {
+    get().storyboardSets.forEach((x) => x.frames.forEach((f) => URL.revokeObjectURL(f.url)));
+    set({ storyboardSets: [] });
+  },
+  setIsStoryboardOpen: (isStoryboardOpen) => {
+    if (!isStoryboardOpen) get().clearStoryboard();
+    set({ isStoryboardOpen });
+  },
 
   setShowPresenterSilhouette: (showPresenterSilhouette) => set({ showPresenterSilhouette, showPresenter: showPresenterSilhouette }),
   setPresenterOffset: (presenterOffset) => set({ presenterOffset }),

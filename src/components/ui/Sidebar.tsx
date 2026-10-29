@@ -22,6 +22,7 @@ import {
   Users,
   Mic,
   Map as MapIcon,
+  Camera,
   X,
 } from 'lucide-react';
 import {
@@ -167,6 +168,8 @@ export const Sidebar: React.FC = () => {
   const setVenueYaw = useStageStore((s) => s.setVenueYaw);
   const customSeatViews = useStageStore((s) => s.customSeatViews);
   const setCustomSeatView = useStageStore((s) => s.setCustomSeatView);
+  const renameCustomSeatView = useStageStore((s) => s.renameCustomSeatView);
+  const updateCustomSeatViewFromCamera = useStageStore((s) => s.updateCustomSeatViewFromCamera);
   const isFloorPlanOpen = useStageStore((s) => s.isFloorPlanOpen);
   const setIsFloorPlanOpen = useStageStore((s) => s.setIsFloorPlanOpen);
   const floorPlanSlot = useStageStore((s) => s.floorPlanSlot);
@@ -1076,7 +1079,8 @@ export const Sidebar: React.FC = () => {
                   </button>
                   <div className="grid grid-cols-2 gap-2">
                     {customSeatViews.map((view, i) => (
-                      <div key={i} className="flex items-stretch gap-1">
+                      <div key={i} className="space-y-1">
+                      <div className="flex items-stretch gap-1">
                         <button
                           onClick={() => setFloorPlanSlot(i)}
                           aria-pressed={floorPlanSlot === i}
@@ -1096,6 +1100,28 @@ export const Sidebar: React.FC = () => {
                             <X size={12} />
                           </button>
                         )}
+                      </div>
+                      {view && (
+                        <div className="flex items-stretch gap-1">
+                          <input
+                            type="text"
+                            value={view.name}
+                            onChange={(e) => renameCustomSeatView(i, e.target.value)}
+                            placeholder={`View ${i + 1}`}
+                            aria-label={`Name for View ${i + 1}`}
+                            className="input min-w-0 flex-1"
+                            maxLength={60}
+                          />
+                          <button
+                            onClick={() => updateCustomSeatViewFromCamera(i)}
+                            className="btn btn-secondary px-1.5"
+                            aria-label={`Update View ${i + 1} from camera`}
+                            title="Set this view to the current camera"
+                          >
+                            <Camera size={12} />
+                          </button>
+                        </div>
+                      )}
                       </div>
                     ))}
                   </div>

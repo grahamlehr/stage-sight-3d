@@ -10,6 +10,7 @@ Preview ultra-wide event screens and LED walls from any seat in the room before 
 - **Content** — an aspect-matched test pattern, a PDF deck, a single PNG or JPEG, a live HDMI capture card, or a screen share. A five-slide 32:9 sample deck is built in. Slides are stretched to the screen, so export decks at the screen's aspect ratio.
 - **Ultra-wide cropping** — fixes 16:9 EDID sources on ultra-wide walls: centered, top-aligned, 1:1 or manual crop.
 - **Venues** — a procedural ballroom with adjustable size and stage height, or upload your own `.glb` (or a self-contained `.gltf`) authored in meters.
+- **Storyboard PDF** — capture your content from every camera view in sets ("Your draft", "Our concept") from identical viewpoints, review and retake frames, and export a branded PDF built in the browser.
 - **Room files** — save the venue, screens, camera views and stage dressing as one `.stagesight` file (an uploaded model goes inside it) and open it again later, or drop it on the 3D view. Content is never saved in it, and it never leaves your device.
 - **Sightline telemetry** — live D/H ratio and horizontal off-axis angle against the bands below, plus 50° room-context and 25° eye-focus FOV modes.
 - **Occlusion checks** — two standing presenters (a 1.8m man and a 1.68m woman), a lectern and a seated panel of two men and two women, each movable on the stage.
@@ -43,6 +44,7 @@ A short tour walks through these on first visit. Tick **Don't show again** to st
 | <kbd>R</kbd> | Recenter VR view |
 | <kbd>H</kbd> | Show / hide VR HUD |
 | Drop a `.stagesight` file on the 3D view | Open that room (same as **Venue → Open room**) |
+| **Storyboard** (header) | Open the storyboard panel: capture sets of frames, review them, export a PDF |
 
 ### VR controllers
 
@@ -65,6 +67,7 @@ VR uses WebXR (`immersive-vr`). On a PC, connect a Meta Quest through **Quest Li
 | --- | --- |
 | [Content sources and cropping](docs/content-sources.md) | Decks, capture cards, screen share and ultra-wide crop modes |
 | [Custom venues](docs/custom-venues.md) | Preparing a `.glb`, picking screens from its meshes, and saving rooms as `.stagesight` files |
+| [Storyboard capture and PDF](docs/storyboard.md) | Capturing frames from the camera views and exporting the client PDF |
 | [VR preview](docs/vr-preview.md) | Headset setup, calibration and troubleshooting |
 | [Sightline telemetry](docs/sightline-telemetry.md) | How D/H and off-axis are computed, and their limits |
 | [Architecture](docs/architecture.md) | State, scene, content pipeline and lifecycle rules |

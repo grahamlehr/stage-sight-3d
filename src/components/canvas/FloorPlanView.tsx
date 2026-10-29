@@ -10,6 +10,7 @@ import {
   planFrame,
   yawBetween,
 } from '../../utils/floorPlan';
+import { DEFAULT_VIEW_FOV, SEATED_EYE_HEIGHT, viewPitchTowardsScreen } from '../../utils/storyboard';
 
 /** A drag shorter than this leaves the view aimed at the screen. */
 const AIM_THRESHOLD = 0.3;
@@ -133,6 +134,19 @@ export const FloorPlanView: React.FC = () => {
     const defaultYaw = (position: [number, number, number]) =>
       yawBetween(position, selectPrimaryScreen(useStageStore.getState()).position);
 
+    // A full view for a floor point and heading: looks at the screen's height, keeps the current field of view
+    const viewFor = (position: [number, number, number], yaw: number): CustomSeatView => {
+      const state = useStageStore.getState();
+      const eye: [number, number, number] = [position[0], position[1] + SEATED_EYE_HEIGHT, position[2]];
+      return {
+        position,
+        yaw,
+        pitch: viewPitchTowardsScreen(eye, selectPrimaryScreen(state).position),
+        fov: state.fovMode === 'eye-focus' ? 25 : DEFAULT_VIEW_FOV,
+        name: state.customSeatViews[state.floorPlanSlot]?.name ?? '',
+      };
+    };
+
     const onDown = (e: PointerEvent) => {
       if (e.button !== 0 || !setRay(e)) return;
       const venue = scene.getObjectByName('custom-venue');
@@ -142,7 +156,7 @@ export const FloorPlanView: React.FC = () => {
       if (!hit) return;
       const position: [number, number, number] = [roundCm(hit.point.x), roundCm(hit.point.y), roundCm(hit.point.z)];
       drag = { position, startedAimed: false };
-      setPreview({ position, yaw: defaultYaw(position) });
+      setPreview({ ...viewFor(position, defaultYaw(position)) });
     };
 
     // Heading for a drag as of this pointer event: aimed at the pointer once it
@@ -161,7 +175,7 @@ export const FloorPlanView: React.FC = () => {
 
     const onMove = (e: PointerEvent) => {
       if (!drag) return;
-      setPreview({ position: drag.position, yaw: yawFor(drag, e) });
+      setPreview(viewFor(drag.position, yawFor(drag, e)));
     };
 
     const onUp = (e: PointerEvent) => {
@@ -173,7 +187,7 @@ export const FloorPlanView: React.FC = () => {
 
       const state = useStageStore.getState();
       const committed = state.floorPlanSlot;
-      state.setCustomSeatView(committed, { position: finished.position, yaw });
+      state.setCustomSeatView(committed, viewFor(finished.position, yaw));
 
       // Move on to the next empty slot, or stay put when all four are placed
       const views = useStageStore.getState().customSeatViews;

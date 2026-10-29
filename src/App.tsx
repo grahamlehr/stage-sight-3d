@@ -3,12 +3,15 @@ import { StageCanvas } from './components/canvas/StageCanvas';
 import { TelemetryHUD } from './components/ui/TelemetryHUD';
 import { Sidebar } from './components/ui/Sidebar';
 import { TransportBar } from './components/ui/TransportBar';
+import { StoryboardTray } from './components/ui/StoryboardTray';
 import { FirstRunGuide } from './components/ui/FirstRunGuide';
 import { hasUnsavedRoomChanges, useStageStore } from './store/useStageStore';
 import { openRoomFromFile } from './utils/openRoomFile';
 
 export const App: React.FC = () => {
   const isGuideOpen = useStageStore((s) => s.isGuideOpen);
+  const isStoryboardOpen = useStageStore((s) => s.isStoryboardOpen);
+  const isVrPresenting = useStageStore((s) => s.isVrPresenting);
 
   // Warn before the tab closes with unsaved room edits
   useEffect(() => {
@@ -47,6 +50,9 @@ export const App: React.FC = () => {
 
       {/* Bottom PDF / Presentation Deck Scrubber */}
       <TransportBar />
+
+      {/* Storyboard review tray and PDF export */}
+      {isStoryboardOpen && !isVrPresenting && <StoryboardTray />}
 
       {/* First-run tour (reopened from the About panel) */}
       {isGuideOpen && <FirstRunGuide />}

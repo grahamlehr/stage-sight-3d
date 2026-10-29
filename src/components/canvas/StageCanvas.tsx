@@ -8,6 +8,7 @@ import { PresenterSilhouette } from './PresenterSilhouette';
 import { CameraController } from './CameraController';
 import { VrControllerRig } from './VrControllerRig';
 import { FloorPlanView } from './FloorPlanView';
+import { StoryboardRenderer } from './StoryboardRenderer';
 import { sideLightColours } from '../../utils/sideLightColours';
 
 export const StageCanvas: React.FC = () => {
@@ -139,6 +140,7 @@ export const StageCanvas: React.FC = () => {
         <CameraController />
         {showFloorPlan && <FloorPlanView />}
         <VrControllerRig />
+        <StoryboardRenderer />
       </Canvas>
 
       {/* Helpful Viewport Navigation Overlay Hint */}

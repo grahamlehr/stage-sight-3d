@@ -13,6 +13,10 @@ The **Source** tab chooses what is shown on the screen. Everything is processed 
 | HDMI capture | `getUserMedia`, asking for up to 3840 × 2160 at 60 fps | Choose the device from **Video Device**. Use the refresh button after plugging in a capture card. |
 | Screen share | `getDisplayMedia`, asking for up to 3840 × 2160 | When you stop sharing in the browser, the screen goes back to the test pattern. |
 
+### Storyboard frames
+
+[Storyboard](storyboard.md) frames are rendered off-screen from whatever is on the screen at the time, with the latest video frame for a live source. A frame is only as sharp as the incoming stream, so run screen shares and capture cards at the source's highest resolution. Capturing while the test pattern is showing, or after a stream has ended, asks first.
+
 ### Browser requirements
 
 - **Capture and screen share need a secure context:** HTTPS (the deployed app) or `localhost` (the dev server). On a plain-HTTP LAN address they aren't available.

@@ -1,5 +1,6 @@
 import { strFromU8, strToU8, unzipSync, zipSync } from 'fflate';
-import type { CustomSeatView, ScreenRole, StageScreen, StageState, VenueSource } from '../store/useStageStore';
+import type { CustomSeatView, ExtraShot, ScreenRole, StageScreen, StageState, VenueSource } from '../store/useStageStore';
+import { DEFAULT_VIEW_FOV, MAX_EXTRA_SHOTS, SEATED_EYE_HEIGHT, viewPitchTowardsScreen } from './storyboard';
 
 /**
  * The `.stagesight` room file: a zip holding `room.json` (the room) and, for a
@@ -11,7 +12,7 @@ import type { CustomSeatView, ScreenRole, StageScreen, StageState, VenueSource }
  * without a runtime cycle.
  */
 
-export const ROOM_FORMAT_VERSION = 1;
+export const ROOM_FORMAT_VERSION = 2;
 
 /** Number of hand-placed camera views a custom venue holds (the store re-exports this). */
 export const ROOM_VIEW_COUNT = 4;
@@ -26,7 +27,7 @@ type Vec3 = [number, number, number];
 type Vec2 = [number, number];
 
 export interface RoomDocument {
-  formatVersion: 1;
+  formatVersion: 2;
   app: 'StageSight 3D';
   savedAt: string;
   name: string;
@@ -47,6 +48,7 @@ export interface RoomDocument {
     demoSideScreens: boolean;
   };
   views: { customSeatViews: (CustomSeatView | null)[] };
+  storyboard: { extraShots: ExtraShot[] };
   dressing: {
     lightingPreset: LightingPreset;
     houseLightsIntensity: number;
@@ -76,6 +78,7 @@ export type RoomSourceState = Pick<
   | 'splitOrder'
   | 'demoSideScreens'
   | 'customSeatViews'
+  | 'storyboardExtraShots'
   | 'lightingPreset'
   | 'houseLightsIntensity'
   | 'stageLightsIntensity'
@@ -91,7 +94,7 @@ export type RoomSourceState = Pick<
 /** Explicit whitelist copy of the room parts of the store. Arrays are deep-copied. */
 export function roomFromState(state: RoomSourceState, opts: { savedAt: string }): RoomDocument {
   return {
-    formatVersion: 1,
+    formatVersion: 2,
     app: 'StageSight 3D',
     savedAt: opts.savedAt,
     name: state.roomName,
@@ -122,8 +125,21 @@ export function roomFromState(state: RoomSourceState, opts: { savedAt: string })
     },
     views: {
       customSeatViews: state.customSeatViews.map((v) =>
-        v ? { position: [v.position[0], v.position[1], v.position[2]], yaw: v.yaw } : null
+        v
+          ? { position: [v.position[0], v.position[1], v.position[2]], yaw: v.yaw, pitch: v.pitch, fov: v.fov, name: v.name }
+          : null
       ),
+    },
+    storyboard: {
+      extraShots: state.storyboardExtraShots.map((e) => ({
+        id: e.id,
+        name: e.name,
+        venue: e.venue,
+        eye: [e.eye[0], e.eye[1], e.eye[2]],
+        yaw: e.yaw,
+        pitch: e.pitch,
+        fov: e.fov,
+      })),
     },
     dressing: {
       lightingPreset: state.lightingPreset,
@@ -153,7 +169,41 @@ export type RoomMigrations = Record<number, (doc: Record<string, unknown>) => un
  * `ROOM_MIGRATIONS[n]` turns a version-n document into version n + 1.
  * Each bump of ROOM_FORMAT_VERSION must add exactly one step here and a test.
  */
-export const ROOM_MIGRATIONS: RoomMigrations = {};
+export const ROOM_MIGRATIONS: RoomMigrations = {
+  // v1 -> v2: views gain pitch, field of view and a name; the storyboard block appears.
+  // A v1 view only stored a heading, and the app aimed it at the primary screen's height,
+  // so the pitch it actually showed is kept rather than levelling it (the user's framing
+  // doesn't change on opening an old room).
+  1: (doc) => {
+    const screensBlock = isRecord(doc.screens) ? doc.screens : {};
+    const rawScreens = Array.isArray(screensBlock.screens) ? (screensBlock.screens as unknown[]) : [];
+    const primary = rawScreens.find((s) => isRecord(s) && s.id === screensBlock.primaryScreenId);
+    const screenPos =
+      isRecord(primary) && Array.isArray(primary.position) && primary.position.length === 3 && primary.position.every((n) => typeof n === 'number' && Number.isFinite(n))
+        ? (primary.position as Vec3)
+        : null;
+    const viewsBlock = isRecord(doc.views) ? doc.views : {};
+    const rawViews = Array.isArray(viewsBlock.customSeatViews) ? (viewsBlock.customSeatViews as unknown[]) : viewsBlock.customSeatViews;
+    const customSeatViews = Array.isArray(rawViews)
+      ? rawViews.map((raw) => {
+          if (!isRecord(raw)) return raw;
+          const p = raw.position;
+          const valid = Array.isArray(p) && p.length === 3 && p.every((n) => typeof n === 'number' && Number.isFinite(n));
+          const pitch =
+            valid && screenPos
+              ? viewPitchTowardsScreen([p[0], p[1] + SEATED_EYE_HEIGHT, p[2]] as Vec3, screenPos)
+              : 0;
+          return { ...raw, pitch, fov: DEFAULT_VIEW_FOV, name: '' };
+        })
+      : rawViews;
+    return {
+      ...doc,
+      formatVersion: 2,
+      views: { ...viewsBlock, customSeatViews },
+      storyboard: { extraShots: [] },
+    };
+  },
+};
 
 const MSG_NEWER = 'This room was saved by a newer version of StageSight. Update the app to open it.';
 const MSG_INVALID = "This room file is damaged or isn't a StageSight room.";
@@ -238,11 +288,39 @@ function validateRoom(doc: Record<string, unknown>): RoomDocument {
   const customSeatViews = (rawViews as unknown[]).map((raw, i): CustomSeatView | null => {
     if (raw === null) return null;
     const v = rec(raw, `customSeatViews[${i}]`);
-    return { position: vec3(v.position, `customSeatViews[${i}].position`), yaw: num(v.yaw, `customSeatViews[${i}].yaw`) };
+    const path = `customSeatViews[${i}]`;
+    return {
+      position: vec3(v.position, `${path}.position`),
+      yaw: num(v.yaw, `${path}.yaw`),
+      pitch: num(v.pitch, `${path}.pitch`),
+      fov: posNum(v.fov, `${path}.fov`),
+      name: str(v.name, `${path}.name`),
+    };
   });
 
+  const storyboard = rec(doc.storyboard, 'storyboard');
+  if (!Array.isArray(storyboard.extraShots)) fail('storyboard.extraShots must be a list');
+  const extraShots = (storyboard.extraShots as unknown[]).map((raw, i): ExtraShot => {
+    const e = rec(raw, `extraShots[${i}]`);
+    return {
+      id: str(e.id, `extraShots[${i}].id`),
+      name: str(e.name, `extraShots[${i}].name`),
+      venue: oneOf(e.venue, VENUE_SOURCES, `extraShots[${i}].venue`),
+      eye: vec3(e.eye, `extraShots[${i}].eye`),
+      yaw: num(e.yaw, `extraShots[${i}].yaw`),
+      pitch: num(e.pitch, `extraShots[${i}].pitch`),
+      fov: posNum(e.fov, `extraShots[${i}].fov`),
+    };
+  });
+  for (const venue of VENUE_SOURCES) {
+    if (extraShots.filter((e) => e.venue === venue).length > MAX_EXTRA_SHOTS) {
+      fail(`a venue can have at most ${MAX_EXTRA_SHOTS} extra shots`);
+    }
+  }
+  if (new Set(extraShots.map((e) => e.id)).size !== extraShots.length) fail('extra shot ids must be unique');
+
   return {
-    formatVersion: 1,
+    formatVersion: 2,
     app: 'StageSight 3D',
     savedAt: typeof doc.savedAt === 'string' ? doc.savedAt : '',
     name: doc.name === undefined ? '' : str(doc.name, 'name'),
@@ -263,6 +341,7 @@ function validateRoom(doc: Record<string, unknown>): RoomDocument {
       demoSideScreens: bool(screensBlock.demoSideScreens, 'demoSideScreens'),
     },
     views: { customSeatViews },
+    storyboard: { extraShots },
     dressing: {
       lightingPreset: oneOf(dressing.lightingPreset, LIGHTING_PRESETS, 'dressing.lightingPreset'),
       houseLightsIntensity: num(dressing.houseLightsIntensity, 'dressing.houseLightsIntensity'),
@@ -323,8 +402,9 @@ export function roomToState(room: RoomDocument): Partial<StageState> {
     splitOrder: room.screens.splitOrder ? [...room.screens.splitOrder] : null,
     demoSideScreens: room.screens.demoSideScreens,
     customSeatViews: room.views.customSeatViews.map((v) =>
-      v ? { position: [...v.position] as Vec3, yaw: v.yaw } : null
+      v ? { position: [...v.position] as Vec3, yaw: v.yaw, pitch: v.pitch, fov: v.fov, name: v.name } : null
     ),
+    storyboardExtraShots: room.storyboard.extraShots.map((e) => ({ ...e, eye: [...e.eye] as Vec3 })),
     lightingPreset: room.dressing.lightingPreset,
     houseLightsIntensity: room.dressing.houseLightsIntensity,
     stageLightsIntensity: room.dressing.stageLightsIntensity,
@@ -342,6 +422,7 @@ export function roomToState(room: RoomDocument): Partial<StageState> {
     floorPlanSlot: 0,
     floorPlanCutHeight: null,
     seatYaw: null,
+    seatPitch: null,
   };
 }
 

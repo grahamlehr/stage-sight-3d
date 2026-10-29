@@ -140,7 +140,7 @@ describe('custom camera views', () => {
 
   it('start unplaced and reset when a different model is loaded', () => {
     useCustomVenue();
-    useStageStore.getState().setCustomSeatView(1, { position: [1, 0.3, 4], yaw: 0.5 });
+    useStageStore.getState().setCustomSeatView(1, { position: [1, 0.3, 4], yaw: 0.5, pitch: 0, fov: 50, name: '' });
     useStageStore.setState({ seatYaw: 1, isFloorPlanOpen: true });
     useStageStore.getState().setCustomGlbUrl('/b.glb');
     const state = useStageStore.getState();
@@ -151,14 +151,14 @@ describe('custom camera views', () => {
 
   it('survive reloading the same URL', () => {
     useCustomVenue();
-    useStageStore.getState().setCustomSeatView(0, { position: [1, 0, 4], yaw: 0.5 });
+    useStageStore.getState().setCustomSeatView(0, { position: [1, 0, 4], yaw: 0.5, pitch: 0, fov: 50, name: '' });
     useStageStore.getState().setCustomGlbUrl('/a.glb');
     expect(useStageStore.getState().customSeatViews[0]).not.toBeNull();
   });
 
   it('turn with the venue, along with their headings and the seat heading', () => {
     useCustomVenue();
-    useStageStore.getState().setCustomSeatView(0, { position: [-3, 0.4, -14.3], yaw: 0 });
+    useStageStore.getState().setCustomSeatView(0, { position: [-3, 0.4, -14.3], yaw: 0, pitch: 0, fov: 50, name: '' });
     useStageStore.setState({ seatYaw: Math.PI });
     useStageStore.getState().setVenueYaw(Q);
     const state = useStageStore.getState();
@@ -173,14 +173,14 @@ describe('custom camera views', () => {
 
   it('wraps a turned yaw into [0, 2π)', () => {
     useCustomVenue();
-    useStageStore.getState().setCustomSeatView(0, { position: [0, 0, 0], yaw: 1.5 * Math.PI });
+    useStageStore.getState().setCustomSeatView(0, { position: [0, 0, 0], yaw: 1.5 * Math.PI, pitch: 0, fov: 50, name: '' });
     useStageStore.getState().setVenueYaw(Math.PI);
     expect(useStageStore.getState().customSeatViews[0]!.yaw).toBeCloseTo(0.5 * Math.PI);
   });
 
   it('are applied by the custom venue presets, position, heading and all', () => {
     useCustomVenue();
-    useStageStore.getState().setCustomSeatView(2, { position: [5, 1.2, -2], yaw: 2 });
+    useStageStore.getState().setCustomSeatView(2, { position: [5, 1.2, -2], yaw: 2, pitch: 0, fov: 50, name: '' });
     useStageStore.getState().applySeatPreset('custom-view-3');
     const state = useStageStore.getState();
     expect(state.seatPosition).toEqual([5, 1.2, -2]);
@@ -203,8 +203,8 @@ describe('custom camera views', () => {
     useStageStore.getState().cycleSeatPreset(1);
     expect(useStageStore.getState().navigationMode).toBe('orbit');
 
-    useStageStore.getState().setCustomSeatView(1, { position: [1, 0, 1], yaw: 0 });
-    useStageStore.getState().setCustomSeatView(3, { position: [9, 0, 9], yaw: 1 });
+    useStageStore.getState().setCustomSeatView(1, { position: [1, 0, 1], yaw: 0, pitch: 0, fov: 50, name: '' });
+    useStageStore.getState().setCustomSeatView(3, { position: [9, 0, 9], yaw: 1, pitch: 0, fov: 50, name: '' });
     useStageStore.getState().cycleSeatPreset(1);
     expect(useStageStore.getState().seatPosition).toEqual([1, 0, 1]);
     useStageStore.getState().cycleSeatPreset(1);
@@ -222,7 +222,7 @@ describe('custom camera views', () => {
 
   it('are listed as unplaced presets, while the ballroom keeps its own', () => {
     useCustomVenue();
-    useStageStore.getState().setCustomSeatView(0, { position: [1, 0, 1], yaw: 0 });
+    useStageStore.getState().setCustomSeatView(0, { position: [1, 0, 1], yaw: 0, pitch: 0, fov: 50, name: '' });
     const custom = getActiveSeatPresets(useStageStore.getState());
     expect(custom.map((p) => p.placed)).toEqual([true, false, false, false]);
     expect(custom[1].description).toBe('Not placed yet');
@@ -241,7 +241,7 @@ describe('custom camera views', () => {
       activeSidebarTab: 'source',
       floorPlanSlot: 3,
     });
-    useStageStore.getState().setCustomSeatView(0, { position: [1, 0, 4], yaw: 0 });
+    useStageStore.getState().setCustomSeatView(0, { position: [1, 0, 4], yaw: 0, pitch: 0, fov: 50, name: '' });
     useStageStore.getState().openFloorPlanToPlaceViews();
     const state = useStageStore.getState();
     expect(state.isSidebarOpen).toBe(true);
@@ -476,7 +476,7 @@ describe('room file load and save', () => {
       ],
       primaryScreenId: 'a',
       splitOrder: ['b', 'a'],
-      customSeatViews: [{ position: [1, 0, 5] as [number, number, number], yaw: 1.5 }, null, null, { position: [-2, 0, 9] as [number, number, number], yaw: 0 }],
+      customSeatViews: [{ position: [1, 0, 5] as [number, number, number], yaw: 1.5, pitch: 0, fov: 50, name: '' }, null, null, { position: [-2, 0, 9] as [number, number, number], yaw: 0, pitch: 0, fov: 50, name: '' }],
       roomName: 'Hilton',
       roomNotes: 'Level 2',
     };
@@ -520,7 +520,7 @@ describe('room file load and save', () => {
     const garbage = await useStageStore.getState().loadRoom(asFile(new Uint8Array([9, 9, 9, 9, 9, 9])));
     expect(garbage.ok).toBe(false);
 
-    const newerRoom = { ...roomFromState(useStageStore.getState(), { savedAt: 'x' }), formatVersion: 2 };
+    const newerRoom = { ...roomFromState(useStageStore.getState(), { savedAt: 'x' }), formatVersion: 3 };
     const newer = await useStageStore.getState().loadRoom(asFile(zipSync({ 'room.json': strToU8(JSON.stringify(newerRoom)) })));
     expect(newer).toMatchObject({ ok: false, message: expect.stringContaining('newer version') });
 
@@ -559,8 +559,8 @@ describe('room file load and save', () => {
     expect(s.venueYaw).toBe(Q);
     expect(s.screens.find((x) => x.id === 'a')?.position).toEqual([1.25, 3, -9]);
     expect(s.screens.find((x) => x.id === 'a')?.rotation).toEqual([0, Q, 0]);
-    expect(s.customSeatViews[0]).toEqual({ position: [1, 0, 5], yaw: 1.5 });
-    expect(s.customSeatViews[3]).toEqual({ position: [-2, 0, 9], yaw: 0 });
+    expect(s.customSeatViews[0]).toEqual({ position: [1, 0, 5], yaw: 1.5, pitch: 0, fov: 50, name: '' });
+    expect(s.customSeatViews[3]).toEqual({ position: [-2, 0, 9], yaw: 0, pitch: 0, fov: 50, name: '' });
     expect(s.splitOrder).toEqual(['b', 'a']);
     expect(s.primaryScreenId).toBe('a');
     expect(s.selectedScreenId).toBe('a');
@@ -614,5 +614,209 @@ describe('room file load and save', () => {
     const entries = unzipSync(new Uint8Array(await blob.arrayBuffer()));
     expect(Object.keys(entries).sort()).toEqual(['room.json', 'venue.glb']);
     expect(Array.from(entries['venue.glb'])).toEqual(Array.from(GLB));
+  });
+});
+
+describe('camera views', () => {
+  beforeEach(() => {
+    useStageStore.setState(initial, true);
+  });
+
+  it('applying a custom view sets the pitch and the field of view mode', () => {
+    useStageStore.setState({ venueSource: 'custom-glb' });
+    useStageStore.getState().setCustomSeatView(0, { position: [1, 0, 4], yaw: 0.5, pitch: -0.2, fov: 25, name: 'Back' });
+    useStageStore.getState().applySeatPreset('custom-view-1');
+    const s = useStageStore.getState();
+    expect([s.seatYaw, s.seatPitch, s.fovMode]).toEqual([0.5, -0.2, 'eye-focus']);
+    s.setSeatPosition([0, 0, 0]);
+    expect(useStageStore.getState().seatPitch).toBeNull();
+  });
+
+  it('names a view and falls back to View N', () => {
+    useStageStore.setState({ venueSource: 'custom-glb' });
+    useStageStore.getState().setCustomSeatView(1, { position: [1, 0, 4], yaw: 0, pitch: 0, fov: 50, name: '' });
+    expect(getActiveSeatPresets(useStageStore.getState())[1].name).toBe('View 2');
+    useStageStore.getState().renameCustomSeatView(1, 'Balcony');
+    expect(getActiveSeatPresets(useStageStore.getState())[1].name).toBe('Balcony');
+  });
+
+  it('updates a view from the live camera, keeping its name', () => {
+    useStageStore.getState().setCustomSeatView(0, { position: [1, 0, 4], yaw: 0, pitch: 0, fov: 50, name: 'Keep' });
+    useStageStore.getState().updateCustomSeatViewFromCamera(0);
+    expect(useStageStore.getState().customSeatViews[0]!.yaw).toBe(0);
+    useStageStore.setState({ getLiveCameraPose: () => ({ eye: [2, 1.7, 3], yaw: 1, pitch: 0.1, fov: 25 }) });
+    useStageStore.getState().updateCustomSeatViewFromCamera(0);
+    const view = useStageStore.getState().customSeatViews[0]!;
+    expect(view.position[0]).toBe(2);
+    expect(view.position[1]).toBeCloseTo(0.5);
+    expect(view).toMatchObject({ position: [2, expect.any(Number), 3], yaw: 1, pitch: 0.1, fov: 25, name: 'Keep' });
+  });
+
+  it('turning the venue carries a view with its pitch, fov and name', () => {
+    useStageStore.getState().setCustomSeatView(0, { position: [1, 0, 4], yaw: 0, pitch: -0.3, fov: 25, name: 'N' });
+    useStageStore.getState().setVenueYaw(Math.PI / 2);
+    expect(useStageStore.getState().customSeatViews[0]).toMatchObject({ pitch: -0.3, fov: 25, name: 'N' });
+  });
+});
+
+describe('extra shots', () => {
+  const pose = { eye: [1, 1.7, 2] as [number, number, number], yaw: 0.5, pitch: 0, fov: 50 };
+  beforeEach(() => {
+    useStageStore.setState({ ...initial, getLiveCameraPose: () => pose }, true);
+  });
+
+  it('adds from the camera, at most four per venue', () => {
+    const { addExtraShotFromCamera } = useStageStore.getState();
+    for (let i = 0; i < 4; i++) expect(addExtraShotFromCamera(`Shot ${i}`)).toBeTruthy();
+    expect(addExtraShotFromCamera('Fifth')).toBeNull();
+    expect(useStageStore.getState().storyboardExtraShots).toHaveLength(4);
+    // The other venue has its own allowance
+    useStageStore.setState({ venueSource: 'custom-glb' });
+    expect(useStageStore.getState().addExtraShotFromCamera('Custom')).toBeTruthy();
+  });
+
+  it('returns null without a live camera, and renames and removes', () => {
+    useStageStore.setState({ getLiveCameraPose: null });
+    expect(useStageStore.getState().addExtraShotFromCamera('x')).toBeNull();
+    useStageStore.setState({ getLiveCameraPose: () => pose });
+    const id = useStageStore.getState().addExtraShotFromCamera('x')!;
+    useStageStore.getState().renameExtraShot(id, 'Doors');
+    expect(useStageStore.getState().storyboardExtraShots[0].name).toBe('Doors');
+    useStageStore.getState().removeExtraShot(id);
+    expect(useStageStore.getState().storyboardExtraShots).toEqual([]);
+  });
+
+  it('a new custom model drops the custom-venue shots; turning the venue rotates them', () => {
+    useStageStore.setState({ venueSource: 'custom-glb' });
+    useStageStore.getState().addExtraShotFromCamera('Custom');
+    useStageStore.setState({ venueSource: 'default-ballroom' });
+    useStageStore.getState().addExtraShotFromCamera('Ballroom');
+    useStageStore.getState().setVenueYaw(Math.PI / 2);
+    const [custom, ballroom] = useStageStore.getState().storyboardExtraShots;
+    expect(custom.yaw).toBeCloseTo(0.5 + Math.PI / 2);
+    expect(ballroom.yaw).toBe(0.5);
+    useStageStore.getState().setCustomGlbUrl('blob:new-model');
+    expect(useStageStore.getState().storyboardExtraShots.map((e) => e.name)).toEqual(['Ballroom']);
+  });
+});
+
+describe('storyboard frames', () => {
+  const makeBlob = (n: number) => new Blob([String(n)], { type: 'image/jpeg' });
+  let counter = 0;
+  let created: string[];
+  let revoke: ReturnType<typeof vi.spyOn>;
+
+  beforeEach(() => {
+    counter = 0;
+    created = [];
+    vi.spyOn(URL, 'createObjectURL').mockImplementation(() => {
+      const url = `blob:frame-${++counter}`;
+      created.push(url);
+      return url;
+    });
+    revoke = vi.spyOn(URL, 'revokeObjectURL').mockImplementation(() => {});
+    useStageStore.setState(
+      {
+        ...initial,
+        renderStoryboardShots: vi.fn(async (shots: unknown[]) => shots.map((_, i) => makeBlob(i))),
+        getLiveCameraPose: () => ({ eye: [0, 1.5, 0], yaw: 0, pitch: 0, fov: 50 }),
+      },
+      true,
+    );
+  });
+  afterEach(() => vi.restoreAllMocks());
+
+  it('captures one frame per shot in order and clears overlays', async () => {
+    useStageStore.setState({ showTransformGizmo: true, isPickingMesh: true });
+    const result = await useStageStore.getState().captureStoryboardSet('Your draft');
+    expect(result.ok).toBe(true);
+    const s = useStageStore.getState();
+    expect(s.isCapturing).toBe(false);
+    expect(s.showTransformGizmo).toBe(false);
+    expect(s.isPickingMesh).toBe(false);
+    expect(s.storyboardSets).toHaveLength(1);
+    expect(s.storyboardSets[0].label).toBe('Your draft');
+    expect(s.storyboardSets[0].frames.map((f) => f.shot.id)).toEqual(SEAT_PRESETS.map((p) => `seat-${p.id}`));
+    expect(s.storyboardSets[0].frames.map((f) => f.url)).toEqual(created);
+  });
+
+  it('fails cleanly with no shots or no renderer', async () => {
+    useStageStore.setState({ venueSource: 'custom-glb' });
+    expect(await useStageStore.getState().captureStoryboardSet('x')).toEqual({
+      ok: false,
+      message: 'Place at least one camera view first.',
+    });
+    useStageStore.setState({ venueSource: 'default-ballroom', renderStoryboardShots: null });
+    expect((await useStageStore.getState().captureStoryboardSet('x')).ok).toBe(false);
+    expect(useStageStore.getState().storyboardSets).toEqual([]);
+    expect(useStageStore.getState().isCapturing).toBe(false);
+  });
+
+  it('reports a render failure and still clears isCapturing', async () => {
+    useStageStore.setState({ renderStoryboardShots: async () => { throw new Error('Leave VR before capturing a storyboard.'); } });
+    expect(await useStageStore.getState().captureStoryboardSet('x')).toEqual({
+      ok: false,
+      message: 'Leave VR before capturing a storyboard.',
+    });
+    expect(useStageStore.getState().isCapturing).toBe(false);
+  });
+
+  it('retake replaces the blob and URL and revokes the old URL', async () => {
+    await useStageStore.getState().captureStoryboardSet('A');
+    const set = useStageStore.getState().storyboardSets[0];
+    const old = set.frames[1];
+    await useStageStore.getState().retakeStoryboardFrame(set.id, old.id);
+    const frame = useStageStore.getState().storyboardSets[0].frames[1];
+    expect(frame.id).toBe(old.id);
+    expect(frame.url).not.toBe(old.url);
+    expect(revoke).toHaveBeenCalledWith(old.url);
+    expect(useStageStore.getState().storyboardSets[0].frames).toHaveLength(4);
+  });
+
+  it('deleting a frame revokes it and drops a set left empty', async () => {
+    await useStageStore.getState().captureStoryboardSet('A');
+    const set = useStageStore.getState().storyboardSets[0];
+    useStageStore.getState().deleteStoryboardFrame(set.id, set.frames[0].id);
+    expect(revoke).toHaveBeenCalledWith(set.frames[0].url);
+    expect(useStageStore.getState().storyboardSets[0].frames).toHaveLength(3);
+    for (const f of useStageStore.getState().storyboardSets[0].frames) {
+      useStageStore.getState().deleteStoryboardFrame(set.id, f.id);
+    }
+    expect(useStageStore.getState().storyboardSets).toEqual([]);
+  });
+
+  it('deleting a set revokes all its URLs, and renaming works', async () => {
+    await useStageStore.getState().captureStoryboardSet('A');
+    await useStageStore.getState().captureStoryboardSet('B');
+    const [a, b] = useStageStore.getState().storyboardSets;
+    useStageStore.getState().renameStoryboardSet(b.id, 'Our concept');
+    expect(useStageStore.getState().storyboardSets[1].label).toBe('Our concept');
+    useStageStore.getState().deleteStoryboardSet(a.id);
+    for (const f of a.frames) expect(revoke).toHaveBeenCalledWith(f.url);
+    expect(useStageStore.getState().storyboardSets.map((x) => x.id)).toEqual([b.id]);
+  });
+
+  it('closing the tray clears and revokes everything', async () => {
+    useStageStore.getState().setIsStoryboardOpen(true);
+    await useStageStore.getState().captureStoryboardSet('A');
+    await useStageStore.getState().captureStoryboardSet('B');
+    useStageStore.getState().setIsStoryboardOpen(false);
+    expect(useStageStore.getState().storyboardSets).toEqual([]);
+    expect(useStageStore.getState().isStoryboardOpen).toBe(false);
+    expect(revoke).toHaveBeenCalledTimes(8);
+    for (const url of created) expect(revoke).toHaveBeenCalledWith(url);
+  });
+
+  it('captures the current view into the last set, or a new one', async () => {
+    const first = await useStageStore.getState().captureCurrentViewFrame(null);
+    expect(first.ok).toBe(true);
+    expect(useStageStore.getState().storyboardSets[0].label).toBe('Set 1');
+    expect(useStageStore.getState().storyboardSets[0].frames[0].shot.name).toBe('Custom view 1');
+    await useStageStore.getState().captureStoryboardSet('Draft');
+    const [one, draft] = useStageStore.getState().storyboardSets;
+    await useStageStore.getState().captureCurrentViewFrame(one.id);
+    expect(useStageStore.getState().storyboardSets[0].frames.map((f) => f.shot.name)).toEqual(['Custom view 1', 'Custom view 2']);
+    await useStageStore.getState().captureCurrentViewFrame(null);
+    expect(useStageStore.getState().storyboardSets[1].frames).toHaveLength(draft.frames.length + 1);
   });
 });

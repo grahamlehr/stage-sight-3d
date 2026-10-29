@@ -8,6 +8,7 @@ Start with the [project README](../README.md) for features, controls and setup. 
 | --- | --- |
 | [Content sources and cropping](content-sources.md) | Get decks, capture cards and screen shares onto the screen, and choose an ultra-wide crop mode |
 | [Custom venues](custom-venues.md) | Prepare and load your own `.glb`, and pick screens from meshes in it |
+| [Storyboard capture and PDF](storyboard.md) | Capture your content from the room's camera views and export a client PDF |
 | [VR preview](vr-preview.md) | Set up a Quest, get calibrated and fix common VR problems |
 
 ## Reference and background
@@ -21,7 +22,7 @@ Start with the [project README](../README.md) for features, controls and setup. 
 
 | Doc | Read it to |
 | --- | --- |
-| [Room file and storyboard PDF](specs/room-file-and-storyboard.md) | See the planned `.stagesight` room file, storyboard capture and PDF export (draft) |
+| [Room file and storyboard PDF](specs/room-file-and-storyboard.md) | See the `.stagesight` room file, storyboard capture and PDF export spec (phases 1 and 2 built; phase 3, flythrough video, not started) |
 
 ## Project
 

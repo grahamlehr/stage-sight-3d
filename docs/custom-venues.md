@@ -79,7 +79,8 @@ In a custom venue, keys <kbd>1</kbd>–<kbd>4</kbd>, the **Seat Presets** menu a
 Things to know:
 
 - **Placed views keep the clicked floor height,** so raked tiers and balconies work. The click lands on the first surface at or below the cut height, so cut below a balcony's ceiling to place a view on the floor underneath, or above it to place one on top.
-- **A placed view's heading is kept.** The seated camera faces the way you pointed it, and the eye is 1.2m above the clicked floor.
+- **A view is a full camera:** position, heading, pitch and field of view. Placing a view on the plan aims its pitch at the screen centre's height and uses the current field of view (50° room or 25° eye focus). The seated camera faces the way you pointed it, and the eye is 1.2m above the clicked floor.
+- **Name a view, or set it from the camera.** In the Camera Views list, type a name (for example "Back of room"); storyboard captions use it. **Update from camera** (the camera icon) sets a placed view to wherever the 3D camera is now, including where you have looked and the field of view. Applying a view also switches the field-of-view mode to match.
 - **Views reset when you upload a different model,** and the plan closes. Reloading the same file keeps them. Turning the venue with the **Rotation** buttons carries the views round with the room.
 - The floor plan isn't available in VR; entering a headset closes it. Views still work as VR seats, but the headset keeps its own heading (the first calibration faces the screen).
 - While the plan is open, picking and click-to-sit are paused, and telemetry isn't graded.
@@ -88,14 +89,14 @@ Things to know:
 
 Once a venue is set up, save it so you, or a colleague, can open exactly the same room later. The **Room file** section at the top of the **Venue** tab has a name, a notes field, **Save room** and **Open room**.
 
-- **Save room** downloads one `.stagesight` file, named after the room (for example `Hilton Park Lane Ballroom A.stagesight`). It holds the venue, every screen (with its size, position, role, split order and picked mesh), the four camera views, the venue rotation and deck height, the stage size, lighting, and the presenter, lectern and panel settings. For an uploaded venue the `.glb` itself goes inside the file, so opening it is one step, and the file is about as big as the model.
+- **Save room** downloads one `.stagesight` file, named after the room (for example `Hilton Park Lane Ballroom A.stagesight`). It holds the venue, every screen (with its size, position, role, split order and picked mesh), the four camera views (full cameras, with names), the storyboard's extra shots, the venue rotation and deck height, the stage size, lighting, and the presenter, lectern and panel settings. For an uploaded venue the `.glb` itself goes inside the file, so opening it is one step, and the file is about as big as the model.
 - **It never holds content.** No slides, images, streams, capture devices or crop settings are saved. Load or share your content again after opening a room.
 - **Open room**, or drag a `.stagesight` file onto the 3D view, replaces the current room. The sidebar opens on the Venue tab so you can see the room's name and notes.
 - **If anything is wrong with the file**, an alert says so and your current room stays exactly as it was. That covers a damaged file, a venue model that won't load, and a file saved by a newer version of StageSight.
 - **Unsaved changes.** Opening another room, or closing or reloading the tab, asks first if you've changed the room since you last saved or opened it.
 - **It stays on your device.** Saving is a browser download and opening reads the file locally. Nothing is uploaded anywhere.
 
-A `.stagesight` file is a zip holding `room.json` (readable, with a `formatVersion`) and, for an uploaded venue, `venue.glb`. Files from older versions of the app are upgraded when they're opened.
+A `.stagesight` file is a zip holding `room.json` (readable, with a `formatVersion`) and, for an uploaded venue, `venue.glb`. Files from older versions of the app are upgraded when they're opened. Views saved before views stored a full camera keep the pitch they were shown with (aimed at the screen centre's height) and get the 50° field of view.
 
 ## Moving around
 
