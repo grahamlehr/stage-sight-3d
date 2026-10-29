@@ -226,6 +226,15 @@ function posNum(v: unknown, path: string): number {
   const n = num(v, path);
   return n > 0 ? n : fail(`${path} must be greater than zero`);
 }
+function nonNegNum(v: unknown, path: string): number {
+  const n = num(v, path);
+  return n >= 0 ? n : fail(`${path} must not be negative`);
+}
+/** A camera field of view in degrees: wider than nothing, narrower than a half-turn. */
+function fovNum(v: unknown, path: string): number {
+  const n = num(v, path);
+  return n > 0 && n < 180 ? n : fail(`${path} must be between 0 and 180 degrees`);
+}
 function bool(v: unknown, path: string): boolean {
   return typeof v === 'boolean' ? v : fail(`${path} must be true or false`);
 }
@@ -293,7 +302,7 @@ function validateRoom(doc: Record<string, unknown>): RoomDocument {
       position: vec3(v.position, `${path}.position`),
       yaw: num(v.yaw, `${path}.yaw`),
       pitch: num(v.pitch, `${path}.pitch`),
-      fov: posNum(v.fov, `${path}.fov`),
+      fov: fovNum(v.fov, `${path}.fov`),
       name: str(v.name, `${path}.name`),
     };
   });
@@ -309,7 +318,7 @@ function validateRoom(doc: Record<string, unknown>): RoomDocument {
       eye: vec3(e.eye, `extraShots[${i}].eye`),
       yaw: num(e.yaw, `extraShots[${i}].yaw`),
       pitch: num(e.pitch, `extraShots[${i}].pitch`),
-      fov: posNum(e.fov, `extraShots[${i}].fov`),
+      fov: fovNum(e.fov, `extraShots[${i}].fov`),
     };
   });
   for (const venue of VENUE_SOURCES) {
@@ -328,11 +337,11 @@ function validateRoom(doc: Record<string, unknown>): RoomDocument {
     venue: {
       source: oneOf(venue.source, VENUE_SOURCES, 'venue.source'),
       venueYaw: num(venue.venueYaw, 'venue.venueYaw'),
-      customDeckHeight: num(venue.customDeckHeight, 'venue.customDeckHeight'),
+      customDeckHeight: nonNegNum(venue.customDeckHeight, 'venue.customDeckHeight'),
       hasGlb: bool(venue.hasGlb, 'venue.hasGlb'),
-      stageHeight: num(venue.stageHeight, 'venue.stageHeight'),
-      venueLength: num(venue.venueLength, 'venue.venueLength'),
-      venueWidth: num(venue.venueWidth, 'venue.venueWidth'),
+      stageHeight: nonNegNum(venue.stageHeight, 'venue.stageHeight'),
+      venueLength: posNum(venue.venueLength, 'venue.venueLength'),
+      venueWidth: posNum(venue.venueWidth, 'venue.venueWidth'),
     },
     screens: {
       screens,

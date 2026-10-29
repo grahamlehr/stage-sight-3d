@@ -126,3 +126,20 @@ export function appendixRows(
   }
   return rows;
 }
+
+/** Appendix rows are this far apart, in points, so the 13pt text never overlaps. */
+export const APPENDIX_ROW_HEIGHT = 26;
+/** Rows that fit under the appendix heading on one 960 x 540 page. */
+export const APPENDIX_ROWS_PER_PAGE = 14;
+
+/**
+ * Splits the appendix rows into pages rather than squeezing them onto one, where
+ * a long storyboard would print the rows on top of each other. Always at least
+ * one page, so the appendix still appears when there are no rows.
+ */
+export function paginateAppendix<T>(rows: readonly T[], perPage = APPENDIX_ROWS_PER_PAGE): T[][] {
+  if (rows.length === 0) return [[]];
+  const pages: T[][] = [];
+  for (let i = 0; i < rows.length; i += perPage) pages.push(rows.slice(i, i + perPage));
+  return pages;
+}

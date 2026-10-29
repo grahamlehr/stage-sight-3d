@@ -116,6 +116,13 @@ export const ScreenArray: React.FC = () => {
   const manualUvRepeatY = useStageStore((s) => s.manualUvRepeatY);
   const manualUvOffsetY = useStageStore((s) => s.manualUvOffsetY);
 
+  const isLive = (sourceType === 'hdmi-capture' || sourceType === 'screen-share') && activeVideoStream !== null;
+  // Only the test pattern is drawn at the screens' size. A live feed or slide keeps
+  // zero here, so resizing a screen doesn't tear down and rebuild its video or texture.
+  const showsPattern = !isLive && !(sourceType === 'pdf' && slides[currentSlideIndex]);
+  const patternCanvasWidth = showsPattern ? patternWidth : 0;
+  const patternCanvasHeight = showsPattern ? patternHeight : 0;
+
   // Texture state
   const [activeTexture, setActiveTexture] = useState<THREE.Texture | null>(null);
   // Real size of the live video frame; null for stills, which are shown whole
@@ -171,7 +178,7 @@ export const ScreenArray: React.FC = () => {
       newTexture = canvasTex;
     } else {
       // Default / fallback: built-in ultra-wide test pattern
-      const patternCanvas = generateTestPatternCanvas(patternWidth, patternHeight);
+      const patternCanvas = generateTestPatternCanvas(patternCanvasWidth, patternCanvasHeight);
       const canvasTex = new THREE.CanvasTexture(patternCanvas);
       canvasTex.colorSpace = THREE.SRGBColorSpace;
       canvasTex.minFilter = THREE.LinearFilter;
@@ -208,14 +215,13 @@ export const ScreenArray: React.FC = () => {
     slides,
     currentSlideIndex,
     activeVideoStream,
-    patternWidth,
-    patternHeight,
+    patternCanvasWidth,
+    patternCanvasHeight,
     gl,
   ]);
 
   // 2. Which part of the source each screen shows. Plain numbers, so derived
   // during render; the panels write them into their plane geometries.
-  const isLive = (sourceType === 'hdmi-capture' || sourceType === 'screen-share') && activeVideoStream !== null;
   // Pixel size of a still (slide or test pattern canvas), so repeat screens can crop it to their shape
   const stillCanvas = !isLive && activeTexture instanceof THREE.CanvasTexture
     ? (activeTexture.image as HTMLCanvasElement)

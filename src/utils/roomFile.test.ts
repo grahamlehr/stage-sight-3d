@@ -321,6 +321,27 @@ describe('validation', () => {
     expect(reason(null)).toBe('invalid');
   });
 
+  it('rejects impossible room sizes and fields of view', () => {
+    const cases: Array<(d: any) => void> = [ // eslint-disable-line @typescript-eslint/no-explicit-any
+      (d) => { d.venue.venueWidth = -20; },
+      (d) => { d.venue.venueLength = 0; },
+      (d) => { d.venue.stageHeight = -1; },
+      (d) => { d.venue.customDeckHeight = -3; },
+      (d) => { d.views.customSeatViews[0].fov = 400; },
+      (d) => { d.storyboard.extraShots[0].fov = 180; },
+    ];
+    for (const mutate of cases) {
+      const doc = good();
+      mutate(doc);
+      expect(reason(doc)).toBe('invalid');
+    }
+    // Flat stages and decks are real
+    const flat = good();
+    flat.venue.stageHeight = 0;
+    flat.venue.customDeckHeight = 0;
+    expect(reason(flat)).toBe('ok');
+  });
+
   it('defaults a missing name and notes to empty text', () => {
     const doc = good();
     delete doc.name;

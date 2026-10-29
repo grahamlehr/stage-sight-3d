@@ -1,5 +1,15 @@
 import type { StageScreen, StoryboardSet } from '../store/useStageStore';
-import { SLOT_HEIGHT, SLOT_WIDTH, appendixRows, formatCoverDate, pageSize, storyboardPages, toWinAnsi } from './storyboardPdf';
+import {
+  APPENDIX_ROW_HEIGHT,
+  SLOT_HEIGHT,
+  SLOT_WIDTH,
+  appendixRows,
+  formatCoverDate,
+  pageSize,
+  paginateAppendix,
+  storyboardPages,
+  toWinAnsi,
+} from './storyboardPdf';
 
 export interface StoryboardCover {
   eventName: string;
@@ -121,24 +131,25 @@ export async function exportStoryboardPdf(options: ExportStoryboardOptions): Pro
 
   // — Technical appendix —
   if (includeAppendix) {
-    const rows = appendixRows(sets.flatMap((s) => s.frames), primaryScreen);
-    const page = pdf.addPage([SLOT_WIDTH, SLOT_HEIGHT]);
-    page.drawRectangle({ x: 0, y: 0, width: SLOT_WIDTH, height: SLOT_HEIGHT, color: ground });
-    page.drawText('Technical appendix', { x: 64, y: SLOT_HEIGHT - 80, size: 28, font: bold, color: ink });
-    const cols = [64, 480, 620, 760];
-    const headY = SLOT_HEIGHT - 128;
-    ['Shot', 'Distance (m)', 'D/H', 'Off-axis (°)'].forEach((h, i) =>
-      page.drawText(toWinAnsi(h), { x: cols[i], y: headY, size: 11, font: bold, color: muted }),
-    );
-    page.drawLine({ start: { x: 64, y: headY - 8 }, end: { x: SLOT_WIDTH - 64, y: headY - 8 }, thickness: 0.75, color: muted });
-    const rowHeight = Math.min(26, (headY - 40 - 40) / Math.max(rows.length, 1));
-    rows.forEach((row, r) => {
-      const y = headY - 30 - r * rowHeight;
-      if (y < 36) return;
-      const cells = [row.shot, row.distance.toFixed(1), row.dhRatio.toFixed(2), row.offAxis.toFixed(1)].map(toWinAnsi);
-      cells.forEach((c, i) =>
-        page.drawText(c, { x: cols[i], y, size: i === 0 ? fit(c, regular, 13, 390, 8) : 13, font: regular, color: ink }),
+    const pages = paginateAppendix(appendixRows(sets.flatMap((s) => s.frames), primaryScreen));
+    pages.forEach((rows, p) => {
+      const page = pdf.addPage([SLOT_WIDTH, SLOT_HEIGHT]);
+      page.drawRectangle({ x: 0, y: 0, width: SLOT_WIDTH, height: SLOT_HEIGHT, color: ground });
+      const heading = p === 0 ? 'Technical appendix' : 'Technical appendix (continued)';
+      page.drawText(heading, { x: 64, y: SLOT_HEIGHT - 80, size: 28, font: bold, color: ink });
+      const cols = [64, 480, 620, 760];
+      const headY = SLOT_HEIGHT - 128;
+      ['Shot', 'Distance (m)', 'D/H', 'Off-axis (°)'].forEach((h, i) =>
+        page.drawText(toWinAnsi(h), { x: cols[i], y: headY, size: 11, font: bold, color: muted }),
       );
+      page.drawLine({ start: { x: 64, y: headY - 8 }, end: { x: SLOT_WIDTH - 64, y: headY - 8 }, thickness: 0.75, color: muted });
+      rows.forEach((row, r) => {
+        const y = headY - 30 - r * APPENDIX_ROW_HEIGHT;
+        const cells = [row.shot, row.distance.toFixed(1), row.dhRatio.toFixed(2), row.offAxis.toFixed(1)].map(toWinAnsi);
+        cells.forEach((c, i) =>
+          page.drawText(c, { x: cols[i], y, size: i === 0 ? fit(c, regular, 13, 390, 8) : 13, font: regular, color: ink }),
+        );
+      });
     });
   }
 

@@ -1,6 +1,14 @@
 import { describe, expect, it } from 'vitest';
 import type { StoryboardFrame, StoryboardSet } from '../store/useStageStore';
-import { appendixRows, formatCoverDate, pageSize, storyboardPages, toWinAnsi } from './storyboardPdf';
+import {
+  APPENDIX_ROWS_PER_PAGE,
+  appendixRows,
+  formatCoverDate,
+  pageSize,
+  paginateAppendix,
+  storyboardPages,
+  toWinAnsi,
+} from './storyboardPdf';
 
 const frame = (shotId: string, name = shotId, eye: [number, number, number] = [0, 1.2, 10]): StoryboardFrame => ({
   id: `f-${shotId}-${Math.random()}`,
@@ -81,5 +89,20 @@ describe('appendixRows', () => {
     expect(rows).toHaveLength(2);
     expect(rows[0]).toMatchObject({ shot: 'Front', distance: 8, dhRatio: 2, offAxis: 0 });
     expect(rows[1].offAxis).toBe(90);
+  });
+});
+
+describe('paginateAppendix', () => {
+  it('splits long appendices across pages instead of overlapping rows', () => {
+    const rows = Array.from({ length: 80 }, (_, i) => i);
+    const pages = paginateAppendix(rows);
+    expect(pages).toHaveLength(Math.ceil(80 / APPENDIX_ROWS_PER_PAGE));
+    expect(pages.every((p) => p.length <= APPENDIX_ROWS_PER_PAGE)).toBe(true);
+    expect(pages.flat()).toEqual(rows);
+  });
+
+  it('keeps one page for a short or empty appendix', () => {
+    expect(paginateAppendix([1, 2, 3])).toEqual([[1, 2, 3]]);
+    expect(paginateAppendix([])).toEqual([[]]);
   });
 });
