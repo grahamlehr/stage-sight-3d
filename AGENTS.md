@@ -42,7 +42,7 @@ CI (`ci.yml`) runs lint, tests and build on every PR and push to `main`; all mus
 - Keep physical units: sizes and positions are metres, Y is up, the audience sits toward +Z.
 - Never disable lint rules to get a change through. Existing exceptions are documented in place (`react-hooks/immutability` off for `src/components/canvas/`; two `set-state-in-effect` sites). A new exception needs the same kind of justifying comment.
 - Global keyboard shortcuts must ignore form fields: return early when focus is on `INPUT`, `TEXTAREA` or `SELECT`.
-- Uploads, capture streams and screen shares stay in the browser tab. The `.stagesight` room file is a local download only, never uploaded, and never holds content (`roomFromState` is a whitelist). Never add a backend or send user content off-device without Graham's OK.
+- Uploads, capture streams and screen shares stay in the browser tab. The `.stagesight` room file and the storyboard PDF are local downloads only, never uploaded; the room file never holds content (`roomFromState` is a whitelist), and storyboard frames live in memory only. Never add a backend or send user content off-device without Graham's OK.
 - Secrets live in `.env` (gitignored). Never commit, print or log them; `.env.example` lists every variable without values. The app currently needs none.
 - Commit messages use Conventional Commits (`feat:`, `fix:`, `chore:`, `docs:`, `test:`, `refactor:`), with the reason in the body; a fix names the bug, not just the code touched.
 - Branch from `main` and open PRs against `main`.
@@ -65,7 +65,7 @@ The 3D scene, media capture and VR have no automated tests. Check them by hand i
 - `docs/HANDOFF.md`: current state and prompt for the next session (`/handoff`)
 - `docs/DECISIONS.md`: decisions already made. Don't relitigate them.
 - `docs/architecture.md`: store, scene, content pipeline, lifecycle rules, known gaps
-- `docs/sightline-telemetry.md`, `docs/content-sources.md`, `docs/custom-venues.md`, `docs/vr-preview.md`: feature references
+- `docs/sightline-telemetry.md`, `docs/content-sources.md`, `docs/custom-venues.md`, `docs/storyboard.md`, `docs/vr-preview.md`: feature references
 - `docs/README.md`: index of all docs; `docs/archive/`: retired docs (follow the steps in its README)
 - `CONTRIBUTING.md`: setup, workflow, conventions; `CHANGELOG.md`: what changed
 - `docs/STATUS.md`, `docs/HISTORY.md`: create when needed

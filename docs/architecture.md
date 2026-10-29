@@ -51,6 +51,7 @@ All app state lives in [`src/store/useStageStore.ts`](../src/store/useStageStore
 | Occlusion | Visibility and stage offsets for the presenter, lectern and panel. Offsets are `[x, z]` from the screen center, z toward the audience. The defaults (presenter `[-4, 1.2]`, lectern `[4, 1.2]`, panel `[0, 1]`) don't overlap with all three shown and stay back from the deck's front edge, which is 2m in front of the default screen. |
 | Telemetry | The latest `DiscasTelemetry` result |
 | Room file | `roomName`, `roomNotes` and `roomBaseline` (the `roomKey` at the last save or open; `hasUnsavedRoomChanges` compares against it). `saveRoom` and `loadRoom` read and write `.stagesight` files through the pure serialiser in [`roomFile`](../src/utils/roomFile.ts). See [Room files](#room-files) |
+| Storyboard | `storyboardSets` (each a label and frames: the `CameraShot`, a JPEG blob and its object URL), `isStoryboardOpen`, `isCapturing`, `storyboardExtraShots`, and the `renderStoryboardShots` and `getLiveCameraPose` functions registered by the canvas. Capture, retake, delete and clear actions own the frames' object URLs. See [Storyboard capture](#storyboard-capture) |
 | UI | Active sidebar tab and whether the sidebar is open |
 
 Three conventions apply:
@@ -134,12 +135,24 @@ A `.stagesight` file is a zip (fflate) of `room.json` and, for an uploaded venue
 
 `loadRoom` reads, unpacks, parses and (for a custom venue) fully parses the GLB with [`validateGlb`](../src/utils/glbValidate.ts) before it touches the store, so a bad file changes nothing. The model then goes in through `setCustomGlbUrl`, which revokes the previous blob URL. `validateGlb` disposes everything its trial parse built. `saveRoom` reads the model back from its local `blob:` URL and downloads the file with [`downloadBlob`](../src/utils/download.ts), which revokes its URL. A 220 MB venue zips in about 0.6 s (stored, not compressed), but the browser briefly holds two or three copies of it.
 
+## Storyboard capture
+
+[`storyboard.ts`](../src/utils/storyboard.ts) is pure: the shot list (`storyboardShots`: ballroom presets aimed at the primary screen, or a custom venue's placed views, then extra shots), camera maths (`aimAt`, `directionFromYawPitch`) and the pre-capture checks (`captureWarnings`). [`StoryboardRenderer`](../src/components/canvas/StoryboardRenderer.tsx) lives in the canvas and registers `renderStoryboardShots` in the store:
+
+- Each shot gets its own `PerspectiveCamera`, so the live camera never moves.
+- It renders into a `WebGLRenderTarget` at twice the 2400 × 1350 frame size, reads the pixels back and scales them down on a scratch canvas to JPEG 0.85. It never reads the visible canvas.
+- The target is flagged `isXRRenderTarget`, the only way three.js applies the renderer's tone mapping and output colour space (and each material's `toneMapped`) off-screen, and its texture is forced to `RGBA8` storage. Without the second step three.js gives it sRGB storage and the GPU encodes twice, washing frames out. With both, frames match the live canvas to within 0.5/255. The flag rules out MSAA (three.js doesn't resolve a multisampled XR target, so it reads back black), hence the supersampling. **Re-check this on every three.js upgrade.**
+- Video textures are marked `needsUpdate` before each shot, the floor plan's clipping plane is lifted for the render, and the render target, scratch canvases and object URLs are always released.
+
+[`StoryboardTray`](../src/components/ui/StoryboardTray.tsx) is the review panel. The PDF is built by [`storyboardPdfExport`](../src/utils/storyboardPdfExport.ts), which loads pdf-lib with a dynamic `import()` so it stays out of the main bundle (about 175 kB gzipped, loaded on first export). Page layout, text encoding and the appendix rows are pure, in [`storyboardPdf`](../src/utils/storyboardPdf.ts).
+
 ## Resource lifecycle rules
 
 Most past bugs here were leaks or lifecycle mistakes, so treat these as invariants:
 
 - **Dispose every texture you create.** `ScreenArray` creates its texture in an effect and disposes it in that effect's cleanup and when it is replaced. Don't derive textures during render.
 - **Rebuild a material when its map switches between a still and video.** three.js adds a video's sRGB decode to the shader at compile time, and swapping `map` doesn't recompile. `ScreenArray` keys the display material with [`screenMaterialKey`](../src/utils/screenMaterialKey.ts) so the switch remounts it.
+- **Storyboard frames are temporary.** Every frame's object URL is revoked when the frame is retaken or deleted, or when the panel closes or exports (`clearStoryboard`). The renderer disposes its render target and releases its scratch canvases in a `finally`.
 - **Release blob URLs.** Route uploaded files through the store action that owns them (`setCustomGlbUrl`), which revokes the previous URL.
 - **Stop media tracks.** Before starting a new capture or screen share, stop the old stream's tracks.
 - **Destroy pdf.js documents.** `rasterizePdf` calls `pdfDoc.destroy()` in a `finally`, which frees the worker's caches.

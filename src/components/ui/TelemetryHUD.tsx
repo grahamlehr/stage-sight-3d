@@ -11,6 +11,7 @@ import {
   Glasses,
   RotateCcw,
   Map as MapIcon,
+  Clapperboard,
 } from 'lucide-react';
 import { useStageStore, getActiveSeatPresets } from '../../store/useStageStore';
 import { Logo } from './Logo';
@@ -56,6 +57,8 @@ export const TelemetryHUD: React.FC = () => {
   const toggleVrSession = useStageStore((s) => s.toggleVrSession);
   const triggerVrRecenter = useStageStore((s) => s.triggerVrRecenter);
   const setIsGuideOpen = useStageStore((s) => s.setIsGuideOpen);
+  const isStoryboardOpen = useStageStore((s) => s.isStoryboardOpen);
+  const setIsStoryboardOpen = useStageStore((s) => s.setIsStoryboardOpen);
 
   // Sightline status follows CueSmith's signal rules: an outlined tag with a go
   // dot passes, a warn fill is marginal, and a solid ink tag fails. Fill carries
@@ -102,6 +105,25 @@ export const TelemetryHUD: React.FC = () => {
         >
           <Logo variant="icon" className="w-5 h-5 group-hover:scale-110 transition-transform" />
           <span className="text-sm tracking-tight">StageSight 3D</span>
+        </button>
+
+        {/* Storyboard review tray. In the left group, which never overflows: the
+            right-hand group runs off-screen below about 1760px */}
+        <button
+          onClick={() => {
+            if (isStoryboardOpen) {
+              const sets = useStageStore.getState().storyboardSets;
+              if (sets.length > 0 && !window.confirm('Close the storyboard? Its frames will be discarded.')) return;
+            }
+            setIsStoryboardOpen(!isStoryboardOpen);
+          }}
+          disabled={isVrPresenting}
+          aria-pressed={isStoryboardOpen}
+          className={`btn h-9 gap-2 ${isStoryboardOpen ? 'btn-primary' : 'btn-secondary'}`}
+          title="Capture camera views and export a client storyboard PDF"
+        >
+          <Clapperboard size={14} />
+          <span className="text-sm">Storyboard</span>
         </button>
       </div>
 

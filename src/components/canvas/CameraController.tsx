@@ -7,6 +7,7 @@ import { useStageStore, getActiveSeatPresets, selectPrimaryScreen } from '../../
 import { computeDiscasTelemetry, worstScreenTelemetry } from '../../utils/discasMath';
 import { rotateAboutY } from '../../utils/venueAlignment';
 import { seatedLookTarget } from '../../utils/floorPlan';
+import { directionFromYawPitch, SEATED_EYE_HEIGHT, yawPitchFromDirection } from '../../utils/storyboard';
 
 export const CameraController: React.FC = () => {
   const gl = useThree((s) => s.gl);
@@ -22,6 +23,7 @@ export const CameraController: React.FC = () => {
   const navigationMode = useStageStore((s) => s.navigationMode);
   const seatPosition = useStageStore((s) => s.seatPosition);
   const seatYaw = useStageStore((s) => s.seatYaw);
+  const seatPitch = useStageStore((s) => s.seatPitch);
   const isFloorPlanOpen = useStageStore((s) => s.isFloorPlanOpen);
   const fovMode = useStageStore((s) => s.fovMode);
   const screenPosition = useStageStore((s) => selectPrimaryScreen(s).position);
@@ -61,23 +63,31 @@ export const CameraController: React.FC = () => {
 
     if (navigationMode === 'seated') {
       const [sx, sy, sz] = seatPosition;
-      const eyeHeight = 1.2; // 1.2m seated eye level
+      const eyeHeight = SEATED_EYE_HEIGHT; // 1.2m seated eye level
       const eyePos = new THREE.Vector3(sx, sy + eyeHeight, sz);
       camera.position.copy(eyePos);
 
       // Point the camera at the centre of the screen, or along the heading of a
       // custom view placed on the floor plan
-      const lookTarget = new THREE.Vector3(
-        ...(seatYaw === null
-          ? screenPosition
-          : seatedLookTarget(eyePos.toArray(), seatYaw, screenPosition))
-      );
-      camera.lookAt(lookTarget);
+      if (seatYaw !== null && seatPitch !== null) {
+        // A full camera view: look exactly along its saved heading and pitch
+        const [dx, dy, dz] = directionFromYawPitch(seatYaw, seatPitch);
+        camera.lookAt(eyePos.x + dx, eyePos.y + dy, eyePos.z + dz);
+        seatedYawPitchRef.current.yaw = seatYaw;
+        seatedYawPitchRef.current.pitch = seatPitch;
+      } else {
+        const lookTarget = new THREE.Vector3(
+          ...(seatYaw === null
+            ? screenPosition
+            : seatedLookTarget(eyePos.toArray(), seatYaw, screenPosition))
+        );
+        camera.lookAt(lookTarget);
 
-      // Compute initial yaw and pitch relative to that target
-      const forward = new THREE.Vector3().subVectors(lookTarget, eyePos).normalize();
-      seatedYawPitchRef.current.yaw = Math.atan2(forward.x, forward.z);
-      seatedYawPitchRef.current.pitch = Math.asin(forward.y);
+        // Compute initial yaw and pitch relative to that target
+        const forward = new THREE.Vector3().subVectors(lookTarget, eyePos).normalize();
+        seatedYawPitchRef.current.yaw = Math.atan2(forward.x, forward.z);
+        seatedYawPitchRef.current.pitch = Math.asin(forward.y);
+      }
 
       if (orbitRef.current) {
         orbitRef.current.enabled = false;
@@ -88,7 +98,25 @@ export const CameraController: React.FC = () => {
         orbitRef.current.enabled = !useStageStore.getState().isFloorPlanOpen;
       }
     }
-  }, [navigationMode, seatPosition, seatYaw, screenPosition, camera, isVrPresenting, isFloorPlanOpen]);
+  }, [navigationMode, seatPosition, seatYaw, seatPitch, screenPosition, camera, isVrPresenting, isFloorPlanOpen]);
+
+  // 2c. Let the storyboard read where the camera is now (for "Update from
+  // camera", extra shots and "Capture this view"). Like toggleVrSession, it is
+  // registered while mounted and cleared on the way out.
+  useEffect(() => {
+    const pose = () => {
+      const persCamera = camera as THREE.PerspectiveCamera;
+      const eye = new THREE.Vector3();
+      const dir = new THREE.Vector3();
+      persCamera.updateMatrixWorld();
+      persCamera.getWorldPosition(eye);
+      persCamera.getWorldDirection(dir);
+      const { yaw, pitch } = yawPitchFromDirection([dir.x, dir.y, dir.z]);
+      return { eye: [eye.x, eye.y, eye.z] as [number, number, number], yaw, pitch, fov: persCamera.fov };
+    };
+    useStageStore.getState().setGetLiveCameraPose(pose);
+    return () => useStageStore.getState().setGetLiveCameraPose(null);
+  }, [camera]);
 
   // 2a. The perspective camera isn't resized while the plan camera is the
   // default, so refresh its aspect ratio when the plan closes.
