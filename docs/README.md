@@ -17,6 +17,7 @@ Start with the [project README](../README.md) for features, controls and setup. 
 | --- | --- |
 | [Sightline telemetry](sightline-telemetry.md) | Understand how D/H and off-axis are computed, what each band means and what the numbers leave out |
 | [Architecture](architecture.md) | Learn how the store, scene, content pipeline and VR rig fit together before changing code |
+| [Onboarding guide](UA_ONBOARDING.md) | Get a map of the codebase: layers, a guided tour through the code, a file map and the complexity hotspots |
 
 ## Specs
 
