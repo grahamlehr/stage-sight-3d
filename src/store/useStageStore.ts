@@ -3,6 +3,18 @@ import { hasDismissedGuide } from '../utils/firstRunGuide';
 import { normaliseQuarterTurn, rotateAboutY } from '../utils/venueAlignment';
 import { normaliseYaw } from '../utils/floorPlan';
 import { orderSplitScreens } from '../utils/screenLayout';
+import {
+  packRoomFile,
+  parseRoomDocument,
+  ROOM_VIEW_COUNT,
+  roomFileName,
+  roomFromState,
+  roomKey,
+  roomToState,
+  unpackRoomFile,
+} from '../utils/roomFile';
+import { validateGlb } from '../utils/glbValidate';
+import { downloadBlob } from '../utils/download';
 
 export type VenueSource = 'default-ballroom' | 'custom-glb';
 export type SourceType = 'test-pattern' | 'pdf' | 'hdmi-capture' | 'screen-share';
@@ -108,7 +120,7 @@ export interface CustomSeatView {
   yaw: number;
 }
 
-export const CUSTOM_VIEW_COUNT = 4;
+export const CUSTOM_VIEW_COUNT = ROOM_VIEW_COUNT;
 
 export interface VenueBounds {
   min: [number, number, number];
@@ -264,6 +276,12 @@ export interface StageState {
   // Telemetry HUD
   telemetry: DiscasTelemetry;
 
+  // Room file
+  roomName: string;
+  roomNotes: string;
+  /** roomKey() at the last save or open; a different key now means unsaved changes. */
+  roomBaseline: string;
+
   // UI State
   activeSidebarTab: 'source' | 'screen' | 'venue';
   isSidebarOpen: boolean;
@@ -338,6 +356,14 @@ export interface StageState {
   setPanelOffset: (offset: [number, number]) => void;
 
   setTelemetry: (telemetry: DiscasTelemetry) => void;
+  setRoomName: (name: string) => void;
+  setRoomNotes: (notes: string) => void;
+  /** Downloads the room as a `.stagesight` file. Nothing leaves the device. */
+  saveRoom: () => Promise<{ ok: true } | { ok: false; message: string }>;
+  /** Replaces the room from a `.stagesight` file; on any failure the current room is left untouched. */
+  loadRoom: (
+    file: Blob
+  ) => Promise<{ ok: true; name: string; notes: string } | { ok: false; message: string }>;
   setActiveSidebarTab: (tab: 'source' | 'screen' | 'venue') => void;
   setIsSidebarOpen: (open: boolean) => void;
   setIsGuideOpen: (open: boolean) => void;
@@ -441,6 +467,11 @@ export const useStageStore = create<StageState>((set, get) => ({
     angleStatus: 'optimal',
     angleLabel: 'On-Axis',
   },
+
+  // Room file
+  roomName: '',
+  roomNotes: '',
+  roomBaseline: '',
 
   // UI State
   activeSidebarTab: 'source',
@@ -711,7 +742,72 @@ export const useStageStore = create<StageState>((set, get) => ({
   setPanelOffset: (panelOffset) => set({ panelOffset }),
 
   setTelemetry: (telemetry) => set({ telemetry }),
+  setRoomName: (roomName) => set({ roomName }),
+  setRoomNotes: (roomNotes) => set({ roomNotes }),
+  saveRoom: async () => {
+    try {
+      const state = get();
+      let glb: Uint8Array | null = null;
+      if (state.venueSource === 'custom-glb') {
+        if (!state.customGlbUrl) return { ok: false, message: 'Load a venue model before saving the room.' };
+        // A local blob: URL, so this read never touches the network
+        glb = new Uint8Array(await (await fetch(state.customGlbUrl)).arrayBuffer());
+      }
+      const room = roomFromState(get(), { savedAt: new Date().toISOString() });
+      const bytes = packRoomFile(room, glb);
+      downloadBlob(new Blob([bytes as BlobPart], { type: 'application/zip' }), roomFileName(get().roomName));
+      set({ roomBaseline: roomKey(get()) });
+      return { ok: true };
+    } catch (err) {
+      console.error('Saving the room failed:', err);
+      return { ok: false, message: "The room couldn't be saved. Please try again." };
+    }
+  },
+  loadRoom: async (file) => {
+    // Nothing below calls set() until the whole file has been read and checked,
+    // so any failure leaves the current room exactly as it was.
+    let parsed;
+    let glb: Uint8Array | null;
+    try {
+      const unpacked = unpackRoomFile(new Uint8Array(await file.arrayBuffer()));
+      glb = unpacked.glb;
+      parsed = parseRoomDocument(unpacked.json);
+    } catch (err) {
+      return { ok: false, message: err instanceof Error ? err.message : "This file isn't a StageSight room." };
+    }
+    if (!parsed.ok) {
+      if (parsed.detail) console.warn('Room file rejected:', parsed.detail);
+      return { ok: false, message: parsed.message };
+    }
+    const room = parsed.room;
+
+    if (room.venue.source === 'custom-glb') {
+      if (!glb) return { ok: false, message: 'This room file is missing its venue model.' };
+      if (!(await validateGlb(glb))) {
+        return {
+          ok: false,
+          message: "The venue model in this room file couldn't be read. Your current room hasn't changed.",
+        };
+      }
+      const url = URL.createObjectURL(new Blob([glb as BlobPart], { type: 'model/gltf-binary' }));
+      // Revokes the previous blob URL and resets per-model state
+      get().setCustomGlbUrl(url);
+      // venueYaw goes in directly: setVenueYaw would turn the saved screens and views a second time
+      set(roomToState(room));
+    } else {
+      get().setCustomGlbUrl(null);
+      set(roomToState(room));
+    }
+    set({ roomBaseline: roomKey(get()) });
+    return { ok: true, name: room.name, notes: room.notes };
+  },
   setActiveSidebarTab: (activeSidebarTab) => set({ activeSidebarTab }),
   setIsSidebarOpen: (isSidebarOpen) => set({ isSidebarOpen }),
   setIsGuideOpen: (isGuideOpen) => set({ isGuideOpen }),
 }));
+
+// A fresh session has nothing unsaved
+useStageStore.setState({ roomBaseline: roomKey(useStageStore.getState()) });
+
+/** True when the room differs from how it was last saved or opened. */
+export const hasUnsavedRoomChanges = (state: StageState): boolean => roomKey(state) !== state.roomBaseline;

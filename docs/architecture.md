@@ -50,6 +50,7 @@ All app state lives in [`src/store/useStageStore.ts`](../src/store/useStageStore
 | VR | Support and presenting flags, HUD visibility, a recenter counter, and the session toggle function |
 | Occlusion | Visibility and stage offsets for the presenter, lectern and panel. Offsets are `[x, z]` from the screen center, z toward the audience. The defaults (presenter `[-4, 1.2]`, lectern `[4, 1.2]`, panel `[0, 1]`) don't overlap with all three shown and stay back from the deck's front edge, which is 2m in front of the default screen. |
 | Telemetry | The latest `DiscasTelemetry` result |
+| Room file | `roomName`, `roomNotes` and `roomBaseline` (the `roomKey` at the last save or open; `hasUnsavedRoomChanges` compares against it). `saveRoom` and `loadRoom` read and write `.stagesight` files through the pure serialiser in [`roomFile`](../src/utils/roomFile.ts). See [Room files](#room-files) |
 | UI | Active sidebar tab and whether the sidebar is open |
 
 Three conventions apply:
@@ -122,6 +123,16 @@ flowchart LR
 - Rasterizing happens once, on upload. A deck is held as an array of canvases, and changing slides only swaps which canvas backs the texture.
 - The UV crop applies only to video sources. It is recomputed on `loadedmetadata` and `resize`, because `videoWidth` is still 0 right after `play()`.
 - See [Content sources and cropping](content-sources.md) for limits and crop modes.
+
+## Room files
+
+A `.stagesight` file is a zip (fflate) of `room.json` and, for an uploaded venue, `venue.glb`. [`roomFile.ts`](../src/utils/roomFile.ts) is pure and tested:
+
+- `roomFromState` copies a whitelist of room fields into a `RoomDocument`. Content (slides, streams, device ids, crop) is unreachable from it by design.
+- `parseRoomDocument` checks `formatVersion`, refuses a newer one, runs `ROOM_MIGRATIONS` one step at a time from older ones, then validates every field and rebuilds a clean object, so unknown fields are dropped. **Every format bump adds one migration step and a test that loads the previous version.**
+- `roomToState` is the store patch to apply. It sets `venueYaw` directly: the saved screens and views are already turned, and `setVenueYaw` would turn them again.
+
+`loadRoom` reads, unpacks, parses and (for a custom venue) fully parses the GLB with [`validateGlb`](../src/utils/glbValidate.ts) before it touches the store, so a bad file changes nothing. The model then goes in through `setCustomGlbUrl`, which revokes the previous blob URL. `validateGlb` disposes everything its trial parse built. `saveRoom` reads the model back from its local `blob:` URL and downloads the file with [`downloadBlob`](../src/utils/download.ts), which revokes its URL. A 220 MB venue zips in about 0.6 s (stored, not compressed), but the browser briefly holds two or three copies of it.
 
 ## Resource lifecycle rules
 

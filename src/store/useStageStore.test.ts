@@ -1,7 +1,15 @@
-import { beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { getActiveSeatPresets, SEAT_PRESETS, selectPrimaryScreen, selectSelectedScreen, useStageStore } from './useStageStore';
 import { STAGE } from '../components/canvas/venue/roomLayout';
 import { pairHalfWidth } from '../utils/presenterPair';
+import { hasUnsavedRoomChanges } from './useStageStore';
+import { packRoomFile, roomFromState, roomKey } from '../utils/roomFile';
+import { zipSync, strToU8 } from 'fflate';
+import { validateGlb } from '../utils/glbValidate';
+import { downloadBlob } from '../utils/download';
+
+vi.mock('../utils/glbValidate', () => ({ validateGlb: vi.fn(async () => true) }));
+vi.mock('../utils/download', () => ({ downloadBlob: vi.fn() }));
 
 // Floor footprints (half-widths, meters) of the props in PresenterSilhouette,
 // taken from their contact shadows, which are wider than the props themselves
@@ -446,5 +454,165 @@ describe('screens and the custom venue', () => {
     store().addScreen();
     store().setCustomGlbUrl('/a.glb');
     expect(store().screens).toHaveLength(2);
+  });
+});
+
+
+describe('room file load and save', () => {
+  const asFile = (bytes: Uint8Array) => new Blob([bytes as BlobPart]);
+  const GLB = new Uint8Array([1, 2, 3, 4, 5]);
+
+  /** A saved custom room: a bound screen plus a free one, quarter-turned venue, two views. */
+  const customRoomBytes = () => {
+    const state = {
+      ...useStageStore.getState(),
+      venueSource: 'custom-glb' as const,
+      venueYaw: Q,
+      customDeckHeight: 0.6,
+      customGlbUrl: null,
+      screens: [
+        { id: 'a', name: 'Wall', width: 8, height: 4.5, position: [1.25, 3, -9] as [number, number, number], rotation: [0, Q, 0] as [number, number, number], role: 'split' as const, boundMeshName: 'LED' },
+        { id: 'b', name: 'Free', width: 3, height: 2, position: [4, 2, -3] as [number, number, number], rotation: [0, 0, 0] as [number, number, number], role: 'repeat' as const, boundMeshName: null },
+      ],
+      primaryScreenId: 'a',
+      splitOrder: ['b', 'a'],
+      customSeatViews: [{ position: [1, 0, 5] as [number, number, number], yaw: 1.5 }, null, null, { position: [-2, 0, 9] as [number, number, number], yaw: 0 }],
+      roomName: 'Hilton',
+      roomNotes: 'Level 2',
+    };
+    return packRoomFile(roomFromState(state, { savedAt: 'x' }), GLB);
+  };
+
+  const snapshot = () => {
+    const s = useStageStore.getState();
+    return {
+      screens: s.screens,
+      customSeatViews: s.customSeatViews,
+      venueSource: s.venueSource,
+      customGlbUrl: s.customGlbUrl,
+      venueYaw: s.venueYaw,
+      key: roomKey(s),
+    };
+  };
+
+  beforeEach(() => {
+    useStageStore.setState(initial, true);
+    vi.mocked(validateGlb).mockResolvedValue(true);
+    vi.mocked(downloadBlob).mockClear();
+  });
+  afterEach(() => {
+    vi.restoreAllMocks();
+    vi.unstubAllGlobals();
+  });
+
+  it('a fresh session has no unsaved changes', () => {
+    expect(hasUnsavedRoomChanges(useStageStore.getState())).toBe(false);
+  });
+
+  it('leaves the room untouched for garbage, a newer file, or a failing GLB', async () => {
+    const url = URL.createObjectURL(new Blob(['x']));
+    useStageStore.setState({ customGlbUrl: url, venueYaw: Q, venueSource: 'custom-glb' });
+    const before = snapshot();
+    let changes = 0;
+    const unsubscribe = useStageStore.subscribe(() => changes++);
+    const revoke = vi.spyOn(URL, 'revokeObjectURL');
+
+    const garbage = await useStageStore.getState().loadRoom(asFile(new Uint8Array([9, 9, 9, 9, 9, 9])));
+    expect(garbage.ok).toBe(false);
+
+    const newerRoom = { ...roomFromState(useStageStore.getState(), { savedAt: 'x' }), formatVersion: 2 };
+    const newer = await useStageStore.getState().loadRoom(asFile(zipSync({ 'room.json': strToU8(JSON.stringify(newerRoom)) })));
+    expect(newer).toMatchObject({ ok: false, message: expect.stringContaining('newer version') });
+
+    vi.mocked(validateGlb).mockResolvedValue(false);
+    const badGlb = await useStageStore.getState().loadRoom(asFile(customRoomBytes()));
+    expect(badGlb).toMatchObject({ ok: false, message: expect.stringContaining("couldn't be read") });
+
+    expect(snapshot()).toEqual(before);
+    unsubscribe();
+    expect(changes).toBe(0);
+    expect(revoke).not.toHaveBeenCalled();
+    URL.revokeObjectURL(url);
+  });
+
+  it('fails cleanly when a custom room has no model inside', async () => {
+    const room = roomFromState({ ...useStageStore.getState(), venueSource: 'custom-glb' }, { savedAt: 'x' });
+    const before = snapshot();
+    const result = await useStageStore.getState().loadRoom(asFile(packRoomFile(room, null)));
+    expect(result).toMatchObject({ ok: false, message: 'This room file is missing its venue model.' });
+    expect(snapshot()).toEqual(before);
+  });
+
+  it('loads a custom room: swaps the blob URL, keeps positions, no double rotation, not dirty', async () => {
+    const oldUrl = URL.createObjectURL(new Blob(['x']));
+    useStageStore.setState({ customGlbUrl: oldUrl });
+    const revoke = vi.spyOn(URL, 'revokeObjectURL');
+
+    const result = await useStageStore.getState().loadRoom(asFile(customRoomBytes()));
+    expect(result).toEqual({ ok: true, name: 'Hilton', notes: 'Level 2' });
+
+    const s = useStageStore.getState();
+    expect(revoke).toHaveBeenCalledWith(oldUrl);
+    expect(s.customGlbUrl).toMatch(/^blob:/);
+    expect(s.customGlbUrl).not.toBe(oldUrl);
+    expect(s.venueSource).toBe('custom-glb');
+    expect(s.venueYaw).toBe(Q);
+    expect(s.screens.find((x) => x.id === 'a')?.position).toEqual([1.25, 3, -9]);
+    expect(s.screens.find((x) => x.id === 'a')?.rotation).toEqual([0, Q, 0]);
+    expect(s.customSeatViews[0]).toEqual({ position: [1, 0, 5], yaw: 1.5 });
+    expect(s.customSeatViews[3]).toEqual({ position: [-2, 0, 9], yaw: 0 });
+    expect(s.splitOrder).toEqual(['b', 'a']);
+    expect(s.primaryScreenId).toBe('a');
+    expect(s.selectedScreenId).toBe('a');
+    expect(s.roomName).toBe('Hilton');
+    expect(hasUnsavedRoomChanges(s)).toBe(false);
+    URL.revokeObjectURL(s.customGlbUrl!);
+  });
+
+  it('loads a demo ballroom room and clears the uploaded model', async () => {
+    const oldUrl = URL.createObjectURL(new Blob(['x']));
+    useStageStore.setState({ customGlbUrl: oldUrl, venueSource: 'custom-glb' });
+    const revoke = vi.spyOn(URL, 'revokeObjectURL');
+    const room = roomFromState({ ...initial, stageHeight: 1.7, roomName: 'Demo', roomNotes: '' }, { savedAt: 'x' });
+
+    const result = await useStageStore.getState().loadRoom(asFile(packRoomFile(room, null)));
+    expect(result.ok).toBe(true);
+    const s = useStageStore.getState();
+    expect(s.customGlbUrl).toBeNull();
+    expect(revoke).toHaveBeenCalledWith(oldUrl);
+    expect(s.venueSource).toBe('default-ballroom');
+    expect(s.stageHeight).toBe(1.7);
+    expect(validateGlb).not.toHaveBeenCalled();
+    expect(hasUnsavedRoomChanges(s)).toBe(false);
+  });
+
+  it('edits make the room dirty and saving clears it', async () => {
+    useStageStore.getState().setStageHeight(2);
+    expect(hasUnsavedRoomChanges(useStageStore.getState())).toBe(true);
+    useStageStore.getState().setRoomName('Ballroom A');
+
+    const result = await useStageStore.getState().saveRoom();
+    expect(result).toEqual({ ok: true });
+    expect(downloadBlob).toHaveBeenCalledTimes(1);
+    expect(vi.mocked(downloadBlob).mock.calls[0][1]).toBe('Ballroom A.stagesight');
+    expect(hasUnsavedRoomChanges(useStageStore.getState())).toBe(false);
+  });
+
+  it('saves a custom room with its model, and refuses when no model is loaded', async () => {
+    useStageStore.setState({ venueSource: 'custom-glb', customGlbUrl: null });
+    expect(await useStageStore.getState().saveRoom()).toEqual({
+      ok: false,
+      message: 'Load a venue model before saving the room.',
+    });
+    expect(downloadBlob).not.toHaveBeenCalled();
+
+    vi.stubGlobal('fetch', vi.fn(async () => new Response(GLB)));
+    useStageStore.setState({ customGlbUrl: 'blob:http://localhost/fake' });
+    expect(await useStageStore.getState().saveRoom()).toEqual({ ok: true });
+    const blob = vi.mocked(downloadBlob).mock.calls[0][0];
+    const { unzipSync } = await import('fflate');
+    const entries = unzipSync(new Uint8Array(await blob.arrayBuffer()));
+    expect(Object.keys(entries).sort()).toEqual(['room.json', 'venue.glb']);
+    expect(Array.from(entries['venue.glb'])).toEqual(Array.from(GLB));
   });
 });
