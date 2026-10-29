@@ -5,10 +5,14 @@ import { pairHalfWidth } from '../utils/presenterPair';
 import { hasUnsavedRoomChanges } from './useStageStore';
 import { packRoomFile, roomFromState, roomKey } from '../utils/roomFile';
 import { zipSync, strToU8 } from 'fflate';
-import { validateGlb } from '../utils/glbValidate';
+import { discardParsedVenue, parseGlb, stashParsedVenue } from '../utils/glbValidate';
 import { downloadBlob } from '../utils/download';
 
-vi.mock('../utils/glbValidate', () => ({ validateGlb: vi.fn(async () => true) }));
+vi.mock('../utils/glbValidate', () => ({
+  parseGlb: vi.fn(async () => ({ isGroup: true })),
+  stashParsedVenue: vi.fn(),
+  discardParsedVenue: vi.fn(),
+}));
 vi.mock('../utils/download', () => ({ downloadBlob: vi.fn() }));
 
 // Floor footprints (half-widths, meters) of the props in PresenterSilhouette,
@@ -497,7 +501,10 @@ describe('room file load and save', () => {
 
   beforeEach(() => {
     useStageStore.setState(initial, true);
-    vi.mocked(validateGlb).mockResolvedValue(true);
+    vi.mocked(parseGlb).mockResolvedValue({ isGroup: true } as never);
+    vi.mocked(parseGlb).mockClear();
+    vi.mocked(stashParsedVenue).mockClear();
+    vi.mocked(discardParsedVenue).mockClear();
     vi.mocked(downloadBlob).mockClear();
   });
   afterEach(() => {
@@ -524,7 +531,7 @@ describe('room file load and save', () => {
     const newer = await useStageStore.getState().loadRoom(asFile(zipSync({ 'room.json': strToU8(JSON.stringify(newerRoom)) })));
     expect(newer).toMatchObject({ ok: false, message: expect.stringContaining('newer version') });
 
-    vi.mocked(validateGlb).mockResolvedValue(false);
+    vi.mocked(parseGlb).mockResolvedValue(null);
     const badGlb = await useStageStore.getState().loadRoom(asFile(customRoomBytes()));
     expect(badGlb).toMatchObject({ ok: false, message: expect.stringContaining("couldn't be read") });
 
@@ -553,6 +560,10 @@ describe('room file load and save', () => {
 
     const s = useStageStore.getState();
     expect(revoke).toHaveBeenCalledWith(oldUrl);
+    // The old URL's unshown model is freed; the new one is handed over already parsed
+    expect(discardParsedVenue).toHaveBeenCalledWith(oldUrl);
+    expect(parseGlb).toHaveBeenCalledTimes(1);
+    expect(stashParsedVenue).toHaveBeenCalledWith(s.customGlbUrl, { isGroup: true });
     expect(s.customGlbUrl).toMatch(/^blob:/);
     expect(s.customGlbUrl).not.toBe(oldUrl);
     expect(s.venueSource).toBe('custom-glb');
@@ -582,7 +593,7 @@ describe('room file load and save', () => {
     expect(revoke).toHaveBeenCalledWith(oldUrl);
     expect(s.venueSource).toBe('default-ballroom');
     expect(s.stageHeight).toBe(1.7);
-    expect(validateGlb).not.toHaveBeenCalled();
+    expect(parseGlb).not.toHaveBeenCalled();
     expect(hasUnsavedRoomChanges(s)).toBe(false);
   });
 
@@ -818,5 +829,36 @@ describe('storyboard frames', () => {
     expect(useStageStore.getState().storyboardSets[0].frames.map((f) => f.shot.name)).toEqual(['Custom view 1', 'Custom view 2']);
     await useStageStore.getState().captureCurrentViewFrame(null);
     expect(useStageStore.getState().storyboardSets[1].frames).toHaveLength(draft.frames.length + 1);
+  });
+
+  it('drops a capture that finishes after the tray was closed', async () => {
+    useStageStore.getState().setIsStoryboardOpen(true);
+    let finish: (blobs: Blob[]) => void = () => {};
+    useStageStore.setState({ renderStoryboardShots: () => new Promise<Blob[]>((resolve) => (finish = resolve)) });
+    const capture = useStageStore.getState().captureStoryboardSet('A');
+    await new Promise((resolve) => setTimeout(resolve, 200));
+    useStageStore.getState().setIsStoryboardOpen(false);
+    finish(SEAT_PRESETS.map((_, i) => makeBlob(i)));
+    const result = await capture;
+    expect(result.ok).toBe(false);
+    expect(useStageStore.getState().storyboardSets).toEqual([]);
+    expect(created).toEqual([]);
+    expect(useStageStore.getState().isCapturing).toBe(false);
+  });
+
+  it('drops a current-view capture whose set was deleted while rendering', async () => {
+    await useStageStore.getState().captureStoryboardSet('A');
+    const [set] = useStageStore.getState().storyboardSets;
+    const urlsBefore = created.length;
+    let finish: (blobs: Blob[]) => void = () => {};
+    useStageStore.setState({ renderStoryboardShots: () => new Promise<Blob[]>((resolve) => (finish = resolve)) });
+    const capture = useStageStore.getState().captureCurrentViewFrame(set.id);
+    await new Promise((resolve) => setTimeout(resolve, 200));
+    useStageStore.getState().deleteStoryboardSet(set.id);
+    finish([makeBlob(9)]);
+    expect(await capture).toEqual({ ok: false, message: 'That set is no longer there.' });
+    // No URL was made for the dropped frame, so none can leak
+    expect(created).toHaveLength(urlsBefore);
+    expect(useStageStore.getState().storyboardSets).toEqual([]);
   });
 });

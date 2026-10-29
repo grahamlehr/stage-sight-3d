@@ -10,7 +10,7 @@ Build [the room file and storyboard spec](specs/room-file-and-storyboard.md), ph
 
 ## Phase 1: `.stagesight` room file (R1–R7) · branch `feat/room-file`
 - `src/utils/roomFile.ts` (+ test): pure. `RoomDocument` v1, `roomFromState` (whitelist, no content), `parseRoomDocument` (validate, then migrate through a migration table; a newer `formatVersion` is refused), `roomToState`, `roomKey` (for the unsaved-changes check), `packRoomFile` / `unpackRoomFile` (zip with `room.json` and `venue.glb`), `roomFileName`, `inspectGlb` (header check).
-- `src/utils/glbValidate.ts`: a full `GLTFLoader.parseAsync` check that disposes what it parses.
+- `src/utils/glbValidate.ts`: `parseGlb` (a full `GLTFLoader.parseAsync` check) and the stash that hands the parsed scene to `CustomGlbVenue`, so a room's model is parsed once.
 - `src/utils/download.ts`: `downloadBlob`, which revokes its URL.
 - Store: `roomName`, `roomNotes`, `roomBaseline`, `setRoomName`, `setRoomNotes`, `saveRoom()`, `loadRoom(file)`. The GLB loads through `setCustomGlbUrl`.
 - UI: a Room file section at the top of the Venue tab; drag and drop of a `.stagesight` file onto the canvas; an unsaved-changes confirm before opening and a `beforeunload` prompt.

@@ -116,8 +116,6 @@ export const StoryboardRenderer: React.FC = () => {
       const previousClipping = gl.clippingPlanes;
       const blobs: Blob[] = [];
       try {
-        // The floor plan's section cut would slice the room in every frame
-        gl.clippingPlanes = [];
         for (const shot of shots) {
           const camera = new THREE.PerspectiveCamera(shot.fov, width / height, 0.1, 200);
           camera.position.set(...shot.eye);
@@ -127,12 +125,18 @@ export const StoryboardRenderer: React.FC = () => {
           camera.updateMatrixWorld();
 
           refreshVideoTextures(scene);
+          // The floor plan's section cut would slice the room in every frame
+          gl.clippingPlanes = [];
           gl.setRenderTarget(target);
           gl.clear();
           gl.render(scene, camera);
 
           const pixels = new Uint8Array(width * SUPERSAMPLE * height * SUPERSAMPLE * 4);
           gl.readRenderTargetPixels(target, 0, 0, width * SUPERSAMPLE, height * SUPERSAMPLE, pixels);
+          // Hand the renderer back before awaiting, or the live view's frame loop
+          // would draw into this target (and the canvas freeze) until the capture ends
+          gl.setRenderTarget(previousTarget);
+          gl.clippingPlanes = previousClipping;
           blobs.push(await pixelsToJpeg(pixels, width, height));
 
           // Let the UI paint progress between shots

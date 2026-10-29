@@ -23,10 +23,12 @@ export async function rasterizePdf(
   onProgress?: (current: number, total: number) => void
 ): Promise<HTMLCanvasElement[]> {
   const loadingTask = pdfjsLib.getDocument({ data });
-  const pdfDoc = await loadingTask.promise;
   const canvases: HTMLCanvasElement[] = [];
 
+  // Opening is inside the try too: a damaged or encrypted file rejects here, and
+  // the loading task must still be destroyed or its worker-side state stays alive
   try {
+    const pdfDoc = await loadingTask.promise;
     const numPages = pdfDoc.numPages;
 
     for (let pageNum = 1; pageNum <= numPages; pageNum++) {

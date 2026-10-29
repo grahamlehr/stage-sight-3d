@@ -38,7 +38,7 @@ Fill in the event name, speaker, date, agency name and logo, then choose **Expor
 
 - **Cover:** logo, event name, speaker name, date and agency.
 - **One page per shot**, with each set's frame full-bleed and stacked, labelled with the set name, and the shot's name in the corner. With one set, it's one frame per page.
-- **Technical appendix** (off by default): distance, D/H and off-axis per shot, for production teams.
+- **Technical appendix** (off by default): distance, D/H and off-axis per shot, for production teams. Long storyboards continue onto further pages, 14 rows each.
 
 A 4-shot, 2-set storyboard is about 2–3 MB. The agency name and logo are remembered in this browser for next time. The PDF uses the standard PDF fonts, so characters outside Western European alphabets are left out of names.
 

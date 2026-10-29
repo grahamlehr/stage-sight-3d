@@ -13,7 +13,7 @@ import {
   roomToState,
   unpackRoomFile,
 } from '../utils/roomFile';
-import { validateGlb } from '../utils/glbValidate';
+import { discardParsedVenue, parseGlb, stashParsedVenue } from '../utils/glbValidate';
 import { downloadBlob } from '../utils/download';
 import {
   fovModeForFov,
@@ -482,6 +482,14 @@ function withoutDemoScreens(state: StageState): Partial<StageState> {
 let storyboardIdCounter = 0;
 const nextStoryboardId = (prefix: string) => `${prefix}-${++storyboardIdCounter}`;
 
+/**
+ * Bumped whenever the storyboard is cleared. A capture remembers it before
+ * rendering and drops its frames if it changed, so closing the tray mid-capture
+ * can't leave frames (and their blob URLs) behind in a closed tray.
+ */
+let storyboardGeneration = 0;
+const STORYBOARD_CLEARED = "The storyboard was closed during the capture, so nothing was added.";
+
 const makeFrame = (shot: CameraShot, blob: Blob): StoryboardFrame => ({
   id: nextStoryboardId('frame'),
   shot,
@@ -617,6 +625,8 @@ export const useStageStore = create<StageState>((set, get) => ({
     const previous = get().customGlbUrl;
     if (previous && previous !== customGlbUrl && previous.startsWith('blob:')) {
       URL.revokeObjectURL(previous);
+      // A model parsed for that URL but never shown would otherwise hold its GPU-bound data
+      discardParsedVenue(previous);
     }
     // A new model starts unturned; its orientation has nothing to do with the last one's
     // and neither do the camera views placed on its floor plan
@@ -917,11 +927,13 @@ export const useStageStore = create<StageState>((set, get) => ({
     const shots = storyboardShots(state, SEAT_PRESETS);
     if (shots.length === 0) return { ok: false, message: 'Place at least one camera view first.' };
     set({ isCapturing: true });
+    const generation = storyboardGeneration;
     try {
       await settleScene();
       const render = get().renderStoryboardShots;
       if (!render) return { ok: false, message: 'The 3D view is not ready to capture yet.' };
       const blobs = await render(shots);
+      if (generation !== storyboardGeneration) return { ok: false, message: STORYBOARD_CLEARED };
       const setId = nextStoryboardId('set');
       const frames = blobs.map((blob, i) => makeFrame(shots[i], blob));
       set((s) => ({ storyboardSets: [...s.storyboardSets, { id: setId, label, frames }] }));
@@ -973,6 +985,7 @@ export const useStageStore = create<StageState>((set, get) => ({
     if (state.isCapturing) return { ok: false, message: 'A capture is already running.' };
     if (!state.renderStoryboardShots) return { ok: false, message: 'The 3D view is not ready to capture yet.' };
     set({ isCapturing: true });
+    const generation = storyboardGeneration;
     try {
       const existing = get().storyboardSets;
       const target =
@@ -990,6 +1003,11 @@ export const useStageStore = create<StageState>((set, get) => ({
       // The pose is already taken; this only clears the gizmo and picker out of the frame
       await settleScene();
       const [blob] = await get().renderStoryboardShots!([shot]);
+      if (generation !== storyboardGeneration) return { ok: false, message: STORYBOARD_CLEARED };
+      // The set may have been deleted while rendering; check before making a URL for the frame
+      if (target && !get().storyboardSets.some((x) => x.id === target.id)) {
+        return { ok: false, message: 'That set is no longer there.' };
+      }
       const frame = makeFrame(shot, blob);
       if (target) {
         set((s) => ({
@@ -1028,6 +1046,7 @@ export const useStageStore = create<StageState>((set, get) => ({
     set((state) => ({ storyboardSets: state.storyboardSets.filter((x) => x.id !== setId) }));
   },
   clearStoryboard: () => {
+    storyboardGeneration++;
     get().storyboardSets.forEach((x) => x.frames.forEach((f) => URL.revokeObjectURL(f.url)));
     set({ storyboardSets: [] });
   },
@@ -1086,13 +1105,17 @@ export const useStageStore = create<StageState>((set, get) => ({
 
     if (room.venue.source === 'custom-glb') {
       if (!glb) return { ok: false, message: 'This room file is missing its venue model.' };
-      if (!(await validateGlb(glb))) {
+      // A full parse, so a bad model changes nothing; the venue then shows this
+      // parsed scene rather than parsing the same bytes a second time
+      const scene = await parseGlb(glb);
+      if (!scene) {
         return {
           ok: false,
           message: "The venue model in this room file couldn't be read. Your current room hasn't changed.",
         };
       }
       const url = URL.createObjectURL(new Blob([glb as BlobPart], { type: 'model/gltf-binary' }));
+      stashParsedVenue(url, scene);
       // Revokes the previous blob URL and resets per-model state
       get().setCustomGlbUrl(url);
       // venueYaw goes in directly: setVenueYaw would turn the saved screens and views a second time

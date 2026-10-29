@@ -7,6 +7,18 @@ import { alignScreenMesh, deckProbeOrigin, rotateAboutY } from '../../utils/venu
 import { measureScreenMesh } from '../../utils/screenMeshMeasure';
 import { normaliseYaw } from '../../utils/floorPlan';
 import { shouldSitOnClick } from '../../utils/clickToSit';
+import { disposeObject, peekParsedVenue, stashParsedVenue, takeParsedVenue } from '../../utils/glbValidate';
+
+/** Turns shadows on for every mesh. Safe to repeat on the same scene. */
+function prepareVenue(root: THREE.Group): THREE.Group {
+  root.traverse((child) => {
+    if ((child as THREE.Mesh).isMesh) {
+      child.castShadow = true;
+      child.receiveShadow = true;
+    }
+  });
+  return root;
+}
 
 /** The mesh's triangles as world-space xyz triples, for indexed and non-indexed geometry. */
 function worldTriangles(mesh: THREE.Mesh): Float32Array {
@@ -67,7 +79,11 @@ interface LoadedGlbProps {
 }
 
 const LoadedGlbModel: React.FC<LoadedGlbProps> = ({ url }) => {
-  const [scene, setScene] = useState<THREE.Group | null>(null);
+  // A room file's model arrives already parsed (and checked); one uploaded from the sidebar is loaded below
+  const [scene, setScene] = useState<THREE.Group | null>(() => {
+    const preparsed = peekParsedVenue(url);
+    return preparsed ? prepareVenue(preparsed) : null;
+  });
   const isPickingMesh = useStageStore((s) => s.isPickingMesh);
   const addScreen = useStageStore((s) => s.addScreen);
   const updateScreen = useStageStore((s) => s.updateScreen);
@@ -87,30 +103,43 @@ const LoadedGlbModel: React.FC<LoadedGlbProps> = ({ url }) => {
   // Set when a press binds a screen mesh, so the click that follows doesn't also sit
   const pressPickedRef = useRef(false);
 
+  // This component is keyed by URL, so each model gets its own instance. A load that
+  // finishes after the venue has moved on is dropped (and its error ignored), rather
+  // than replacing the newer model or reverting it to the ballroom.
   useEffect(() => {
-    const loader = new GLTFLoader();
-    loader.load(
-      url,
-      (gltf) => {
-        // Traverse and ensure shadows and materials
-        gltf.scene.traverse((child) => {
-          if ((child as THREE.Mesh).isMesh) {
-            const mesh = child as THREE.Mesh;
-            mesh.castShadow = true;
-            mesh.receiveShadow = true;
+    let cancelled = false;
+    let loaded: THREE.Group | null = takeParsedVenue(url);
+    if (!loaded) {
+      new GLTFLoader().load(
+        url,
+        (gltf) => {
+          if (cancelled) {
+            disposeObject(gltf.scene);
+            return;
           }
-        });
-        setScene(gltf.scene);
-      },
-      undefined,
-      (err) => {
-        console.error('Failed to parse custom GLB:', err);
-        alert('Failed to load custom GLB file. Reverting to Default Ballroom.');
-        setVenueSource('default-ballroom');
-        // Also releases the uploaded blob URL rather than leaking the whole file
-        setCustomGlbUrl(null);
-      }
-    );
+          loaded = prepareVenue(gltf.scene);
+          setScene(loaded);
+        },
+        undefined,
+        (err) => {
+          if (cancelled) return;
+          console.error('Failed to parse custom GLB:', err);
+          alert('Failed to load custom GLB file. Reverting to Default Ballroom.');
+          setVenueSource('default-ballroom');
+          // Also releases the uploaded blob URL rather than leaking the whole file
+          setCustomGlbUrl(null);
+        }
+      );
+    }
+    return () => {
+      cancelled = true;
+      if (!loaded) return;
+      // Still the venue's model (the user switched to the ballroom, or StrictMode
+      // remounted): keep it parsed for when it comes back. setCustomGlbUrl disposes
+      // it when the URL is replaced. Otherwise the model is gone for good.
+      if (useStageStore.getState().customGlbUrl === url) stashParsedVenue(url, loaded);
+      else disposeObject(loaded);
+    };
   }, [url, setVenueSource, setCustomGlbUrl]);
 
   // Publish the venue's world-space bounds for the floor plan, and refresh them
@@ -236,6 +265,8 @@ export const CustomGlbVenue: React.FC = () => {
 
   return (
     <GlbErrorBoundary
+      // A new model gets a fresh boundary and loader, so nothing carries over from the last one
+      key={customGlbUrl}
       fallback={null}
       onError={(err) => {
         console.error('GLB Error caught:', err);
