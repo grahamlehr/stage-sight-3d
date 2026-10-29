@@ -30,6 +30,7 @@ import {
   ASPECT_RATIO_PRESETS,
   UvCropMode,
 } from '../../store/useStageStore';
+import { openRoomFromFile } from '../../utils/openRoomFile';
 import { defaultCutHeight } from '../../utils/floorPlan';
 import { orderSplitScreens } from '../../utils/screenLayout';
 import {
@@ -117,6 +118,10 @@ export const Sidebar: React.FC = () => {
   const selectedScreenId = useStageStore((s) => s.selectedScreenId);
   const splitOrder = useStageStore((s) => s.splitOrder);
   const demoSideScreens = useStageStore((s) => s.demoSideScreens);
+  const roomName = useStageStore((s) => s.roomName);
+  const setRoomName = useStageStore((s) => s.setRoomName);
+  const roomNotes = useStageStore((s) => s.roomNotes);
+  const setRoomNotes = useStageStore((s) => s.setRoomNotes);
   const selectedScreenName = useStageStore((s) => selectSelectedScreen(s).name);
   const updateScreen = useStageStore((s) => s.updateScreen);
   const removeScreen = useStageStore((s) => s.removeScreen);
@@ -191,6 +196,7 @@ export const Sidebar: React.FC = () => {
   const [rasterProgress, setRasterProgress] = useState({ current: 0, total: 0 });
   const fileInputRef = useRef<HTMLInputElement>(null);
   const glbInputRef = useRef<HTMLInputElement>(null);
+  const roomInputRef = useRef<HTMLInputElement>(null);
 
   // Enumerate video capture devices
   const refreshDevices = useCallback(async () => {
@@ -298,6 +304,19 @@ export const Sidebar: React.FC = () => {
     } catch (err) {
       console.error('Screen sharing canceled or failed:', err);
     }
+  };
+
+  // Save and open the .stagesight room file
+  const handleSaveRoom = async () => {
+    const result = await useStageStore.getState().saveRoom();
+    if (!result.ok) alert(result.message);
+  };
+
+  const handleOpenRoom = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const input = e.currentTarget;
+    const file = input.files?.[0];
+    input.value = '';
+    if (file) await openRoomFromFile(file);
   };
 
   // Handle Custom GLB Upload
@@ -919,6 +938,44 @@ export const Sidebar: React.FC = () => {
         {/* ================= TAB 3: VENUE MODEL ================= */}
         {activeSidebarTab === 'venue' && (
           <>
+            <Section title="Room file">
+              <input
+                type="text"
+                value={roomName}
+                onChange={(e) => setRoomName(e.target.value)}
+                aria-label="Room name"
+                placeholder="e.g. Hilton Park Lane, Ballroom A"
+                maxLength={120}
+                className="input w-full"
+              />
+              <textarea
+                value={roomNotes}
+                onChange={(e) => setRoomNotes(e.target.value)}
+                aria-label="Room notes"
+                placeholder="Notes"
+                rows={3}
+                className="input w-full resize-y"
+              />
+              <div className="grid grid-cols-2 gap-2">
+                <button onClick={handleSaveRoom} className="btn btn-secondary">
+                  Save room
+                </button>
+                <button onClick={() => roomInputRef.current?.click()} className="btn btn-secondary">
+                  Open room
+                </button>
+                <input
+                  ref={roomInputRef}
+                  type="file"
+                  accept=".stagesight"
+                  className="hidden"
+                  onChange={handleOpenRoom}
+                />
+              </div>
+              <p className="text-[10px] text-ink/60">
+                Saves the venue, screens, views and stage dressing. Content isn&apos;t saved.
+              </p>
+            </Section>
+
             <Section title="Venue Source">
               <div className="grid grid-cols-2 gap-2">
                 <button

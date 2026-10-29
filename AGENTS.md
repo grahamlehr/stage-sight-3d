@@ -42,7 +42,7 @@ CI (`ci.yml`) runs lint, tests and build on every PR and push to `main`; all mus
 - Keep physical units: sizes and positions are metres, Y is up, the audience sits toward +Z.
 - Never disable lint rules to get a change through. Existing exceptions are documented in place (`react-hooks/immutability` off for `src/components/canvas/`; two `set-state-in-effect` sites). A new exception needs the same kind of justifying comment.
 - Global keyboard shortcuts must ignore form fields: return early when focus is on `INPUT`, `TEXTAREA` or `SELECT`.
-- Uploads, capture streams and screen shares stay in the browser tab. Never add a backend or send user content off-device without Graham's OK.
+- Uploads, capture streams and screen shares stay in the browser tab. The `.stagesight` room file is a local download only, never uploaded, and never holds content (`roomFromState` is a whitelist). Never add a backend or send user content off-device without Graham's OK.
 - Secrets live in `.env` (gitignored). Never commit, print or log them; `.env.example` lists every variable without values. The app currently needs none.
 - Commit messages use Conventional Commits (`feat:`, `fix:`, `chore:`, `docs:`, `test:`, `refactor:`), with the reason in the body; a fix names the bug, not just the code touched.
 - Branch from `main` and open PRs against `main`.
