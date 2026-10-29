@@ -65,6 +65,7 @@ The 3D scene, media capture and VR have no automated tests. Check them by hand i
 - `docs/HANDOFF.md`: current state and prompt for the next session (`/handoff`)
 - `docs/DECISIONS.md`: decisions already made. Don't relitigate them.
 - `docs/architecture.md`: store, scene, content pipeline, lifecycle rules, known gaps
+- `docs/UA_ONBOARDING.md`: codebase map for newcomers (layers, guided tour, file map, hotspots), generated from the Understand Anything graph; regenerate with `/understand` then `/understand-onboard`
 - `docs/sightline-telemetry.md`, `docs/content-sources.md`, `docs/custom-venues.md`, `docs/storyboard.md`, `docs/vr-preview.md`: feature references
 - `docs/README.md`: index of all docs; `docs/archive/`: retired docs (follow the steps in its README)
 - `CONTRIBUTING.md`: setup, workflow, conventions; `CHANGELOG.md`: what changed
