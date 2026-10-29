@@ -26,5 +26,5 @@ Decisions recorded here are settled. Raise a concern once, briefly, rather than 
 
 ## 2026-10-29: Saved views store a full camera
 **Context:** The storyboard PDF compares a speaker's draft with the agency's concept from the same viewpoints, so frames must line up exactly. Seat views stored only floor position and yaw.
-**Decision:** Each saved view stores position, yaw, pitch and field of view, all taken from the current camera when the view is placed. Older views load with level pitch and the default field of view.
+**Decision:** Each saved view stores position, yaw, pitch and field of view, all taken from the current camera when the view is placed. Older views load with the pitch the app showed them with (aimed at the primary screen centre's height) and the default field of view, so their framing doesn't change. (Amended 2026-10-29 by Graham: the spec first said level pitch, but the app never showed old views level.)
 **Alternatives:** Keeping position and yaw only (frames would drift with whatever pitch and FOV the user had at capture time).

@@ -90,7 +90,7 @@ Acceptance criteria:
 
 **P0: must have**
 
-- **R8. Storyboard shots.** The storyboard uses the room's camera views (the four seat views) as its shots, in order. Each view stores a full camera: position, yaw, pitch and field of view. Placing or updating a view captures all four from the current camera, so frames line up exactly between variants. Views saved before this change (position and yaw only) load with level pitch and the default field of view.
+- **R8. Storyboard shots.** The storyboard uses the room's camera views (the four seat views) as its shots, in order. Each view stores a full camera: position, yaw, pitch and field of view. Placing or updating a view captures all four from the current camera, so frames line up exactly between variants. Views saved before this change (position and yaw only) load with the pitch they were shown with (aimed at the screen centre's height) and the default field of view, so their framing doesn't change.
 - **R9. Capture a set.** "Capture storyboard" steps through every placed shot, renders each one at export resolution with the live content on screen, and stores the frames as a labelled set ("Your draft"). The live view returns to where the user was.
 - **R10. Several sets.** The user can switch content and capture again as a new set ("Our concept"). At least 2 sets; the limit is set by memory, not by design.
 - **R11. Review tray.** Before export, show all frames grouped by set and shot. The user can rename a set, retake one shot, or delete a frame or a set.
