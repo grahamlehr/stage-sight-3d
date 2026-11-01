@@ -50,9 +50,9 @@ Use [Conventional Commits](https://www.conventionalcommits.org/) prefixes, as th
 [Architecture](docs/architecture.md) explains the reasoning. In short:
 
 - **State goes in the store.** Add fields and actions to [`useStageStore`](src/store/useStageStore.ts) instead of passing props or adding local state that other components need. Select narrow slices in render, and use `useStageStore.getState()` in event handlers and frame loops.
-- **Keep math pure and tested.** Geometry and sightline math belongs in `src/utils/` as pure functions, with a `*.test.ts` next to it. New behavior, or a fix to existing math, needs a test. A fix should include a regression test that fails without it.
+- **Keep math pure and tested.** Geometry and sightline math belongs in `src/utils/` as pure functions, with a `*.test.ts` next to it. New behaviour, or a fix to existing math, needs a test. A fix should include a regression test that fails without it.
 - **Clean up what you create.** Dispose textures, revoke blob URLs, stop media tracks and destroy pdf.js documents. The [resource lifecycle rules](docs/architecture.md#resource-lifecycle-rules) list them.
-- **Keep physical units.** Sizes and positions are meters. The audience sits toward +Z.
+- **Keep physical units.** Sizes and positions are metres. The audience sits toward +Z.
 - **Don't disable lint rules to get a change through.** The exceptions are: `react-hooks/immutability` is off for `src/components/canvas/` because three.js objects are mutated imperatively; two `set-state-in-effect` sites, documented in place, tie state to an external system or a texture's lifecycle; and three `no-explicit-any` sites (the pdf.js render context in `pdfRasterizer.ts`, two in `roomFile.test.ts`). A new exception needs the same kind of justifying comment.
 - **Global keyboard shortcuts must ignore form fields.** Return early when focus is on an `INPUT`, `TEXTAREA` or `SELECT`.
 
@@ -69,4 +69,4 @@ The 3D scene, media capture, storyboard rendering and VR have no automated tests
 
 ## Documentation
 
-Docs live in the [README](README.md) and [`docs/`](docs/README.md). If a change alters behavior that a doc describes (controls, telemetry bands, sources, setup), update the doc in the same PR. If a doc stops being true and isn't worth fixing, move it to [`docs/archive/`](docs/archive/README.md) following the steps there.
+Docs live in the [README](README.md) and [`docs/`](docs/README.md). If a change alters behaviour that a doc describes (controls, telemetry bands, sources, setup), update the doc in the same PR. If a doc stops being true and isn't worth fixing, move it to [`docs/archive/`](docs/archive/README.md) following the steps there.

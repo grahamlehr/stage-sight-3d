@@ -37,7 +37,7 @@ Below, `aCapture` is the source's width divided by its height and `aScreen` is t
 
 | Mode | UI label | Screen wider than source | Screen narrower than source |
 | --- | --- | --- | --- |
-| `auto-letterbox` | Centered (Show) | Crops a centered horizontal band of height `aCapture / aScreen` | Crops a centered vertical band of width `aScreen / aCapture` |
+| `auto-letterbox` | Centered (Show) | Crops a centred horizontal band of height `aCapture / aScreen` | Crops a centred vertical band of width `aScreen / aCapture` |
 | `top-aligned` | Top-Aligned | Crops the same-height band, anchored to the top of the frame | Same as Centered. This mode only anchors vertically. |
 | `fill-1-to-1` | Fill 1-to-1 | Uses the whole frame, stretched to the screen | Same |
 | `manual` | Manual | **Repeat Y** (0.1–1.0) sets the band's height. **Offset Y** (0–0.9) moves it up from the bottom of the frame. The offset is clamped so the band stays inside the frame. | Same; full width |

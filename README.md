@@ -8,8 +8,8 @@ Preview ultra-wide event screens and LED walls from any seat in the room before 
 
 - **Screens** — 16:9, 21:9, 32:9, 3:1 and 4:1 presets, custom physical dimensions, and a drag gizmo for placement. Add several screens, repeat or split content across them, or pick screens from meshes in your own venue model.
 - **Content** — an aspect-matched test pattern, a PDF deck, a single PNG or JPEG, a live HDMI capture card, or a screen share. A five-slide 32:9 sample deck is built in. Slides are stretched to the screen, so export decks at the screen's aspect ratio.
-- **Ultra-wide cropping** — fixes 16:9 EDID sources on ultra-wide walls: centered, top-aligned, 1:1 or manual crop.
-- **Venues** — a procedural ballroom with adjustable size and stage height, or upload your own `.glb` (or a self-contained `.gltf`) authored in meters.
+- **Ultra-wide cropping** — fixes 16:9 EDID sources on ultra-wide walls: centred, top-aligned, 1:1 or manual crop.
+- **Venues** — a procedural ballroom with adjustable size and stage height, or upload your own `.glb` (or a self-contained `.gltf`) authored in metres.
 - **Storyboard PDF** — capture your content from every camera view in sets ("Your draft", "Our concept") from identical viewpoints, review and retake frames, and export a branded PDF built in the browser.
 - **Room files** — save the venue, screens, camera views and stage dressing as one `.stagesight` file (an uploaded model goes inside it) and open it again later, or drop it on the 3D view. Content is never saved in it, and it never leaves your device.
 - **Sightline telemetry** — live D/H ratio and horizontal off-axis angle against the bands below, plus 50° room-context and 25° eye-focus FOV modes.
@@ -24,7 +24,7 @@ Preview ultra-wide event screens and LED walls from any seat in the room before 
 | D/H ratio | < 4× analytical detail · 4–6× basic reading | 6–8× small text at risk | > 8× beyond DISCAS max |
 | Horizontal off-axis | < 30° | 30–45° | > 45° |
 
-D/H is the 3D distance from the viewer's eye to the screen center, divided by the screen height. Off-axis is measured in the horizontal plane against the screen's facing direction. Both are measured to the screen center. [Sightline telemetry](docs/sightline-telemetry.md) covers the math and what it leaves out, including edge angles on ultra-wide screens.
+D/H is the 3D distance from the viewer's eye to the screen centre, divided by the screen height. Off-axis is measured in the horizontal plane against the screen's facing direction. Both are measured to the screen centre. [Sightline telemetry](docs/sightline-telemetry.md) covers the math and what it leaves out, including edge angles on ultra-wide screens.
 
 ## Controls
 
@@ -108,7 +108,7 @@ src/
     canvas/   3D scene: venue, screen, occlusion props, camera, VR rig and storyboard renderer
     ui/       Sidebar, top HUD, slide transport bar, storyboard panel, first-run tour, about modal
   store/      Single Zustand store holding all app state
-  utils/      DISCAS and UV-crop math, screen layout, PDF rasterizing, room files, storyboard shots and PDF
+  utils/      DISCAS and UV-crop math, screen layout, PDF rasterising, room files, storyboard shots and PDF
 docs/         Guides, reference and architecture (see docs/README.md)
 ```
 

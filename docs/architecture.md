@@ -48,11 +48,11 @@ All app state lives in [`src/store/useStageStore.ts`](../src/store/useStageStore
 | Slice | Holds |
 | --- | --- |
 | Venue | Source (`default-ballroom` or `custom-glb`), the uploaded blob URL, the custom venue's quarter-turn `venueYaw` and deck height (`customDeckHeight`), the four hand-placed `customSeatViews`, the measured `customVenueBounds`, the floor plan's open flag, selected slot and cut height, the ballroom's stage height, room size, lighting preset and intensities |
-| Screens | `screens`: a list of `StageScreen` (`id`, `name`, `width` and `height` in meters, `position`, `rotation`, `role` of `'split'` or `'repeat'`, `boundMeshName`). Also `primaryScreenId` (the telemetry reads from it), `selectedScreenId` (the one the size inputs and gizmo act on), `splitOrder` (ids left to right, or null for auto by X) and `demoSideScreens`. `selectPrimaryScreen` and `selectSelectedScreen` return the screens. There is always at least one. Also the gizmo toggle and mesh-picking state |
-| Content | Source type, rasterized slide canvases, current slide, the live `MediaStream`, and the UV crop mode and its manual values |
+| Screens | `screens`: a list of `StageScreen` (`id`, `name`, `width` and `height` in metres, `position`, `rotation`, `role` of `'split'` or `'repeat'`, `boundMeshName`). Also `primaryScreenId` (the telemetry reads from it), `selectedScreenId` (the one the size inputs and gizmo act on), `splitOrder` (ids left to right, or null for auto by X) and `demoSideScreens`. `selectPrimaryScreen` and `selectSelectedScreen` return the screens. There is always at least one. Also the gizmo toggle and mesh-picking state |
+| Content | Source type, rasterised slide canvases, current slide, the live `MediaStream`, and the UV crop mode and its manual values |
 | Camera | Orbit or seated navigation, seat position, the seated heading and tilt (`seatYaw` and `seatPitch`, null means face the screen) and FOV mode. `getActiveSeatPresets` returns the ballroom's fixed seats or the custom venue's placed views |
 | VR | Support and presenting flags, HUD visibility, a recenter counter, and the session toggle function |
-| Occlusion | Visibility and stage offsets for the presenter, lectern and panel. Offsets are `[x, z]` from the screen center, z toward the audience. The defaults (presenter `[-4, 1.2]`, lectern `[4, 1.2]`, panel `[0, 1]`) don't overlap with all three shown and stay back from the deck's front edge, which is 2m in front of the default screen. |
+| Occlusion | Visibility and stage offsets for the presenter, lectern and panel. Offsets are `[x, z]` from the screen centre, z toward the audience. The defaults (presenter `[-4, 1.2]`, lectern `[4, 1.2]`, panel `[0, 1]`) don't overlap with all three shown and stay back from the deck's front edge, which is 2m in front of the default screen. |
 | Telemetry | The latest `DiscasTelemetry` result |
 | Room file | `roomName`, `roomNotes` and `roomBaseline` (the `roomKey` at the last save or open; `hasUnsavedRoomChanges` compares against it). `saveRoom` and `loadRoom` read and write `.stagesight` files through the pure serialiser in [`roomFile`](../src/utils/roomFile.ts). See [Room files](#room-files) |
 | Storyboard | `storyboardSets` (each a label and frames: the `CameraShot`, a JPEG blob and its object URL), `isStoryboardOpen`, `isCapturing`, `storyboardExtraShots`, and the `renderStoryboardShots` and `getLiveCameraPose` functions registered by the canvas. Capture, retake, delete and clear actions own the frames' object URLs. See [Storyboard capture](#storyboard-capture) |
@@ -62,7 +62,7 @@ Three conventions apply:
 
 - **In React render, select narrowly.** Use `useStageStore((s) => selectSelectedScreen(s).width)`, not the whole store, so a component re-renders only when its slice changes.
 - **In event handlers, frame loops and listeners, read imperatively.** Use `useStageStore.getState()`. This avoids stale closures and keeps the listener's effect from re-subscribing whenever state changes. `CameraController`'s hotkeys, the video crop in `ScreenArray` and the VR gamepad polling all do this.
-- **Use counters as one-shot signals.** Recentering VR is an event, not a state, so `triggerVrRecenter()` increments `vrRecenterCount` and `VrControllerRig` reacts to the change.
+- **Use counters as one-shot signals.** Recentring VR is an event, not a state, so `triggerVrRecenter()` increments `vrRecenterCount` and `VrControllerRig` reacts to the change.
 
 Store actions do the work that has to happen whenever a value changes. For example, `setCustomGlbUrl` revokes the previous blob URL, and `setLightingPreset` sets both intensities.
 
@@ -72,7 +72,7 @@ Store actions do the work that has to happen whenever a value changes. For examp
 
 | Component | Responsibility |
 | --- | --- |
-| [`DemoBallroom`](../src/components/canvas/DemoBallroom.tsx) | Procedural conference ballroom, built from the parts in [`venue/`](../src/components/canvas/venue): carpeted floor, paneled walls with doors and exit signs, a tiled ceiling, the skirted 18m × 5m stage with stairs and drape, theatre-style banquet seating ([`seatingLayout`](../src/utils/seatingLayout.ts)) and optional ceiling trusses. Textures are painted on canvases at startup, so there are no image assets. Clicking the floor picks a spot; clicking a chair sits in it. Click-to-sit fires on a click, not a press, and only when the floor or chair is the nearest visible thing under the pointer ([`clickToSit`](../src/utils/clickToSit.ts)), so seated look-around drags and clicks on a screen don't move the seat. |
+| [`DemoBallroom`](../src/components/canvas/DemoBallroom.tsx) | Procedural conference ballroom, built from the parts in [`venue/`](../src/components/canvas/venue): carpeted floor, panelled walls with doors and exit signs, a tiled ceiling, the skirted 18m × 5m stage with stairs and drape, theatre-style banquet seating ([`seatingLayout`](../src/utils/seatingLayout.ts)) and optional ceiling trusses. Textures are painted on canvases at startup, so there are no image assets. Clicking the floor picks a spot; clicking a chair sits in it. Click-to-sit fires on a click, not a press, and only when the floor or chair is the nearest visible thing under the pointer ([`clickToSit`](../src/utils/clickToSit.ts)), so seated look-around drags and clicks on a screen don't move the seat. |
 | [`CustomGlbVenue`](../src/components/canvas/CustomGlbVenue.tsx) | Loads the uploaded model with `GLTFLoader` inside an error boundary. If loading fails, the app falls back to the ballroom and releases the blob. Handles click-to-sit and click-to-pick for screen meshes (the first pick binds the default screen, later ones add screens), and publishes the model's world-space bounds as `customVenueBounds`. The model sits in a group turned by `venueYaw`; binding a sideways wall turns it to face +Z ([`venueAlignment`](../src/utils/venueAlignment.ts)). |
 | [`ScreenArray`](../src/components/canvas/ScreenArray.tsx) | Renders every screen (bezel, unlit display plane, underglow) and builds **one** texture for the active content source. Each panel points its plane's UVs at its own part of that texture, from `computeScreenRegions` in [`screenLayout`](../src/utils/screenLayout.ts), so repeat and split cost one texture. Attaches the translate gizmo to the selected screen. |
 | [`PresenterSilhouette`](../src/components/canvas/PresenterSilhouette.tsx) | Occlusion props: two standing presenters, a lectern and a four-person seated panel. The people are rigged models from `public/models/`; the lectern, chairs and tables are built from [`stagePropGeometry`](../src/components/canvas/stagePropGeometry.ts). See [Occlusion props](#occlusion-props). |
@@ -83,8 +83,8 @@ Store actions do the work that has to happen whenever a value changes. For examp
 
 ### Units and coordinates
 
-- **Units are meters.** Screen sizes, seat positions and venue dimensions are physical, and the D/H ratio only means something if they stay that way. A custom model has to be authored in meters, because it is loaded at its native scale.
-- **Y is up and the audience sits toward +Z.** The screen faces +Z by default. The default screen is centered at `[0, 3.4, -12]`, and seats run from `z = -8` (front row) to `z = 13` (back of the room).
+- **Units are metres.** Screen sizes, seat positions and venue dimensions are physical, and the D/H ratio only means something if they stay that way. A custom model has to be authored in metres, because it is loaded at its native scale.
+- **Y is up and the audience sits toward +Z.** The screen faces +Z by default. The default screen is centred at `[0, 3.4, -12]`, and seats run from `z = -8` (front row) to `z = 13` (back of the room).
 - **The seated eye is 1.2m above the seat floor.** Desktop seated mode and VR both use this height: `SEATED_EYE_HEIGHT` in [`storyboard.ts`](../src/utils/storyboard.ts), with its own copy in `VrControllerRig`. Picking a seat always sets its floor height to `y = 0`.
 
 ### Occlusion props
@@ -97,7 +97,7 @@ The lectern, the panel's tub chairs and its side tables are procedural, built fr
  Each prop faces +Z and stands on its own origin, and the Screen tab's offsets place it relative to the screen. It stands on the ballroom's `stageHeight`, or on `customDeckHeight` in a custom venue.
 
 - **Real scale.** The presenters are a 1.8m man and a 1.68m woman, 0.72m apart and turned slightly in towards each other; the presenter offset places the pair's centre. The lectern is 0.62m wide and 0.5m deep, 1.15m at the front edge of its sloped desk, with its front panel toward the audience and an open back with a shelf. Panelists sit in 0.8m tub chairs with 0.48m seats, at the same heights as the presenters.
-- **Merged by material.** The lectern, chairs and tables are each merged into one geometry per material, with colors baked in as vertex colors, so a chair is two draw calls and every material is shared. Each person is about 6,600 triangles in ten skinned meshes, so six people add about 60 draw calls. A unit test holds the panel, people included, under 60k triangles.
+- **Merged by material.** The lectern, chairs and tables are each merged into one geometry per material, with colours baked in as vertex colours, so a chair is two draw calls and every material is shared. Each person is about 6,600 triangles in ten skinned meshes, so six people add about 60 draw calls. A unit test holds the panel, people included, under 60k triangles.
 - **Built once.** Geometry is built in `useMemo` when a prop mounts and disposed when it unmounts, so toggling a prop rebuilds it and nothing else does.
 - **Lighting workarounds.** Skin doesn't receive shadows, and the jaw's normals are tilted up. Without both, the overhead key light darkens every lower face until it reads as a beard.
 - **Not scored.** The props are for checking by eye. The telemetry ignores them.
@@ -109,7 +109,7 @@ The lectern, the panel's tub chairs and its side tables are procedural, built fr
 ### Navigation modes
 
 - **Orbit.** drei `OrbitControls`, with the polar angle clamped so the camera can't go below the floor.
-- **Seated.** Orbit controls are off. The camera sits at the seat's eye height and is aimed at the screen center (or along `seatYaw` and `seatPitch`, for a custom view), and dragging adjusts yaw and pitch. Pitch is clamped to ±72°.
+- **Seated.** Orbit controls are off. The camera sits at the seat's eye height and is aimed at the screen centre (or along `seatYaw` and `seatPitch`, for a custom view), and dragging adjusts yaw and pitch. Pitch is clamped to ±72°.
 - **VR.** Starting a session switches to seated mode. The camera is reparented to a rig group, and the first valid headset pose is calibrated so that facing forward means facing the stage at 1.2m. A floor guard re-pins the eye only if it drops below 0.6m above the seat.
 
 ## Content pipeline
@@ -126,7 +126,7 @@ flowchart LR
   Stream[MediaStream] -->|VideoTexture + computeUvCrop| Plane[Screen plane]
 ```
 
-- Rasterizing happens once, on upload. A deck is held as an array of canvases, and changing slides only swaps which canvas backs the texture.
+- rasterising happens once, on upload. A deck is held as an array of canvases, and changing slides only swaps which canvas backs the texture.
 - The UV crop applies only to video sources. It is recomputed on `loadedmetadata` and `resize`, because `videoWidth` is still 0 right after `play()`.
 - See [Content sources and cropping](content-sources.md) for limits and crop modes.
 
@@ -168,7 +168,7 @@ Most past bugs here were leaks or lifecycle mistakes, so treat these as invarian
 
 These are in the code today. Fix them or document them; don't rely on them silently.
 
-- **Screen rotation still has no UI control.** Picking a mesh now sets a screen's yaw from the mesh's surface and the telemetry math honors it, but nothing lets you turn a screen by hand, so the default screen and any screen you add without a mesh face +Z.
+- **Screen rotation still has no UI control.** Picking a mesh now sets a screen's yaw from the mesh's surface and the telemetry math honours it, but nothing lets you turn a screen by hand, so the default screen and any screen you add without a mesh face +Z.
 - **`showPresenterSilhouette` is a legacy alias.** Its setter also sets `showPresenter`, and nothing else reads it.
 - **Click-to-sit is always on a flat floor at `y = 0`,** even in a custom venue. Camera views placed on the floor plan use the clicked floor height, so use those for raked seating and balconies.
 - **VR ignores a custom view's heading.** The headset's first calibration faces the screen.
