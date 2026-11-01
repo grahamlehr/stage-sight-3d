@@ -7,14 +7,14 @@ The **Venue** tab can swap the procedural ballroom for your own model of the roo
 | Requirement | Why |
 | --- | --- |
 | **Prefer `.glb`.** A `.gltf` must be self-contained, with buffers and textures embedded as data URIs. | The file is loaded from a single `blob:` URL, so a `.gltf` that points to separate `.bin` or image files can't find them. |
-| **Author in meters.** | The model is loaded at its native scale with no conversion. A centimeter model looks 100× too large, and its screen and D/H values are wrong by the same factor. |
+| **Author in metres.** | The model is loaded at its native scale with no conversion. A centimetre model looks 100× too large, and its screen and D/H values are wrong by the same factor. |
 | **Y up, floor at `y = 0`.** | Click-to-sit places the seat at `y = 0`, with the eye 1.2m above. Camera views placed on the floor plan use the height of the floor you click, so any floor height works there. |
 | **Audience toward +Z, screen wall facing +Z.** | The screen always faces +Z, and the off-axis angle is measured against that direction. A model facing another way can be turned after loading; see [Turning the venue](#turning-the-venue). |
 | **Nothing special about where it sits.** | Keys 1–4 don't use the ballroom's fixed seats in a custom venue. You place four camera views yourself on the [floor plan](#camera-views-and-the-floor-plan). |
 | **Keep it light.** | The whole file stays in memory while it's loaded. Every mesh casts and receives shadows, so high poly counts hit the frame rate directly, especially in VR. |
 | **Colour comes from your materials.** | The app lights an uploaded model with white light only. The blue and amber side lights are for the demo ballroom. |
 
-Most DCC tools, including Blender, SketchUp and Revit through an exporter, can export glTF in meters with Y up. Blender's glTF exporter converts from Z-up for you.
+Most DCC tools, including Blender, SketchUp and Revit through an exporter, can export glTF in metres with Y up. Blender's glTF exporter converts from Z-up for you.
 
 ## Loading it
 
@@ -39,13 +39,13 @@ If your model contains the screen or LED wall as its own mesh, you can make the 
 First, the venue is turned in quarter turns so the wall faces +Z:
 
 - The wall's **facing axis** is its thinner horizontal extent. A wall that is thin in X faces ±X.
-- The wall's **front** is the side you clicked it from, so pick it from the audience side. The model's own center isn't used, because backstage space behind the wall can be larger than the room in front of it.
+- The wall's **front** is the side you clicked it from, so pick it from the audience side. The model's own centre isn't used, because backstage space behind the wall can be larger than the room in front of it.
 
 Then the mesh's world-space bounding box, after the turn, sets the preview screen:
 
 - **Width** is the box's X extent, rounded to 0.1m, minimum 1m.
 - **Height** is the box's Y extent, rounded to 0.1m, minimum 1m.
-- **Position** is the center of the box's front face, plus 2cm towards the audience so the preview doesn't flicker against the wall.
+- **Position** is the centre of the box's front face, plus 2cm towards the audience so the preview doesn't flicker against the wall.
 
 Binding also finds the stage, so the presenter, lectern and panel stand on it instead of floating at the demo ballroom's 1m deck height. A ray is cast straight down from 1m in front of the wall, at the wall's centre height, and the first surface it hits sets **Stage Floor Height**. If it hits nothing, the props go on the floor at `y = 0`.
 
