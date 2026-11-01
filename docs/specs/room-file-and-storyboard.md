@@ -1,6 +1,6 @@
 # Spec: `.stagesight` room file and storyboard PDF
 
-**Status:** Draft for review · **Date:** 2026-10-29 · **Owner:** Graham
+**Status:** Phases 1 and 2 built; phase 3 (flythrough video) not started · **Date:** 2026-10-29 · **Owner:** Graham
 
 ## Problem statement
 

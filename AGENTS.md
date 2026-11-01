@@ -6,7 +6,7 @@
 A client-only web app for previewing ultra-wide event screens and LED walls from any seat in a 3D venue before load-in. Users put their own content (PDF deck, image, HDMI capture, screen share) on a to-scale screen and read live AVIXA DISCAS sightline telemetry (viewing distance, D/H ratio, off-axis angle), on desktop or in a WebXR headset. Good means the numbers are physically right and nothing leaks while the user switches content.
 
 ## Stack
-- React 18 + TypeScript + Vite 8, three.js via React Three Fiber and drei, Zustand, Tailwind CSS 4 (Vite plugin; theme tokens in `src/index.css` `@theme`, no config file), pdf.js
+- React 18 + TypeScript + Vite 8, three.js via React Three Fiber and drei, Zustand, Tailwind CSS 4 (Vite plugin; theme tokens in `src/index.css` `@theme`, no config file), pdf.js, fflate (room files), pdf-lib (storyboard PDF, lazy-loaded)
 - Vitest for tests, ESLint (zero warnings) for lint. Node 24 (`.nvmrc`, `engines`)
 - No backend. Static bundle hosted on GitHub Pages
 
@@ -21,7 +21,7 @@ A client-only web app for previewing ultra-wide event screens and LED walls from
 | Build | `npm run build` (runs `tsc --noEmit`, then Vite build to `dist/`) |
 | Deploy | Merging to `main` auto-publishes to GitHub Pages via `deploy-pages.yml` |
 
-CI (`ci.yml`) runs lint, tests and build on every PR and push to `main`; all must pass.
+CI (`ci.yml`) runs lint, tests and build on every PR and push to `main`; all must pass. `secret-scan.yml` runs gitleaks on the same triggers.
 
 ## Environments
 | Env | URL / host | How to reach it | Notes |
@@ -40,10 +40,10 @@ CI (`ci.yml`) runs lint, tests and build on every PR and push to `main`; all mus
 - Route uploaded files through the store action that owns them (`setCustomGlbUrl`), which revokes the previous blob URL.
 - Bind gizmos to the group, not the mesh.
 - Keep physical units: sizes and positions are metres, Y is up, the audience sits toward +Z.
-- Never disable lint rules to get a change through. Existing exceptions are documented in place (`react-hooks/immutability` off for `src/components/canvas/`; two `set-state-in-effect` sites). A new exception needs the same kind of justifying comment.
+- Never disable lint rules to get a change through. Existing exceptions: `react-hooks/immutability` off for `src/components/canvas/` and two `set-state-in-effect` sites, all documented in place; three `no-explicit-any` sites (the pdf.js render context in `pdfRasterizer.ts`, two in `roomFile.test.ts`). A new exception needs the same kind of justifying comment.
 - Global keyboard shortcuts must ignore form fields: return early when focus is on `INPUT`, `TEXTAREA` or `SELECT`.
 - Uploads, capture streams and screen shares stay in the browser tab. The `.stagesight` room file and the storyboard PDF are local downloads only, never uploaded; the room file never holds content (`roomFromState` is a whitelist), and storyboard frames live in memory only. Never add a backend or send user content off-device without Graham's OK.
-- Secrets live in `.env` (gitignored). Never commit, print or log them; `.env.example` lists every variable without values. The app currently needs none.
+- Secrets live in `.env` (gitignored). Never commit, print or log them. The app currently needs none, so there is no `.env.example`; add one listing every variable without values if that changes.
 - Commit messages use Conventional Commits (`feat:`, `fix:`, `chore:`, `docs:`, `test:`, `refactor:`), with the reason in the body; a fix names the bug, not just the code touched.
 - Branch from `main` and open PRs against `main`.
 - Do not change `ci.yml` or `deploy-pages.yml` without Graham's OK.
@@ -55,10 +55,12 @@ None. The app calls no third-party HTTP APIs and has no paid services (no Stripe
 Rules for if one is ever added: tests and exploratory runs never call paid or rate-limited APIs. Use test keys only, never live keys in tests. Store fixtures in `tests/fixtures/<api>/`, record one once with Graham's OK and a stated number of calls, then replay it. Mock at the client boundary. Add the API to a table here (API / cost / test rule).
 
 ## Manual testing
-The 3D scene, media capture and VR have no automated tests. Check them by hand in `npm run dev` and say in the PR what you checked:
+The 3D scene, media capture, storyboard rendering and VR have no automated tests. Check them by hand in `npm run dev` and say in the PR what you checked:
 - Scene or screen changes: orbit and seated views, the transform gizmo, every content source touched.
 - Content pipeline: load a PDF, an image and the sample deck; use the transport bar and arrow keys.
 - Capture or crop: test a screen share at least, and each crop mode.
+- Room files: save, reload and reopen a room, in the ballroom and an uploaded venue.
+- Storyboard: capture two sets, retake a frame and export the PDF.
 - VR: test on a headset if possible. If not, say so in the PR; reasoning about WebXR code is not the same as running it.
 
 ## Doc map
@@ -67,6 +69,7 @@ The 3D scene, media capture and VR have no automated tests. Check them by hand i
 - `docs/architecture.md`: store, scene, content pipeline, lifecycle rules, known gaps
 - `docs/UA_ONBOARDING.md`: codebase map for newcomers (layers, guided tour, file map, hotspots), generated from the Understand Anything graph; regenerate with `/understand` then `/understand-onboard`
 - `docs/sightline-telemetry.md`, `docs/content-sources.md`, `docs/custom-venues.md`, `docs/storyboard.md`, `docs/vr-preview.md`: feature references
+- `docs/specs/room-file-and-storyboard.md`: spec for room files and storyboards (phase 3, flythrough video, not started)
 - `docs/README.md`: index of all docs; `docs/archive/`: retired docs (follow the steps in its README)
 - `CONTRIBUTING.md`: setup, workflow, conventions; `CHANGELOG.md`: what changed
 - `docs/STATUS.md`, `docs/HISTORY.md`: create when needed
