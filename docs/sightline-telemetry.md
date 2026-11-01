@@ -9,9 +9,9 @@ The implementation is [`src/utils/discasMath.ts`](../src/utils/discasMath.ts). I
 | Input | Source |
 | --- | --- |
 | Eye position | The camera's world position: the orbit camera, the seated eye 1.2m above the seat, or the VR headset |
-| Screen position | The primary screen's center |
+| Screen position | The primary screen's centre |
 | Screen rotation | Only the Y (yaw) component of the primary screen's rotation is used |
-| Screen height | The primary screen's height, in meters |
+| Screen height | The primary screen's height, in metres |
 
 With several screens, the headline numbers (and the formulas below) are for the **primary screen**, marked with a star on the Screen tab. Pick a different one there to read from it instead.
 
@@ -22,11 +22,11 @@ With several screens, the headline numbers (and the formulas below) are for the 
 ## Viewing distance and D/H ratio
 
 ```
-viewingDistance = max(0.1, |eye − screenCenter|)        3D Euclidean, meters
+viewingDistance = max(0.1, |eye − screenCenter|)        3D Euclidean, metres
 dhRatio         = viewingDistance / max(0.1, screenHeight)
 ```
 
-The distance is the full 3D distance to the screen center. It includes the height difference, so a seated eye looking up at a raised screen is farther away than the floor distance suggests.
+The distance is the full 3D distance to the screen centre. It includes the height difference, so a seated eye looking up at a raised screen is farther away than the floor distance suggests.
 
 | Status | Band | HUD label |
 | --- | --- | --- |
@@ -37,13 +37,13 @@ The distance is the full 3D distance to the screen center. It includes the heigh
 
 ## Horizontal off-axis angle
 
-The screen faces +Z, rotated by its yaw `ry`, so its normal in the horizontal plane is `(sin ry, cos ry)`. The angle is the one between that normal and the horizontal direction from the screen center to the eye:
+The screen faces +Z, rotated by its yaw `ry`, so its normal in the horizontal plane is `(sin ry, cos ry)`. The angle is the one between that normal and the horizontal direction from the screen centre to the eye:
 
 ```
 offAxisAngle = acos( normal · normalize(eye.xz − screen.xz) )      degrees, 0–180
 ```
 
-Height is ignored. If the eye is directly above or below the screen center (horizontal distance under 1mm), the angle is 0.
+Height is ignored. If the eye is directly above or below the screen centre (horizontal distance under 1mm), the angle is 0.
 
 | Status | Band | HUD label |
 | --- | --- | --- |
@@ -57,7 +57,7 @@ Results are rounded before they're stored: distance to 0.1m, D/H to two decimals
 
 ## Seat presets
 
-These are the values the presets produce with the default 16m × 4.5m screen centered at `[0, 3.4, -12]`. The 1.2m eye height is included.
+These are the values the presets produce with the default 16m × 4.5m screen centred at `[0, 3.4, -12]`. The 1.2m eye height is included.
 
 | Key | Preset | Seat (x, z) | Distance | D/H | Off-axis |
 | --- | --- | --- | --- | --- | --- |
@@ -67,13 +67,13 @@ These are the values the presets produce with the default 16m × 4.5m screen cen
 | <kbd>4</kbd> | Back of Room | (0, 13) | 25.1m | 5.58 · reading | 0° · optimal |
 
 > [!NOTE]
-> The app labels preset 2 "~48° Off-Axis", but from (−6.5, −8) the angle to the screen center is 58.4°. Either the label or the seat position needs to change.
+> The app labels preset 2 "~48° Off-Axis", but from (−6.5, −8) the angle to the screen centre is 58.4°. Either the label or the seat position needs to change.
 
 ## What the numbers don't cover
 
 Keep these in mind when you read a result as pass or fail:
 
-- **Everything is measured to the screen center.** On an ultra-wide screen, the near and far edges sit at very different angles and distances. From Mid House Center, the edge of a 16m-wide screen is about 30° off the line of sight, even though the center reads 0°. Check edge content from the seat as well as reading the numbers.
+- **Everything is measured to the screen centre.** On an ultra-wide screen, the near and far edges sit at very different angles and distances. From Mid House Center, the edge of a 16m-wide screen is about 30° off the line of sight, even though the centre reads 0°. Check edge content from the seat as well as reading the numbers.
 - **Vertical angle isn't graded.** A screen hung high above the front rows shows only as extra distance, not as a neck-strain warning.
 - **D/H uses the whole screen height.** DISCAS sizes by the height of the content image. If letterboxed or cropped content fills only part of the screen, the effective ratio is worse than shown.
 - **Only yaw is considered.** A screen that's pitched or rolled is graded as if it were vertical. Screens picked from angled meshes get their yaw from the mesh, but there is no rotation control for the others (see [Architecture: known gaps](architecture.md#known-gaps)).
