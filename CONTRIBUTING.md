@@ -14,11 +14,13 @@ npm run dev
 
 The dev server runs at http://localhost:5173. Use `localhost`, not your LAN IP: capture, screen share and WebXR only work in a secure context.
 
+Once per clone, run `scripts/install-hooks.sh` to turn on the gitleaks pre-commit hook. It needs `brew install gitleaks`.
+
 ## Workflow
 
 1. Branch from `main`.
 2. Make your change and run the checks below.
-3. Open a pull request against `main`. CI ([`ci.yml`](.github/workflows/ci.yml)) runs lint, tests and the typechecked build, and all three must pass.
+3. Open a pull request against `main`. CI ([`ci.yml`](.github/workflows/ci.yml)) runs lint, tests and the typechecked build, and all three must pass. [`secret-scan.yml`](.github/workflows/secret-scan.yml) also runs gitleaks.
 4. **Merging deploys.** Every push to `main` publishes to GitHub Pages through [`deploy-pages.yml`](.github/workflows/deploy-pages.yml). There's no staging step, so `main` must always be releasable.
 
 ### Checks
@@ -51,16 +53,18 @@ Use [Conventional Commits](https://www.conventionalcommits.org/) prefixes, as th
 - **Keep math pure and tested.** Geometry and sightline math belongs in `src/utils/` as pure functions, with a `*.test.ts` next to it. New behaviour, or a fix to existing math, needs a test. A fix should include a regression test that fails without it.
 - **Clean up what you create.** Dispose textures, revoke blob URLs, stop media tracks and destroy pdf.js documents. The [resource lifecycle rules](docs/architecture.md#resource-lifecycle-rules) list them.
 - **Keep physical units.** Sizes and positions are metres. The audience sits toward +Z.
-- **Don't disable lint rules to get a change through.** Two exceptions exist, and both are documented in place: `react-hooks/immutability` is off for `src/components/canvas/` because three.js objects are mutated imperatively, and two `set-state-in-effect` sites sync with external systems. A new exception needs the same kind of justifying comment.
+- **Don't disable lint rules to get a change through.** The exceptions are: `react-hooks/immutability` is off for `src/components/canvas/` because three.js objects are mutated imperatively; two `set-state-in-effect` sites, documented in place, tie state to an external system or a texture's lifecycle; and three `no-explicit-any` sites (the pdf.js render context in `pdfRasterizer.ts`, two in `roomFile.test.ts`). A new exception needs the same kind of justifying comment.
 - **Global keyboard shortcuts must ignore form fields.** Return early when focus is on an `INPUT`, `TEXTAREA` or `SELECT`.
 
 ## Testing what unit tests can't
 
-The 3D scene, media capture and VR have no automated tests. Check them by hand in `npm run dev`, and say in the PR what you checked:
+The 3D scene, media capture, storyboard rendering and VR have no automated tests. Check them by hand in `npm run dev`, and say in the PR what you checked:
 
 - **Scene or screen changes.** Check orbit and seated views, the transform gizmo and every content source your change touches.
 - **Content pipeline changes.** Load a PDF, an image and the sample deck. Use the transport bar and the arrow keys.
 - **Capture or crop changes.** Test with a screen share at the very least, and try each crop mode.
+- **Room file changes.** Save, reload and reopen a room, in the ballroom and an uploaded venue.
+- **Storyboard changes.** Capture two sets, retake a frame and export the PDF.
 - **VR changes.** Test on a headset if you can. If you couldn't, say so in the PR. Reasoning about the WebXR code isn't the same as running it.
 
 ## Documentation

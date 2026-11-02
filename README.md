@@ -43,6 +43,7 @@ A short tour walks through these on first visit. Tick **Don't show again** to st
 | <kbd>←</kbd> <kbd>→</kbd> · <kbd>Page Up</kbd> <kbd>Page Down</kbd> · <kbd>Space</kbd> | Previous / next slide |
 | <kbd>R</kbd> | Recenter VR view |
 | <kbd>H</kbd> | Show / hide VR HUD |
+| <kbd>Esc</kbd> | Close the floor plan |
 | Drop a `.stagesight` file on the 3D view | Open that room (same as **Venue → Open room**) |
 | **Storyboard** (header) | Open the storyboard panel: capture sets of frames, review them, export a PDF |
 
@@ -71,6 +72,7 @@ VR uses WebXR (`immersive-vr`). On a PC, connect a Meta Quest through **Quest Li
 | [VR preview](docs/vr-preview.md) | Headset setup, calibration and troubleshooting |
 | [Sightline telemetry](docs/sightline-telemetry.md) | How D/H and off-axis are computed, and their limits |
 | [Architecture](docs/architecture.md) | State, scene, content pipeline and lifecycle rules |
+| [Onboarding guide](docs/UA_ONBOARDING.md) | Codebase map: layers, guided tour, file map and complexity hotspots |
 | [Contributing](CONTRIBUTING.md) | Setup, checks, conventions and pull requests |
 | [Changelog](CHANGELOG.md) | What has changed |
 
@@ -103,16 +105,16 @@ Then open http://localhost:5173.
 ```
 src/
   components/
-    canvas/   3D scene: venue, screen, occlusion props, camera and VR rig
-    ui/       Sidebar, top HUD, slide transport bar, about modal
+    canvas/   3D scene: venue, screen, occlusion props, camera, VR rig and storyboard renderer
+    ui/       Sidebar, top HUD, slide transport bar, storyboard panel, first-run tour, about modal
   store/      Single Zustand store holding all app state
-  utils/      DISCAS and UV-crop math, PDF rasterising, test-pattern drawing
+  utils/      DISCAS and UV-crop math, screen layout, PDF rasterising, room files, storyboard shots and PDF
 docs/         Guides, reference and architecture (see docs/README.md)
 ```
 
 The math in `src/utils/discasMath.ts` and `src/utils/uvCropMath.ts` is pure and has unit tests next to it.
 
-Built with React 18, TypeScript, Vite, three.js through React Three Fiber and drei, Zustand, Tailwind CSS 4 and pdf.js.
+Built with React 18, TypeScript, Vite, three.js through React Three Fiber and drei, Zustand, Tailwind CSS 4, pdf.js, fflate and pdf-lib.
 
 ## Credits
 
@@ -121,4 +123,5 @@ The two presenters in `public/models/` are "Business Man" and "Suit" by [Quatern
 ## CI and deployment
 
 - **CI** ([`ci.yml`](.github/workflows/ci.yml)) runs lint, tests and the typechecked build on every pull request and every push to `main`.
+- **Secret scan** ([`secret-scan.yml`](.github/workflows/secret-scan.yml)) runs gitleaks on the same triggers.
 - **Deploy** ([`deploy-pages.yml`](.github/workflows/deploy-pages.yml)) builds and publishes to GitHub Pages on every push to `main`. The Vite `base` is `./`, so the build works under the `/stage-sight-3d/` subpath.
