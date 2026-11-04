@@ -17,7 +17,7 @@ export const CameraViewsPanel: React.FC = () => {
   const customVenueBounds = useStageStore((s) => s.customVenueBounds);
 
   return (
-    <aside data-guide="camera-views" className="panel absolute right-3 top-16 w-72 z-20 p-3 space-y-2.5 text-xs">
+    <aside data-guide="camera-views" className="panel absolute right-3 top-28 xl:top-16 w-72 z-20 p-3 space-y-2.5 text-xs">
       <span className="label">Camera views (keys 1–4)</span>
       <div className="grid grid-cols-2 gap-2">
         {customSeatViews.map((view, i) => (

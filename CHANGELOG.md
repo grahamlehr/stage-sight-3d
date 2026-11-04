@@ -20,6 +20,7 @@ All notable changes to StageSight 3D are listed here. The format follows [Keep a
 
 ### Fixed
 
+- **Top bar fits narrower windows.** Below about 1760px the right-hand buttons (camera mode and VR) ran off-screen. Each group now drops its labels in steps as the window narrows, keeping icons with tooltips; the worst-screen tag shortens to "Worst · Too far" (the screen's name is in its tooltip) and truncates rather than push anything off. Below 1280px the sightline readout moves to a second row.
 - **About dialogue works again.** The close button, **Take the tour** and the website link did nothing, because the dialogue sat inside the top bar, which lets clicks through to the 3D view. It now opens over the whole page, and clicking outside it or pressing Escape closes it.
 
 ### Added
