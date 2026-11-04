@@ -39,7 +39,7 @@ flowchart LR
   Sidebar --> Utils
 ```
 
-`App.tsx` stacks four layers in one full-viewport container: the 3D `StageCanvas` at the back, with `TelemetryHUD` (top), `Sidebar` (left) and `TransportBar` (bottom) floating over it. `StoryboardTray` (hidden during a VR session) and `FirstRunGuide` mount on top while they're open. `App.tsx` also handles dropping a `.stagesight` file on the canvas and the unsaved-changes prompt when the tab closes.
+`App.tsx` stacks four layers in one full-viewport container: the 3D `StageCanvas` at the back, with `TelemetryHUD` (top, with the lighting menu and the room menu), `Sidebar` (left) and `TransportBar` (bottom) floating over it. `StoryboardTray` (hidden during a VR session) and `FirstRunGuide` mount on top while they're open. `App.tsx` also handles dropping a `.stagesight` file on the canvas and the unsaved-changes prompt when the tab closes.
 
 ## State: one Zustand store
 
@@ -56,7 +56,7 @@ All app state lives in [`src/store/useStageStore.ts`](../src/store/useStageStore
 | Telemetry | The latest `DiscasTelemetry` result |
 | Room file | `roomName`, `roomNotes` and `roomBaseline` (the `roomKey` at the last save or open; `hasUnsavedRoomChanges` compares against it). `saveRoom` and `loadRoom` read and write `.stagesight` files through the pure serialiser in [`roomFile`](../src/utils/roomFile.ts). See [Room files](#room-files) |
 | Storyboard | `storyboardSets` (each a label and frames: the `CameraShot`, a JPEG blob and its object URL), `isStoryboardOpen`, `isCapturing`, `storyboardExtraShots`, and the `renderStoryboardShots` and `getLiveCameraPose` functions registered by the canvas. Capture, retake, delete and clear actions own the frames' object URLs. See [Storyboard capture](#storyboard-capture) |
-| UI | Active sidebar tab, whether the sidebar is open, and whether the first-run tour is open (`isGuideOpen`) |
+| UI | Active sidebar tab (`SidebarTab`: `venue`, `screens`, `stage` or `content`; it opens on `content`), whether the sidebar is open, whether the top-bar room menu is open (`isRoomMenuOpen`; opening a room sets it so the name and notes show), and whether the first-run tour is open (`isGuideOpen`). `contentLabel` is the name the Content tab's Now showing row gives the loaded slides |
 
 Three conventions apply:
 
@@ -94,7 +94,7 @@ The lectern, the panel's tub chairs and its side tables are procedural, built fr
 - **Standing.** Each figure is held in the first frame of its model's one animation and scaled to height with its feet on the deck by [`fitToHeight`](../src/utils/presenterPair.ts). [`PRESENTER_PAIR`](../src/utils/presenterPair.ts) sets the pair's spacing and turn.
 - **Seated.** The models have no sitting animation, so [`applySeatedPose`](../src/utils/figurePose.ts) bends the standing pose: it points the thighs, shins, upper arms and forearms in set world directions, leans the torso and turns the head. The rigs' feet are IK-style bones outside the leg chain, so each foot is moved to the end of its shin. The hip joints go 0.56m up over the back of the cushion, and each shin angles forward just far enough for its foot to reach the floor. [`PANEL_KINDS`](../src/utils/presenterPair.ts) seats a man, a woman, a man and a woman.
 
- Each prop faces +Z and stands on its own origin, and the Screen tab's offsets place it relative to the screen. It stands on the ballroom's `stageHeight`, or on `customDeckHeight` in a custom venue.
+ Each prop faces +Z and stands on its own origin, and the Stage tab's offsets place it relative to the screen. It stands on the ballroom's `stageHeight`, or on `customDeckHeight` in a custom venue.
 
 - **Real scale.** The presenters are a 1.8m man and a 1.68m woman, 0.72m apart and turned slightly in towards each other; the presenter offset places the pair's centre. The lectern is 0.62m wide and 0.5m deep, 1.15m at the front edge of its sloped desk, with its front panel toward the audience and an open back with a shelf. Panelists sit in 0.8m tub chairs with 0.48m seats, at the same heights as the presenters.
 - **Merged by material.** The lectern, chairs and tables are each merged into one geometry per material, with colours baked in as vertex colours, so a chair is two draw calls and every material is shared. Each person is about 6,600 triangles in ten skinned meshes, so six people add about 60 draw calls. A unit test holds the panel, people included, under 60k triangles.

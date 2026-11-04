@@ -61,7 +61,7 @@ Use [Conventional Commits](https://www.conventionalcommits.org/) prefixes, as th
 The 3D scene, media capture, storyboard rendering and VR have no automated tests. Check them by hand in `npm run dev`, and say in the PR what you checked:
 
 - **Scene or screen changes.** Check orbit and seated views, the transform gizmo and every content source your change touches.
-- **Content pipeline changes.** Load a PDF, an image and the sample deck. Use the transport bar and the arrow keys.
+- **Content pipeline changes.** Load a PDF, an image and the sample deck (the link under the source tiles on the Content tab). Use the transport bar and the arrow keys.
 - **Capture or crop changes.** Test with a screen share at the very least, and try each crop mode.
 - **Room file changes.** Save, reload and reopen a room, in the ballroom and an uploaded venue.
 - **Storyboard changes.** Capture two sets, retake a frame and export the PDF.

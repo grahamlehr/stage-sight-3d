@@ -11,7 +11,7 @@ import {
   Glasses,
   type LucideIcon,
 } from 'lucide-react';
-import { useStageStore, SEAT_PRESETS } from '../../store/useStageStore';
+import { useStageStore, SEAT_PRESETS, type SidebarTab } from '../../store/useStageStore';
 import { setGuideDismissed } from '../../utils/firstRunGuide';
 
 // A short step-through tour shown on first visit. Each step spotlights the UI it
@@ -53,15 +53,16 @@ const ActionButton: React.FC<{ onClick: () => void; children: React.ReactNode }>
 const SidebarActions: React.FC = () => {
   const setIsSidebarOpen = useStageStore((s) => s.setIsSidebarOpen);
   const setActiveSidebarTab = useStageStore((s) => s.setActiveSidebarTab);
-  const show = (tab: 'source' | 'screen' | 'venue') => {
+  const show = (tab: SidebarTab) => {
     setIsSidebarOpen(true);
     setActiveSidebarTab(tab);
   };
   return (
     <>
-      <ActionButton onClick={() => show('source')}>Source tab</ActionButton>
-      <ActionButton onClick={() => show('screen')}>Screen tab</ActionButton>
       <ActionButton onClick={() => show('venue')}>Venue tab</ActionButton>
+      <ActionButton onClick={() => show('screens')}>Screens tab</ActionButton>
+      <ActionButton onClick={() => show('stage')}>Stage tab</ActionButton>
+      <ActionButton onClick={() => show('content')}>Content tab</ActionButton>
     </>
   );
 };
@@ -126,19 +127,25 @@ const STEPS: GuideStep[] = [
   {
     title: 'Set up the room',
     icon: PanelLeft,
-    targets: ['sidebar', 'sidebar-toggle'],
+    targets: ['sidebar', 'sidebar-toggle', 'room-menu'],
     body: (
       <ul className="space-y-1 list-disc list-inside">
         <li>
-          <strong className="font-semibold text-ink">Source</strong> puts content on the screen: a test pattern, PDF deck,
-          image, capture card or screen share.
+          <strong className="font-semibold text-ink">1 Venue</strong> picks the built-in ballroom or your own .glb model.
         </li>
         <li>
-          <strong className="font-semibold text-ink">Screen</strong> sets the size and aspect ratio.
+          <strong className="font-semibold text-ink">2 Screens</strong> adds screens and sets their size and aspect ratio.
         </li>
         <li>
-          <strong className="font-semibold text-ink">Venue</strong> switches between the built-in ballroom and your own
-          .glb model.
+          <strong className="font-semibold text-ink">3 Stage</strong> sets the stage height and adds presenters, a lectern
+          or a panel.
+        </li>
+        <li>
+          <strong className="font-semibold text-ink">4 Content</strong> puts a test pattern, deck, capture card or screen
+          share on the screens.
+        </li>
+        <li>
+          The <strong className="font-semibold text-ink">room menu</strong> at the top saves and reopens your setup.
         </li>
       </ul>
     ),
