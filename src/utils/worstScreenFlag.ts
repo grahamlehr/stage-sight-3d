@@ -5,8 +5,6 @@ export type FlagLevel = 'go' | 'warn' | 'fail';
 export interface WorstScreenFlag {
   /** For example "Worst: Left screen · Marginal" */
   text: string;
-  /** The band without the screen's name, for narrow windows: "Worst · Marginal" */
-  shortText: string;
   level: FlagLevel;
 }
 
@@ -33,5 +31,5 @@ export function describeWorstScreen(worst: WorstScreenTelemetry | null | undefin
   const angle = ANGLE_LABEL[worst.angleStatus];
   const pick = angle.severity > dh.severity ? angle : dh;
   const level: FlagLevel = pick.severity >= 2 ? 'fail' : pick.severity === 1 ? 'warn' : 'go';
-  return { text: `Worst: ${worst.screenName} · ${pick.label}`, shortText: `Worst · ${pick.label}`, level };
+  return { text: `Worst: ${worst.screenName} · ${pick.label}`, level };
 }

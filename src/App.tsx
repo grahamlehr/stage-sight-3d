@@ -6,6 +6,7 @@ import { TransportBar } from './components/ui/TransportBar';
 import { StoryboardTray } from './components/ui/StoryboardTray';
 import { CameraViewsPanel } from './components/ui/CameraViewsPanel';
 import { FirstRunGuide } from './components/ui/FirstRunGuide';
+import { SightlinePanel } from './components/ui/SightlinePanel';
 import { hasUnsavedRoomChanges, useStageStore } from './store/useStageStore';
 import { openRoomFromFile } from './utils/openRoomFile';
 
@@ -54,6 +55,9 @@ export const App: React.FC = () => {
 
       {/* Camera views editor, docked while the floor plan is open */}
       {showFloorPlan && <CameraViewsPanel />}
+
+      {/* Live sightline readout, docked bottom right */}
+      <SightlinePanel />
 
       {/* Bottom PDF / Presentation Deck Scrubber */}
       <TransportBar />

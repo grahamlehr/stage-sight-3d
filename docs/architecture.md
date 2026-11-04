@@ -39,7 +39,7 @@ flowchart LR
   Sidebar --> Utils
 ```
 
-`App.tsx` stacks four layers in one full-viewport container: the 3D `StageCanvas` at the back, with `TelemetryHUD` (top, with the lighting menu and the room menu), `Sidebar` (left) and `TransportBar` (bottom) floating over it. `StoryboardTray` (hidden during a VR session) and `FirstRunGuide` mount on top while they're open. `App.tsx` also handles dropping a `.stagesight` file on the canvas and the unsaved-changes prompt when the tab closes.
+`App.tsx` stacks four layers in one full-viewport container: the 3D `StageCanvas` at the back, with `TelemetryHUD` (the top bar of controls, with the lighting menu and the room menu), `Sidebar` (left), `TransportBar` (bottom) and `SightlinePanel` (the live sightline readout, bottom right) floating over it. `StoryboardTray` (hidden during a VR session) and `FirstRunGuide` mount on top while they're open. `App.tsx` also handles dropping a `.stagesight` file on the canvas and the unsaved-changes prompt when the tab closes.
 
 ## State: one Zustand store
 
