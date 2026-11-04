@@ -13,7 +13,7 @@ The implementation is [`src/utils/discasMath.ts`](../src/utils/discasMath.ts). I
 | Screen rotation | Only the Y (yaw) component of the primary screen's rotation is used |
 | Screen height | The primary screen's height, in metres |
 
-With several screens, the headline numbers (and the formulas below) are for the **primary screen**, marked with a star on the Screen tab. Pick a different one there to read from it instead.
+With several screens, the headline numbers (and the formulas below) are for the **primary screen**, marked with a star on the Screens tab. Pick a different one there to read from it instead.
 
 **Worst flag.** The same calculation runs for every other screen. If one lands in a strictly worse band than the primary from the current seat (D/H or angle), the HUD shows a line such as *Worst: Left screen · Marginal*, with whichever of that screen's two bands is worse. The VR HUD shows the same line. The flag names the screen but doesn't change the headline numbers. It is absent when the primary is already the worst or every screen reads the same.
 

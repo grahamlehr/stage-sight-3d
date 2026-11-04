@@ -1,6 +1,6 @@
 # Content sources and cropping
 
-The **Source** tab chooses what is shown on the screen. Everything is processed in the browser. Nothing is uploaded anywhere.
+The **Content** tab chooses what is shown on the screen. Everything is processed in the browser. Nothing is uploaded anywhere.
 
 ## Sources
 
@@ -53,7 +53,7 @@ The crop is recalculated whenever the source's real resolution becomes known or 
 
 ## Several screens: repeat and split
 
-A room can hold more than one screen (the **Screen** tab lists them). Each screen has a role:
+A room can hold more than one screen (the **Screens** tab lists them). Each screen has a role:
 
 - **Repeat** shows the whole source, cropped to that screen's own shape. Use it for confidence monitors and side screens that mirror the main picture.
 - **Split** shows its own slice of the source. Split screens form one group that the source is spread across.
@@ -63,7 +63,7 @@ A room can hold more than one screen (the **Screen** tab lists them). Each scree
 ### How the split is cut
 
 - The slices are **contiguous and sized by physical width**. A 12m screen beside a 4m screen takes 75% and 25% of the source width. Gaps between the screens are ignored.
-- The slices run **left to right as the audience sees them**. By default the order follows each screen's X position (**auto order**). The **Split Order** list on the Screen tab moves a screen left or right; that pins a manual order until you press **Auto order**. The slice diagram under it shows each screen's share of the source width.
+- The slices run **left to right as the audience sees them**. By default the order follows each screen's X position (**auto order**). The **Split Order** list on the Screens tab moves a screen left or right; that pins a manual order until you press **Auto order**. The slice diagram under it shows each screen's share of the source width.
 - The group's **combined size** is its widths added up by its tallest height. That size, not any single screen, is what the source is cropped to.
 - A split screen **shorter than the tallest** shows a vertically centred band of the source, as tall as it is relative to the tallest screen. A 3m screen beside a 4.5m one shows the middle two-thirds of the source's height, so nothing is squashed.
 

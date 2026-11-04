@@ -7,14 +7,14 @@ Preview ultra-wide event screens and LED walls from any seat in the room before 
 ## Features
 
 - **Screens** — 16:9, 21:9, 32:9, 3:1 and 4:1 presets, custom physical dimensions, and a drag gizmo for placement. Add several screens, repeat or split content across them, or pick screens from meshes in your own venue model.
-- **Content** — an aspect-matched test pattern, a PDF deck, a single PNG or JPEG, a live HDMI capture card, or a screen share. A five-slide 32:9 sample deck is built in. Slides are stretched to the screen, so export decks at the screen's aspect ratio.
+- **Content** — an aspect-matched test pattern, a PDF deck, a single PNG or JPEG, a live HDMI capture card, or a screen share. A five-slide 32:9 sample deck is built in. Slides are stretched to the screen, so export decks at the screen's aspect ratio. The sidebar's four tabs follow setup order: Venue, Screens, Stage, then Content.
 - **Ultra-wide cropping** — fixes 16:9 EDID sources on ultra-wide walls: centred, top-aligned, 1:1 or manual crop.
 - **Venues** — a procedural ballroom with adjustable size and stage height, or upload your own `.glb` (or a self-contained `.gltf`) authored in metres.
 - **Storyboard PDF** — capture your content from every camera view in sets ("Your draft", "Our concept") from identical viewpoints, review and retake frames, and export a branded PDF built in the browser.
 - **Room files** — save the venue, screens, camera views and stage dressing as one `.stagesight` file (an uploaded model goes inside it) and open it again later, or drop it on the 3D view. Content is never saved in it, and it never leaves your device.
 - **Sightline telemetry** — live D/H ratio and horizontal off-axis angle against the bands below, plus 50° room-context and 25° eye-focus FOV modes.
 - **Occlusion checks** — two standing presenters (a 1.8m man and a 1.68m woman), a lectern and a seated panel of two men and two women, each movable on the stage.
-- **Lighting** — conference, ballroom and keynote presets.
+- **Lighting** — conference, ballroom and keynote presets, house lights and a stage key light with spotlights, all from the top-bar lighting menu.
 - **VR preview** — sit in any seat with a WebXR headset, with an in-headset telemetry HUD and controller teleporting.
 
 ### Telemetry bands
@@ -44,7 +44,7 @@ A short tour walks through these on first visit. Tick **Don't show again** to st
 | <kbd>R</kbd> | Recenter VR view |
 | <kbd>H</kbd> | Show / hide VR HUD |
 | <kbd>Esc</kbd> | Close the floor plan |
-| Drop a `.stagesight` file on the 3D view | Open that room (same as **Venue → Open room**) |
+| Drop a `.stagesight` file on the 3D view | Open that room (same as **Open room** in the room menu in the top bar) |
 | **Storyboard** (header) | Open the storyboard panel: capture sets of frames, review them, export a PDF |
 
 ### VR controllers
@@ -106,7 +106,7 @@ Then open http://localhost:5173.
 src/
   components/
     canvas/   3D scene: venue, screen, occlusion props, camera, VR rig and storyboard renderer
-    ui/       Sidebar, top HUD, slide transport bar, storyboard panel, first-run tour, about modal
+    ui/       Sidebar (four tabs), top HUD and room menu, camera views panel, slide transport bar, storyboard panel, first-run tour, about modal
   store/      Single Zustand store holding all app state
   utils/      DISCAS and UV-crop math, screen layout, PDF rasterising, room files, storyboard shots and PDF
 docs/         Guides, reference and architecture (see docs/README.md)

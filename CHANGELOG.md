@@ -6,6 +6,13 @@ All notable changes to StageSight 3D are listed here. The format follows [Keep a
 
 ## [Unreleased]
 
+### Changed
+
+- **Sidebar in setup order.** The three tabs (Source, Screen, Venue) become four numbered tabs: 1 Venue, 2 Screens, 3 Stage, 4 Content. It opens on Content. Stage holds one **Stage height** slider (the ballroom's, or a custom venue's stage floor) and the presenters, lectern and panel. Screens ends with a **Selected screen** card for aspect ratio, dimensions, the gizmo and **Pick screen mesh**. Content gains a **Now showing** row, the sample deck and **Upload new file** links under the source tiles, and the PDF/Image tile returns to loaded slides instead of reopening the picker.
+- **Lighting moves to the top bar.** The lighting menu now has the presets, house lights and the stage key light and spotlights; the sidebar no longer has a lighting section.
+- **Room file moves to a room menu in the top bar.** The button shows the room name, with a dot for unsaved changes, and holds the name, notes, **Save room** and **Open room**. Opening a room, by button or drag-and-drop, opens the menu.
+- **Camera views get their own panel.** While the floor plan is open, a **Camera views** panel docks on the right (select, rename, clear, set from camera, cut height) with a **Done** button. The floor plan opens from **Place camera views** on the Venue tab or from **Seat Presets**, which now offers it in any custom venue.
+
 ### Added
 
 - **Storyboard capture and PDF.** The **Storyboard** panel renders every camera view off-screen at 2400 × 1350 with whatever is on the screen, as a named set. Capture again after switching content and the frames line up exactly, for A/B comparisons. Review, rename, retake and delete frames, add one-off frames with **Capture this view**, then export a PDF built in the browser: a cover with logo, event, speaker, date and agency, one page per shot with the sets stacked, and an optional technical appendix. Frames live in memory only and are cleared on close or export. The agency name and logo are remembered in the browser. pdf-lib loads only when you export (2026-10-29).

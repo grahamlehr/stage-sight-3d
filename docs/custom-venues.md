@@ -25,7 +25,7 @@ Uploading another model releases the previous one from memory.
 
 ## Turning the venue
 
-If the model's screen wall faces sideways or backwards, turn it in the **Rotation** row on the Venue tab: **0°**, **90°**, **180°** or **270°** about the vertical axis through the origin. Your seat turns with the room, so you stay in the same chair. A newly uploaded model starts at 0°.
+If the model's screen wall faces sideways or backwards, turn it in the **Rotation** row on the Venue tab (it appears once a model is loaded): **0°**, **90°**, **180°** or **270°** about the vertical axis through the origin. Your seat turns with the room, so you stay in the same chair. A newly uploaded model starts at 0°.
 
 Picking the screen mesh (below) chooses the rotation for you, so you usually won't need these buttons. If you turn the venue by hand after binding, pick the screen mesh again so the screen follows the wall.
 
@@ -33,7 +33,7 @@ Picking the screen mesh (below) chooses the rotation for you, so you usually won
 
 If your model contains the screen or LED wall as its own mesh, you can make the preview screen match it:
 
-1. On the **Screen** tab, choose **Pick screen mesh**.
+1. On the **Screens** tab, under **Selected screen**, choose **Pick screen mesh**.
 2. Click the screen mesh in the 3D view.
 
 First, the venue is turned in quarter turns so the wall faces +Z:
@@ -47,9 +47,9 @@ Then the mesh's world-space bounding box, after the turn, sets the preview scree
 - **Height** is the box's Y extent, rounded to 0.1m, minimum 1m.
 - **Position** is the centre of the box's front face, plus 2cm towards the audience so the preview doesn't flicker against the wall.
 
-Binding also finds the stage, so the presenter, lectern and panel stand on it instead of floating at the demo ballroom's 1m deck height. A ray is cast straight down from 1m in front of the wall, at the wall's centre height, and the first surface it hits sets **Stage Floor Height**. If it hits nothing, the props go on the floor at `y = 0`.
+Binding also finds the stage, so the presenter, lectern and panel stand on it instead of floating at the demo ballroom's 1m deck height. A ray is cast straight down from 1m in front of the wall, at the wall's centre height, and the first surface it hits sets the **Stage height** slider. If it hits nothing, the props go on the floor at `y = 0`.
 
-**Stage Floor Height** sits at the top of **Stage Occlusion Items** on the Screen tab, for custom venues only. Use it if the stage in front of your wall isn't level, or if the ray hit something else first, such as a lectern in the model. A newly uploaded model starts at 0m.
+On the **Stage** tab the single **Stage height** slider sets the ballroom's stage height or, for a custom venue, the stage floor height; the presenters, lectern and panel controls sit below it. Use it if the stage in front of your wall isn't level, or if the ray hit something else first, such as a lectern in the model. A newly uploaded model starts at 0m.
 
 The picked mesh's name appears as a tag on that screen in the list.
 
@@ -65,33 +65,33 @@ Each picked screen is a flat plane laid over the mesh. It takes the mesh's size 
 
 **A curved wall, or one pitched or rolled, is still approximated** by a flat vertical plane.
 
-Picking only works on a custom venue. Clicks on the demo ballroom don't bind. (The demo ballroom has a **Side screens** toggle on the Screen tab that adds two angled screens for trying out repeat and split.)
+Picking only works on a custom venue. Clicks on the demo ballroom don't bind. (The demo ballroom has a **Side screens** toggle on the Screens tab that adds two angled screens for trying out repeat and split.)
 
 ## Camera views and the floor plan
 
 In a custom venue, keys <kbd>1</kbd>–<kbd>4</kbd>, the **Seat Presets** menu and the VR thumbstick all jump between four camera views that you place yourself. Until you place one it shows as **Not placed yet** and is skipped. In the ballroom they keep their fixed seats. While none are placed, the **Seat Presets** menu has an **Open floor plan to place views** button that takes you straight to step 1, with View 1 selected.
 
-1. On the **Venue** tab, under **Camera Views**, choose **Open Floor Plan**. The 3D view is replaced by a top-down plan with the screen wall at the top. The mouse wheel zooms.
+1. On the **Venue** tab, choose **Place camera views** (or **Open floor plan** in the **Seat Presets** menu, which is available in any custom venue). The 3D view is replaced by a top-down plan with the screen wall at the top, and the **Camera views** panel docks on the right. The mouse wheel zooms.
 2. Set the **Cut height** slider so the plan slices through the model below its roof and upper floors. It starts 2.5m above the model's lowest point, and the slider shows metres above that point.
 3. Pick a slot (**View 1** to **View 4**), then **click a floor spot** to place it. **Drag** from that spot to point the view; release to confirm. A plain click without a drag aims the view at the screen centre. The next empty slot is selected for you.
-4. Close the plan with **Close Floor Plan** or <kbd>Esc</kbd>. The × beside a slot clears it.
+4. Close the plan with **Done** in the Camera views panel or <kbd>Esc</kbd>. The × beside a slot clears it.
 
 Things to know:
 
 - **Placed views keep the clicked floor height,** so raked tiers and balconies work. The click lands on the first surface at or below the cut height, so cut below a balcony's ceiling to place a view on the floor underneath, or above it to place one on top.
 - **A view is a full camera:** position, heading, pitch and field of view. Placing a view on the plan aims its pitch at the screen centre's height and uses the current field of view (50° room or 25° eye focus). The seated camera faces the way you pointed it, and the eye is 1.2m above the clicked floor.
-- **Name a view, or set it from the camera.** In the Camera Views list, type a name (for example "Back of room"); storyboard captions use it. **Update from camera** (the camera icon) sets a placed view to wherever the 3D camera is now, including where you have looked and the field of view. Applying a view also switches the field-of-view mode to match.
+- **Name a view, or set it from the camera.** In the Camera views panel, type a name (for example "Back of room"); storyboard captions use it. **Update from camera** (the camera icon) sets a placed view to wherever the 3D camera is now, including where you have looked and the field of view. Applying a view also switches the field-of-view mode to match.
 - **Views reset when you upload a different model,** and the plan closes. Reloading the same file keeps them. Turning the venue with the **Rotation** buttons carries the views round with the room.
 - The floor plan isn't available in VR; entering a headset closes it. Views still work as VR seats, but the headset keeps its own heading (the first calibration faces the screen).
 - While the plan is open, picking and click-to-sit are paused, and telemetry isn't graded.
 
 ## Saving and opening a room
 
-Once a venue is set up, save it so you, or a colleague, can open exactly the same room later. The **Room file** section at the top of the **Venue** tab has a name, a notes field, **Save room** and **Open room**.
+Once a venue is set up, save it so you, or a colleague, can open exactly the same room later. The room menu button in the top bar (it shows the room's name, with a dot when there are unsaved changes) opens a panel with a name, a notes field, **Save room** and **Open room**.
 
 - **Save room** downloads one `.stagesight` file, named after the room (for example `Hilton Park Lane Ballroom A.stagesight`). It holds the venue, every screen (with its size, position, role, split order and picked mesh), the four camera views (full cameras, with names), the storyboard's extra shots, the venue rotation and deck height, the stage size, lighting, and the presenter, lectern and panel settings. For an uploaded venue the `.glb` itself goes inside the file, so opening it is one step, and the file is about as big as the model.
 - **It never holds content.** No slides, images, streams, capture devices or crop settings are saved. Load or share your content again after opening a room.
-- **Open room**, or drag a `.stagesight` file onto the 3D view, replaces the current room. The sidebar opens on the Venue tab so you can see the room's name and notes.
+- **Open room**, or drag a `.stagesight` file onto the 3D view, replaces the current room. The room menu opens so you can see the room's name and notes.
 - **If anything is wrong with the file**, an alert says so and your current room stays exactly as it was. That covers a damaged file, a venue model that won't load, and a file saved by a newer version of StageSight.
 - **Unsaved changes.** Opening another room, or closing or reloading the tab, asks first if you've changed the room since you last saved or opened it.
 - **It stays on your device.** Saving is a browser download and opening reads the file locally. Nothing is uploaded anywhere.

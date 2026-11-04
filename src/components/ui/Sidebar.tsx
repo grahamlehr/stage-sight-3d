@@ -3,6 +3,7 @@ import {
   Layers,
   Monitor,
   Building,
+  Theater,
   Upload,
   Video,
   Share2,
@@ -10,7 +11,6 @@ import {
   FileText,
   User,
   Sliders,
-  Sparkles,
   Move,
   MousePointer,
   Star,
@@ -18,21 +18,17 @@ import {
   ChevronRight,
   Trash2,
   RefreshCw,
-  Sun,
   Users,
   Mic,
   Map as MapIcon,
-  Camera,
-  X,
 } from 'lucide-react';
 import {
   useStageStore,
   selectSelectedScreen,
   ASPECT_RATIO_PRESETS,
   UvCropMode,
+  type SidebarTab,
 } from '../../store/useStageStore';
-import { openRoomFromFile } from '../../utils/openRoomFile';
-import { defaultCutHeight } from '../../utils/floorPlan';
 import { orderSplitScreens } from '../../utils/screenLayout';
 import {
   rasterizePdf,
@@ -94,6 +90,7 @@ const ScreenNameInput: React.FC<{ name: string; onCommit: (name: string) => void
   />
 );
 
+
 export const Sidebar: React.FC = () => {
   const isSidebarOpen = useStageStore((s) => s.isSidebarOpen);
   const activeSidebarTab = useStageStore((s) => s.activeSidebarTab);
@@ -102,6 +99,8 @@ export const Sidebar: React.FC = () => {
   // Store slices
   const sourceType = useStageStore((s) => s.sourceType);
   const setSourceType = useStageStore((s) => s.setSourceType);
+  const slideCount = useStageStore((s) => s.slides.length);
+  const contentLabel = useStageStore((s) => s.contentLabel);
   const setSlides = useStageStore((s) => s.setSlides);
   const activeVideoStream = useStageStore((s) => s.activeVideoStream);
   const setActiveVideoStream = useStageStore((s) => s.setActiveVideoStream);
@@ -114,15 +113,12 @@ export const Sidebar: React.FC = () => {
   const manualUvOffsetY = useStageStore((s) => s.manualUvOffsetY);
   const setManualUvOffsetY = useStageStore((s) => s.setManualUvOffsetY);
 
+
   const screens = useStageStore((s) => s.screens);
   const primaryScreenId = useStageStore((s) => s.primaryScreenId);
   const selectedScreenId = useStageStore((s) => s.selectedScreenId);
   const splitOrder = useStageStore((s) => s.splitOrder);
   const demoSideScreens = useStageStore((s) => s.demoSideScreens);
-  const roomName = useStageStore((s) => s.roomName);
-  const setRoomName = useStageStore((s) => s.setRoomName);
-  const roomNotes = useStageStore((s) => s.roomNotes);
-  const setRoomNotes = useStageStore((s) => s.setRoomNotes);
   const selectedScreenName = useStageStore((s) => selectSelectedScreen(s).name);
   const updateScreen = useStageStore((s) => s.updateScreen);
   const removeScreen = useStageStore((s) => s.removeScreen);
@@ -166,16 +162,7 @@ export const Sidebar: React.FC = () => {
   const setCustomGlbUrl = useStageStore((s) => s.setCustomGlbUrl);
   const venueYaw = useStageStore((s) => s.venueYaw);
   const setVenueYaw = useStageStore((s) => s.setVenueYaw);
-  const customSeatViews = useStageStore((s) => s.customSeatViews);
-  const setCustomSeatView = useStageStore((s) => s.setCustomSeatView);
-  const renameCustomSeatView = useStageStore((s) => s.renameCustomSeatView);
-  const updateCustomSeatViewFromCamera = useStageStore((s) => s.updateCustomSeatViewFromCamera);
-  const isFloorPlanOpen = useStageStore((s) => s.isFloorPlanOpen);
-  const setIsFloorPlanOpen = useStageStore((s) => s.setIsFloorPlanOpen);
-  const floorPlanSlot = useStageStore((s) => s.floorPlanSlot);
-  const setFloorPlanSlot = useStageStore((s) => s.setFloorPlanSlot);
-  const floorPlanCutHeight = useStageStore((s) => s.floorPlanCutHeight);
-  const setFloorPlanCutHeight = useStageStore((s) => s.setFloorPlanCutHeight);
+  const openFloorPlanToPlaceViews = useStageStore((s) => s.openFloorPlanToPlaceViews);
   const customVenueBounds = useStageStore((s) => s.customVenueBounds);
   const customDeckHeight = useStageStore((s) => s.customDeckHeight);
   const setCustomDeckHeight = useStageStore((s) => s.setCustomDeckHeight);
@@ -184,12 +171,6 @@ export const Sidebar: React.FC = () => {
   const venueLength = useStageStore((s) => s.venueLength);
   const venueWidth = useStageStore((s) => s.venueWidth);
   const setVenueDimensions = useStageStore((s) => s.setVenueDimensions);
-  const houseLightsIntensity = useStageStore((s) => s.houseLightsIntensity);
-  const setHouseLightsIntensity = useStageStore((s) => s.setHouseLightsIntensity);
-  const stageLightsIntensity = useStageStore((s) => s.stageLightsIntensity);
-  const setStageLightsIntensity = useStageStore((s) => s.setStageLightsIntensity);
-  const lightingPreset = useStageStore((s) => s.lightingPreset);
-  const setLightingPreset = useStageStore((s) => s.setLightingPreset);
   const showCeilingFixtures = useStageStore((s) => s.showCeilingFixtures);
   const setShowCeilingFixtures = useStageStore((s) => s.setShowCeilingFixtures);
 
@@ -199,7 +180,6 @@ export const Sidebar: React.FC = () => {
   const [rasterProgress, setRasterProgress] = useState({ current: 0, total: 0 });
   const fileInputRef = useRef<HTMLInputElement>(null);
   const glbInputRef = useRef<HTMLInputElement>(null);
-  const roomInputRef = useRef<HTMLInputElement>(null);
 
   // Enumerate video capture devices
   const refreshDevices = useCallback(async () => {
@@ -222,6 +202,7 @@ export const Sidebar: React.FC = () => {
     refreshDevices();
   }, [refreshDevices]);
 
+
   // Handle PDF / Image file upload
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -234,11 +215,11 @@ export const Sidebar: React.FC = () => {
         const canvases = await rasterizePdf(buffer, (cur, tot) => {
           setRasterProgress({ current: cur, total: tot });
         });
-        setSlides(canvases);
+        setSlides(canvases, file.name);
         setSourceType('pdf');
       } else if (file.type.startsWith('image/')) {
         const canvas = await rasterizeImageFile(file);
-        setSlides([canvas]);
+        setSlides([canvas], file.name);
         setSourceType('pdf');
       }
     } catch (err) {
@@ -253,7 +234,7 @@ export const Sidebar: React.FC = () => {
   // Load 5-slide 32:9 sample executive deck
   const handleLoadSampleDeck = () => {
     const deck = generateSampleExecutiveDeck();
-    setSlides(deck);
+    setSlides(deck, 'Sample deck');
     setSourceType('pdf');
   };
 
@@ -309,19 +290,6 @@ export const Sidebar: React.FC = () => {
     }
   };
 
-  // Save and open the .stagesight room file
-  const handleSaveRoom = async () => {
-    const result = await useStageStore.getState().saveRoom();
-    if (!result.ok) alert(result.message);
-  };
-
-  const handleOpenRoom = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const input = e.currentTarget;
-    const file = input.files?.[0];
-    input.value = '';
-    if (file) await openRoomFromFile(file);
-  };
-
   // Handle Custom GLB Upload
   const handleGlbUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -335,201 +303,187 @@ export const Sidebar: React.FC = () => {
 
   const isLiveFeed =
     activeVideoStream !== null && (sourceType === 'hdmi-capture' || sourceType === 'screen-share');
+  const hasSlides = slideCount > 0;
 
   const tabs = [
-    { id: 'source', label: 'Source', icon: Layers },
-    { id: 'screen', label: 'Screen', icon: Monitor },
     { id: 'venue', label: 'Venue', icon: Building },
-  ] as const;
+    { id: 'screens', label: 'Screens', icon: Monitor },
+    { id: 'stage', label: 'Stage', icon: Theater },
+    { id: 'content', label: 'Content', icon: Layers },
+  ] as const satisfies readonly { id: SidebarTab; label: string; icon: unknown }[];
 
   const sourceTiles = [
     { id: 'test-pattern', label: 'Test Pattern', sub: '4K Rulers & Ladder', icon: Grid },
-    { id: 'pdf', label: 'PDF / Image', sub: 'Upload Slide Deck', icon: FileText },
+    { id: 'pdf', label: 'PDF / Image', sub: hasSlides ? 'Back to Slides' : 'Upload Slide Deck', icon: FileText },
     { id: 'hdmi-capture', label: 'HDMI Capture', sub: 'USB Video In', icon: Video },
     { id: 'screen-share', label: 'Window Share', sub: 'PowerPoint App', icon: Share2 },
   ] as const;
 
   const handleSourceTile = (id: (typeof sourceTiles)[number]['id']) => {
     if (id === 'test-pattern') setSourceType('test-pattern');
-    else if (id === 'pdf') fileInputRef.current?.click();
-    else if (id === 'hdmi-capture') void handleStartCaptureCard();
+    else if (id === 'pdf') {
+      // Slides stay loaded while another source is showing, so go back to them rather than asking again
+      if (hasSlides && sourceType !== 'pdf') setSourceType('pdf');
+      else if (!hasSlides) fileInputRef.current?.click();
+    } else if (id === 'hdmi-capture') void handleStartCaptureCard();
     else void handleStartScreenShare();
   };
 
-  const lightingPresets = [
-    { id: 'conference-bright', label: 'Bright' },
-    { id: 'ballroom-standard', label: 'Standard' },
-    { id: 'keynote-dark', label: 'Dark' },
-  ] as const;
+  // What the screens are showing now, for the status row at the top of the Content tab
+  const nowShowing =
+    sourceType === 'test-pattern'
+      ? 'Test pattern'
+      : sourceType === 'hdmi-capture'
+      ? 'HDMI capture'
+      : sourceType === 'screen-share'
+      ? 'Screen share'
+      : contentLabel ?? 'Slides';
+  const nowShowingMeta =
+    sourceType === 'pdf' ? `${slideCount} ${slideCount === 1 ? 'slide' : 'slides'}` : null;
 
   return (
     <aside
       data-guide="sidebar"
       className="panel absolute left-3 top-16 bottom-16 w-[21rem] sm:w-[23rem] z-20 flex flex-col overflow-hidden">
-      {/* Sidebar Tabs */}
-      <div role="tablist" className="grid grid-cols-3 border-b-2 border-ink/20">
-        {tabs.map(({ id, label, icon: Icon }) => (
+      {/* Sidebar Tabs: numbered in setup order */}
+      <div role="tablist" className="grid grid-cols-4 border-b-2 border-ink/20">
+        {tabs.map(({ id, label, icon: Icon }, i) => (
           <button
             key={id}
             role="tab"
             aria-selected={activeSidebarTab === id}
             onClick={() => setActiveSidebarTab(id)}
-            className={`flex items-center justify-center gap-1.5 py-2.5 -mb-[2px] border-b-2 text-xs transition ${
+            className={`flex items-center justify-center gap-1 px-1 py-2.5 -mb-[2px] border-b-2 text-xs transition ${
               activeSidebarTab === id
                 ? 'border-ink text-ink font-extrabold'
                 : 'border-transparent text-ink/60 hover:text-ink'
             }`}
           >
-            <Icon size={14} />
-            <span>{label}</span>
+            <Icon size={14} className="hidden sm:block flex-none" />
+            <span className="text-[10px] font-normal tabular-nums opacity-60">{i + 1}</span>
+            <span className="truncate">{label}</span>
           </button>
         ))}
       </div>
 
       {/* Tab Content Container */}
       <div className="flex-1 overflow-y-auto p-4 space-y-4 text-xs">
-        {/* ================= TAB 1: CONTENT SOURCE ================= */}
-        {activeSidebarTab === 'source' && (
+        {/* ================= TAB 1: VENUE ================= */}
+        {activeSidebarTab === 'venue' && (
           <>
-            <Section title="Active Content Feed">
+            <Section title="Venue Source">
               <div className="grid grid-cols-2 gap-2">
-                {sourceTiles.map(({ id, label, sub, icon: Icon }) => (
-                  <button
-                    key={id}
-                    onClick={() => handleSourceTile(id)}
-                    aria-pressed={sourceType === id}
-                    className="option"
-                  >
-                    <Icon size={16} strokeWidth={1.5} className="flex-none" />
-                    <div className="min-w-0">
-                      <div className="text-xs">{label}</div>
-                      <div className="text-[10px] font-normal opacity-70">{sub}</div>
-                    </div>
-                    {isLiveFeed && sourceType === id && <span className="tag tag-live ml-auto">Live</span>}
-                  </button>
-                ))}
+                <button
+                  onClick={() => setVenueSource('default-ballroom')}
+                  aria-pressed={venueSource === 'default-ballroom'}
+                  className="option justify-center"
+                >
+                  Demo Ballroom
+                </button>
+                <button
+                  onClick={() => glbInputRef.current?.click()}
+                  aria-pressed={venueSource === 'custom-glb'}
+                  className="option justify-center"
+                >
+                  Upload .GLB
+                </button>
                 <input
-                  ref={fileInputRef}
+                  ref={glbInputRef}
                   type="file"
-                  accept=".pdf,image/png,image/jpeg"
+                  accept=".glb,.gltf"
                   className="hidden"
-                  onChange={handleFileUpload}
+                  onChange={handleGlbUpload}
                 />
               </div>
             </Section>
 
-            {/* Quick Demo Deck Button */}
-            <Section title="Instant Demo Deck" meta={<Sparkles size={13} />}>
-              <p className="text-[11px] text-ink/60">
-                Load 5 procedural 32:9 executive slides (Keynote, Clinical Data, Pipeline, Financials, Q&A) for immediate testing.
-              </p>
-              <button onClick={handleLoadSampleDeck} className="btn btn-primary w-full py-2">
-                Load Sample 32:9 Executive Deck (5 Slides)
-              </button>
-            </Section>
-
-            {/* Ingestion Progress indicator */}
-            {isRasterizing && (
-              <div className="p-3 bg-standby border border-ink/20 space-y-1.5">
-                <div className="flex items-center justify-between text-xs font-semibold">
-                  <span>Rasterizing slides at 4096px...</span>
-                  <span className="tabular-nums">{rasterProgress.current} / {rasterProgress.total}</span>
-                </div>
-                <div className="w-full h-0.5 bg-ink/20">
-                  <div
-                    className="h-full bg-ink transition-all duration-200"
-                    style={{
-                      width: `${(rasterProgress.current / Math.max(1, rasterProgress.total)) * 100}%`,
-                    }}
+            {venueSource === 'default-ballroom' ? (
+              <>
+                <Section title="Room Size">
+                  <SliderRow
+                    label="Venue Length (Depth)"
+                    value={`${venueLength}m`}
+                    min="15"
+                    max="60"
+                    step="1"
+                    inputValue={venueLength}
+                    onChange={(e) => setVenueDimensions(venueWidth, parseInt(e.target.value, 10))}
                   />
-                </div>
-              </div>
-            )}
+                  <SliderRow
+                    label="Venue Width"
+                    value={`${venueWidth}m`}
+                    min="12"
+                    max="45"
+                    step="1"
+                    inputValue={venueWidth}
+                    onChange={(e) => setVenueDimensions(parseInt(e.target.value, 10), venueLength)}
+                  />
+                </Section>
 
-            {/* HDMI Capture Device Settings */}
-            {sourceType === 'hdmi-capture' && (
-              <Section
-                title="Video Device"
-                meta={
-                  <button onClick={refreshDevices} className="btn btn-ghost p-1 text-ink/60 hover:text-ink" title="Refresh Devices">
-                    <RefreshCw size={12} />
-                  </button>
-                }
-              >
-                <select
-                  value={selectedVideoDeviceId}
-                  onChange={(e) => setSelectedVideoDeviceId(e.target.value)}
-                  className="input"
-                >
-                  {videoDevices.map((d) => (
-                    <option key={d.deviceId} value={d.deviceId}>
-                      {d.label || `Device ${d.deviceId.slice(0, 8)}`}
-                    </option>
-                  ))}
-                </select>
-              </Section>
-            )}
-
-            {/* Module D: Reactive 16:9 HDMI Letterbox UV Cropper Controls */}
-            {(sourceType === 'hdmi-capture' || sourceType === 'screen-share') && (
-              <Section
-                title={
-                  <>
-                    <Sliders size={12} />
-                    Ultra-Wide Letterbox Cropper
-                  </>
-                }
-                meta="16:9 EDID Fix"
-              >
-                <div className="grid grid-cols-2 gap-1.5">
-                  {(
-                    [
-                      { id: 'auto-letterbox', label: 'Centered (Show)' },
-                      { id: 'top-aligned', label: 'Top-Aligned' },
-                      { id: 'fill-1-to-1', label: 'Fill 1-to-1' },
-                      { id: 'manual', label: 'Manual' },
-                    ] as { id: UvCropMode; label: string }[]
-                  ).map((m) => (
-                    <button
-                      key={m.id}
-                      onClick={() => setUvCropMode(m.id)}
-                      aria-pressed={uvCropMode === m.id}
-                      className="option justify-center py-1.5"
-                    >
-                      {m.label}
-                    </button>
-                  ))}
-                </div>
-
-                {uvCropMode === 'manual' && (
-                  <div className="space-y-2.5 pt-2.5 border-t border-ink/[0.12]">
-                    <SliderRow
-                      label="Repeat Y (Height Crop)"
-                      value={manualUvRepeatY.toFixed(2)}
-                      min="0.1"
-                      max="1.0"
-                      step="0.01"
-                      inputValue={manualUvRepeatY}
-                      onChange={(e) => setManualUvRepeatY(parseFloat(e.target.value))}
+                <Section title="Ceiling">
+                  <label className="flex items-center justify-between cursor-pointer">
+                    <span className="text-[11px]">Ceiling Lighting Trusses</span>
+                    <input
+                      type="checkbox"
+                      checked={showCeilingFixtures}
+                      onChange={(e) => setShowCeilingFixtures(e.target.checked)}
+                      className="w-4 h-4 cursor-pointer"
                     />
-                    <SliderRow
-                      label="Offset Y (Vertical Shift)"
-                      value={manualUvOffsetY.toFixed(2)}
-                      min="0.0"
-                      max="0.9"
-                      step="0.01"
-                      inputValue={manualUvOffsetY}
-                      onChange={(e) => setManualUvOffsetY(parseFloat(e.target.value))}
-                    />
+                  </label>
+                </Section>
+              </>
+            ) : (
+              <Section title="Custom GLB Venue">
+                <div className="flex items-start gap-2.5">
+                  <Upload size={18} strokeWidth={1.5} className="text-ink/60 flex-none mt-0.5" />
+                  <div className="space-y-1">
+                    <p className="text-xs font-semibold">Custom GLB Venue Loaded</p>
+                    <p className="text-[10px] text-ink/60">
+                      Next, pick the screen mesh on the Screens tab. Shift + click the floor to sit anywhere.
+                    </p>
                   </div>
-                )}
+                </div>
+                <div className="space-y-1.5">
+                  <p className="text-[10px] text-ink/60">
+                    Rotation: turn the model until its screen wall faces the audience. Picking the screen mesh
+                    does this for you.
+                  </p>
+                  <div className="grid grid-cols-4 gap-2">
+                    {[0, 90, 180, 270].map((deg) => (
+                      <button
+                        key={deg}
+                        onClick={() => setVenueYaw((deg * Math.PI) / 180)}
+                        aria-pressed={Math.round((venueYaw * 180) / Math.PI) === deg}
+                        className="option justify-center"
+                      >
+                        {deg}°
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <div className="space-y-1.5 pt-2.5 border-t border-ink/[0.12]">
+                  <button
+                    onClick={openFloorPlanToPlaceViews}
+                    disabled={!customVenueBounds}
+                    className="btn btn-secondary w-full justify-center disabled:opacity-50"
+                  >
+                    <MapIcon size={14} />
+                    Place camera views
+                  </button>
+                  {!customVenueBounds && (
+                    <p className="text-[10px] text-ink/60">The model is still loading.</p>
+                  )}
+                </div>
+                <button onClick={() => glbInputRef.current?.click()} className="btn btn-secondary">
+                  Change .GLB File
+                </button>
               </Section>
             )}
           </>
         )}
 
-        {/* ================= TAB 2: SCREEN & STAGE ================= */}
-        {activeSidebarTab === 'screen' && (
+        {/* ================= TAB 2: SCREENS ================= */}
+        {activeSidebarTab === 'screens' && (
           <>
             <Section title="Screens" meta={`${screens.length} in the room`}>
               <ul className="space-y-1.5">
@@ -631,7 +585,7 @@ export const Sidebar: React.FC = () => {
               )}
             </Section>
 
-            {splitScreens.length >= 1 && (
+            {splitScreens.length >= 2 && (
               <Section
                 title="Split Order"
                 meta={splitOrder ? 'Manual' : 'Auto: left to right'}
@@ -690,106 +644,114 @@ export const Sidebar: React.FC = () => {
               </Section>
             )}
 
-            <Section title="Aspect Ratio Presets" meta={selectedScreenName}>
-              <div className="space-y-1">
-                {ASPECT_RATIO_PRESETS.map((p) => {
-                  const isSelected =
-                    Math.abs(screenWidth - p.width) < 0.05 &&
-                    Math.abs(screenHeight - p.height) < 0.05;
-                  return (
-                    <button
-                      key={p.id}
-                      onClick={() => setScreenPreset(p.id)}
-                      aria-pressed={isSelected}
-                      className="option w-full justify-between p-2"
-                    >
-                      <span>{p.label}</span>
-                      <span className="text-[11px] tabular-nums opacity-70">
-                        {p.width}m × {p.height}m
-                      </span>
-                    </button>
-                  );
-                })}
-              </div>
-            </Section>
-
-            {/* Manual Dimensions Input */}
-            <Section title="Custom Physical Dimensions (Meters)" meta={selectedScreenName}>
-              <div className="grid grid-cols-2 gap-2">
-                <label>
-                  <span className="text-[10px] text-ink/60 block mb-1">Width (m)</span>
-                  <input
-                    type="number"
-                    step="0.5"
-                    min="2"
-                    max="50"
-                    value={screenWidth}
-                    onChange={(e) =>
-                      setScreenDimensions(Math.max(1, parseFloat(e.target.value) || 1), screenHeight)
-                    }
-                    className="input"
-                  />
-                </label>
-                <label>
-                  <span className="text-[10px] text-ink/60 block mb-1">Height (m)</span>
-                  <input
-                    type="number"
-                    step="0.25"
-                    min="1"
-                    max="20"
-                    value={screenHeight}
-                    onChange={(e) =>
-                      setScreenDimensions(screenWidth, Math.max(1, parseFloat(e.target.value) || 1))
-                    }
-                    className="input"
-                  />
-                </label>
-              </div>
-            </Section>
-
-            {/* Transform Gizmo & Mesh Pick */}
-            <Section title="Placement">
-              <button
-                onClick={() => setShowTransformGizmo(!showTransformGizmo)}
-                aria-pressed={showTransformGizmo}
-                className="option w-full justify-between"
-              >
-                <span className="flex items-center gap-2">
-                  <Move size={15} />
-                  3D Transform Gizmo
-                </span>
-                <span className="text-[10px] font-extrabold">{showTransformGizmo ? 'ON' : 'OFF'}</span>
-              </button>
-
-              {venueSource === 'custom-glb' && (
+            {/* Detail: the screen picked in the list above */}
+            <section className="space-y-4 p-3 border border-ink/30 bg-ink/[0.04]">
+              <span className="label block truncate" title={selectedScreenName}>
+                {selectedScreenName}
+              </span>
+              <Section title="Aspect Ratio Presets">
                 <div className="space-y-1">
-                  <button
-                    onClick={() => setIsPickingMesh(!isPickingMesh)}
-                    data-state={isPickingMesh ? 'standby' : undefined}
-                    className="option w-full justify-between"
-                  >
-                    <span className="flex items-center gap-2">
-                      <MousePointer size={15} />
-                      {isPickingMesh
-                        ? 'Click Mesh in 3D View...'
-                        : hasBoundScreen
-                        ? 'Add screen from mesh'
-                        : 'Pick screen mesh'}
-                    </span>
-                    {isPickingMesh && <span className="tag tag-outline">Stby</span>}
-                  </button>
-                  <p className="text-[10px] text-ink/60">Shift-click to add several.</p>
+                  {ASPECT_RATIO_PRESETS.map((p) => {
+                    const isSelected =
+                      Math.abs(screenWidth - p.width) < 0.05 &&
+                      Math.abs(screenHeight - p.height) < 0.05;
+                    return (
+                      <button
+                        key={p.id}
+                        onClick={() => setScreenPreset(p.id)}
+                        aria-pressed={isSelected}
+                        className="option w-full justify-between p-2"
+                      >
+                        <span>{p.label}</span>
+                        <span className="text-[11px] tabular-nums opacity-70">
+                          {p.width}m × {p.height}m
+                        </span>
+                      </button>
+                    );
+                  })}
                 </div>
-              )}
-            </Section>
+              </Section>
 
-            {/* ================= 3 Stage Occlusion Test Items ================= */}
-            <Section title="Stage Occlusion Items">
-              {/* The ballroom's deck height lives on the Venue tab; a custom model's is set here */}
-              {venueSource === 'custom-glb' && (
+              {/* Manual Dimensions Input */}
+              <Section title="Custom Physical Dimensions (Meters)">
+                <div className="grid grid-cols-2 gap-2">
+                  <label>
+                    <span className="text-[10px] text-ink/60 block mb-1">Width (m)</span>
+                    <input
+                      type="number"
+                      step="0.5"
+                      min="2"
+                      max="50"
+                      value={screenWidth}
+                      onChange={(e) =>
+                        setScreenDimensions(Math.max(1, parseFloat(e.target.value) || 1), screenHeight)
+                      }
+                      className="input"
+                    />
+                  </label>
+                  <label>
+                    <span className="text-[10px] text-ink/60 block mb-1">Height (m)</span>
+                    <input
+                      type="number"
+                      step="0.25"
+                      min="1"
+                      max="20"
+                      value={screenHeight}
+                      onChange={(e) =>
+                        setScreenDimensions(screenWidth, Math.max(1, parseFloat(e.target.value) || 1))
+                      }
+                      className="input"
+                    />
+                  </label>
+                </div>
+              </Section>
+
+              <Section title="Placement">
+                <button
+                  onClick={() => setShowTransformGizmo(!showTransformGizmo)}
+                  aria-pressed={showTransformGizmo}
+                  className="option w-full justify-between"
+                >
+                  <span className="flex items-center gap-2">
+                    <Move size={15} />
+                    3D Transform Gizmo
+                  </span>
+                  <span className="text-[10px] font-extrabold">{showTransformGizmo ? 'ON' : 'OFF'}</span>
+                </button>
+
+                {venueSource === 'custom-glb' && (
+                  <div className="space-y-1">
+                    <button
+                      onClick={() => setIsPickingMesh(!isPickingMesh)}
+                      data-state={isPickingMesh ? 'standby' : undefined}
+                      className="option w-full justify-between"
+                    >
+                      <span className="flex items-center gap-2">
+                        <MousePointer size={15} />
+                        {isPickingMesh
+                          ? 'Click Mesh in 3D View...'
+                          : hasBoundScreen
+                          ? 'Add screen from mesh'
+                          : 'Pick screen mesh'}
+                      </span>
+                      {isPickingMesh && <span className="tag tag-outline">Stby</span>}
+                    </button>
+                    <p className="text-[10px] text-ink/60">Shift-click to add several.</p>
+                  </div>
+                )}
+              </Section>
+            </section>
+          </>
+        )}
+
+        {/* ================= TAB 3: STAGE ================= */}
+        {activeSidebarTab === 'stage' && (
+          <>
+            <Section title="Stage Height">
+              {venueSource === 'custom-glb' ? (
                 <div className="space-y-1">
                   <SliderRow
-                    label="Stage Floor Height"
+                    label="Stage height"
                     value={`${customDeckHeight.toFixed(2)}m`}
                     min="0"
                     max="3"
@@ -801,8 +763,21 @@ export const Sidebar: React.FC = () => {
                     Where the props stand. Picking a screen mesh sets this from the stage in front of it.
                   </p>
                 </div>
+              ) : (
+                <SliderRow
+                  label="Stage height"
+                  value={`${stageHeight.toFixed(2)}m`}
+                  min="0.3"
+                  max="2.5"
+                  step="0.05"
+                  inputValue={stageHeight}
+                  onChange={(e) => setStageHeight(parseFloat(e.target.value))}
+                />
               )}
+            </Section>
 
+            {/* ================= 3 Stage Occlusion Test Items ================= */}
+            <Section title="Stage Occlusion Items">
               {/* 1. Presenters (Two Standing People) */}
               <div className="space-y-2.5">
                 <label className="flex items-center justify-between cursor-pointer">
@@ -938,276 +913,160 @@ export const Sidebar: React.FC = () => {
           </>
         )}
 
-        {/* ================= TAB 3: VENUE MODEL ================= */}
-        {activeSidebarTab === 'venue' && (
+        {/* ================= TAB 4: CONTENT ================= */}
+        {activeSidebarTab === 'content' && (
           <>
-            <Section title="Room file">
-              <input
-                type="text"
-                value={roomName}
-                onChange={(e) => setRoomName(e.target.value)}
-                aria-label="Room name"
-                placeholder="e.g. Hilton Park Lane, Ballroom A"
-                maxLength={120}
-                className="input w-full"
-              />
-              <textarea
-                value={roomNotes}
-                onChange={(e) => setRoomNotes(e.target.value)}
-                aria-label="Room notes"
-                placeholder="Notes"
-                rows={3}
-                className="input w-full resize-y"
-              />
-              <div className="grid grid-cols-2 gap-2">
-                <button onClick={handleSaveRoom} className="btn btn-secondary">
-                  Save room
-                </button>
-                <button onClick={() => roomInputRef.current?.click()} className="btn btn-secondary">
-                  Open room
-                </button>
-                <input
-                  ref={roomInputRef}
-                  type="file"
-                  accept=".stagesight"
-                  className="hidden"
-                  onChange={handleOpenRoom}
-                />
-              </div>
-              <p className="text-[10px] text-ink/60">
-                Saves the venue, screens, views and stage dressing. Content isn&apos;t saved.
-              </p>
-            </Section>
-
-            <Section title="Venue Source">
-              <div className="grid grid-cols-2 gap-2">
-                <button
-                  onClick={() => setVenueSource('default-ballroom')}
-                  aria-pressed={venueSource === 'default-ballroom'}
-                  className="option justify-center"
-                >
-                  Demo Ballroom
-                </button>
-                <button
-                  onClick={() => glbInputRef.current?.click()}
-                  aria-pressed={venueSource === 'custom-glb'}
-                  className="option justify-center"
-                >
-                  Upload .GLB
-                </button>
-                <input
-                  ref={glbInputRef}
-                  type="file"
-                  accept=".glb,.gltf"
-                  className="hidden"
-                  onChange={handleGlbUpload}
-                />
-              </div>
-            </Section>
-
-            {/* Default Ballroom Parameters */}
-            {venueSource === 'default-ballroom' ? (
-              <Section title="Stage Deck & Room Size">
-                <SliderRow
-                  label="Stage Height"
-                  value={`${stageHeight.toFixed(2)}m`}
-                  min="0.3"
-                  max="2.5"
-                  step="0.05"
-                  inputValue={stageHeight}
-                  onChange={(e) => setStageHeight(parseFloat(e.target.value))}
-                />
-                <SliderRow
-                  label="Venue Length (Depth)"
-                  value={`${venueLength}m`}
-                  min="15"
-                  max="60"
-                  step="1"
-                  inputValue={venueLength}
-                  onChange={(e) => setVenueDimensions(venueWidth, parseInt(e.target.value, 10))}
-                />
-                <SliderRow
-                  label="Venue Width"
-                  value={`${venueWidth}m`}
-                  min="12"
-                  max="45"
-                  step="1"
-                  inputValue={venueWidth}
-                  onChange={(e) => setVenueDimensions(parseInt(e.target.value, 10), venueLength)}
-                />
-              </Section>
-            ) : (
-              <Section title="Custom GLB Venue">
-                <div className="flex items-start gap-2.5">
-                  <Upload size={18} strokeWidth={1.5} className="text-ink/60 flex-none mt-0.5" />
-                  <div className="space-y-1">
-                    <p className="text-xs font-semibold">Custom GLB Venue Loaded</p>
-                    <p className="text-[10px] text-ink/60">
-                      Use &quot;Pick screen mesh&quot; on the Screen tab, then place your camera views on
-                      the floor plan below. Shift + click the floor to sit anywhere.
-                    </p>
-                  </div>
-                </div>
-                <div className="space-y-1.5">
-                  <p className="text-[10px] text-ink/60">
-                    Rotation: turn the model until its screen wall faces the audience. Picking the screen mesh
-                    does this for you.
-                  </p>
-                  <div className="grid grid-cols-4 gap-2">
-                    {[0, 90, 180, 270].map((deg) => (
-                      <button
-                        key={deg}
-                        onClick={() => setVenueYaw((deg * Math.PI) / 180)}
-                        aria-pressed={Math.round((venueYaw * 180) / Math.PI) === deg}
-                        className="option justify-center"
-                      >
-                        {deg}°
-                      </button>
-                    ))}
-                  </div>
-                </div>
-                <div className="space-y-1.5 pt-2.5 border-t border-ink/[0.12]">
-                  <span className="text-[10px] text-ink/60 block">Camera Views (keys 1–4)</span>
-                  <button
-                    onClick={() => setIsFloorPlanOpen(!isFloorPlanOpen)}
-                    disabled={!customVenueBounds}
-                    aria-pressed={isFloorPlanOpen}
-                    className="btn btn-secondary w-full justify-center disabled:opacity-50"
-                  >
-                    <MapIcon size={14} />
-                    {isFloorPlanOpen ? 'Close Floor Plan' : 'Open Floor Plan'}
-                  </button>
-                  <div className="grid grid-cols-2 gap-2">
-                    {customSeatViews.map((view, i) => (
-                      <div key={i} className="space-y-1">
-                      <div className="flex items-stretch gap-1">
-                        <button
-                          onClick={() => setFloorPlanSlot(i)}
-                          aria-pressed={floorPlanSlot === i}
-                          className="option flex-1 justify-between"
-                          title={`Select View ${i + 1} to place on the floor plan`}
-                        >
-                          <span>View {i + 1}</span>
-                          <span className="text-[10px] text-ink/60">{view ? 'Placed' : 'Not placed'}</span>
-                        </button>
-                        {view && (
-                          <button
-                            onClick={() => setCustomSeatView(i, null)}
-                            className="btn btn-secondary px-1.5"
-                            aria-label={`Clear View ${i + 1}`}
-                            title={`Clear View ${i + 1}`}
-                          >
-                            <X size={12} />
-                          </button>
-                        )}
-                      </div>
-                      {view && (
-                        <div className="flex items-stretch gap-1">
-                          <input
-                            type="text"
-                            value={view.name}
-                            onChange={(e) => renameCustomSeatView(i, e.target.value)}
-                            placeholder={`View ${i + 1}`}
-                            aria-label={`Name for View ${i + 1}`}
-                            className="input min-w-0 flex-1"
-                            maxLength={60}
-                          />
-                          <button
-                            onClick={() => updateCustomSeatViewFromCamera(i)}
-                            className="btn btn-secondary px-1.5"
-                            aria-label={`Update View ${i + 1} from camera`}
-                            title="Set this view to the current camera"
-                          >
-                            <Camera size={12} />
-                          </button>
-                        </div>
-                      )}
-                      </div>
-                    ))}
-                  </div>
-                  {isFloorPlanOpen && customVenueBounds && (
-                    <SliderRow
-                      label="Cut height"
-                      value={`${(
-                        (floorPlanCutHeight ?? defaultCutHeight(customVenueBounds)) -
-                        customVenueBounds.min[1]
-                      ).toFixed(1)}m`}
-                      min={customVenueBounds.min[1]}
-                      max={customVenueBounds.max[1]}
-                      step="0.1"
-                      inputValue={floorPlanCutHeight ?? defaultCutHeight(customVenueBounds)}
-                      onChange={(e) => setFloorPlanCutHeight(parseFloat(e.target.value))}
-                    />
+            {/* Now showing status row */}
+            <div className="flex items-center justify-between gap-2 p-2.5 border border-ink/20 bg-ink/[0.04]">
+              <div className="min-w-0">
+                <div className="label">Now showing</div>
+                <div className="text-xs font-semibold truncate" title={nowShowing}>
+                  {nowShowing}
+                  {nowShowingMeta && (
+                    <span className="font-normal text-ink/60 tabular-nums"> · {nowShowingMeta}</span>
                   )}
-                  <p className="text-[10px] text-ink/60">
-                    Click a floor spot to place the selected view, drag to point it. Keys 1–4 jump to the views.
-                  </p>
                 </div>
-                <button onClick={() => glbInputRef.current?.click()} className="btn btn-secondary">
-                  Change .GLB File
+              </div>
+              {isLiveFeed && <span className="tag tag-live flex-none">Live</span>}
+            </div>
+
+            <Section title="Source">
+              <div className="grid grid-cols-2 gap-2">
+                {sourceTiles.map(({ id, label, sub, icon: Icon }) => (
+                  <button
+                    key={id}
+                    onClick={() => handleSourceTile(id)}
+                    aria-pressed={sourceType === id}
+                    className="option"
+                  >
+                    <Icon size={16} strokeWidth={1.5} className="flex-none" />
+                    <div className="min-w-0">
+                      <div className="text-xs">{label}</div>
+                      <div className="text-[10px] font-normal opacity-70">{sub}</div>
+                    </div>
+                    {isLiveFeed && sourceType === id && <span className="tag tag-live ml-auto">Live</span>}
+                  </button>
+                ))}
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept=".pdf,image/png,image/jpeg"
+                  className="hidden"
+                  onChange={handleFileUpload}
+                />
+              </div>
+              <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px]">
+                <button onClick={handleLoadSampleDeck} className="underline underline-offset-2 text-ink/70 hover:text-ink">
+                  or load the sample 32:9 deck
                 </button>
+                {hasSlides && (
+                  <button
+                    onClick={() => fileInputRef.current?.click()}
+                    className="underline underline-offset-2 text-ink/70 hover:text-ink"
+                  >
+                    Upload new file
+                  </button>
+                )}
+              </div>
+            </Section>
+
+            {/* Ingestion Progress indicator */}
+            {isRasterizing && (
+              <div className="p-3 bg-standby border border-ink/20 space-y-1.5">
+                <div className="flex items-center justify-between text-xs font-semibold">
+                  <span>Rasterizing slides at 4096px...</span>
+                  <span className="tabular-nums">{rasterProgress.current} / {rasterProgress.total}</span>
+                </div>
+                <div className="w-full h-0.5 bg-ink/20">
+                  <div
+                    className="h-full bg-ink transition-all duration-200"
+                    style={{
+                      width: `${(rasterProgress.current / Math.max(1, rasterProgress.total)) * 100}%`,
+                    }}
+                  />
+                </div>
+              </div>
+            )}
+
+            {/* HDMI Capture Device Settings */}
+            {sourceType === 'hdmi-capture' && (
+              <Section
+                title="Video Device"
+                meta={
+                  <button onClick={refreshDevices} className="btn btn-ghost p-1 text-ink/60 hover:text-ink" title="Refresh Devices">
+                    <RefreshCw size={12} />
+                  </button>
+                }
+              >
+                <select
+                  value={selectedVideoDeviceId}
+                  onChange={(e) => setSelectedVideoDeviceId(e.target.value)}
+                  className="input"
+                >
+                  {videoDevices.map((d) => (
+                    <option key={d.deviceId} value={d.deviceId}>
+                      {d.label || `Device ${d.deviceId.slice(0, 8)}`}
+                    </option>
+                  ))}
+                </select>
               </Section>
             )}
 
-            {/* Venue Lighting Rig & Controls */}
-            <Section
-              title={
-                <>
-                  <Sun size={12} />
-                  Venue Lighting Rig
-                </>
-              }
-              meta="Real-time"
-            >
-              {/* Lighting Presets */}
-              <div>
-                <span className="text-[10px] text-ink/60 block mb-1">Atmosphere Preset</span>
-                <div className="seg w-full">
-                  {lightingPresets.map((p) => (
+            {/* Module D: Reactive 16:9 HDMI Letterbox UV Cropper Controls */}
+            {(sourceType === 'hdmi-capture' || sourceType === 'screen-share') && (
+              <Section
+                title={
+                  <>
+                    <Sliders size={12} />
+                    Ultra-Wide Letterbox Cropper
+                  </>
+                }
+                meta="16:9 EDID Fix"
+              >
+                <div className="grid grid-cols-2 gap-1.5">
+                  {(
+                    [
+                      { id: 'auto-letterbox', label: 'Centered (Show)' },
+                      { id: 'top-aligned', label: 'Top-Aligned' },
+                      { id: 'fill-1-to-1', label: 'Fill 1-to-1' },
+                      { id: 'manual', label: 'Manual' },
+                    ] as { id: UvCropMode; label: string }[]
+                  ).map((m) => (
                     <button
-                      key={p.id}
-                      onClick={() => setLightingPreset(p.id)}
-                      aria-pressed={lightingPreset === p.id}
-                      className="seg-opt flex-1 py-1.5 text-[11px]"
+                      key={m.id}
+                      onClick={() => setUvCropMode(m.id)}
+                      aria-pressed={uvCropMode === m.id}
+                      className="option justify-center py-1.5"
                     >
-                      {p.label}
+                      {m.label}
                     </button>
                   ))}
                 </div>
-              </div>
 
-              <SliderRow
-                label="Audience House Lights"
-                value={`${Math.round(houseLightsIntensity * 100)}%`}
-                min="0.1"
-                max="2.2"
-                step="0.05"
-                inputValue={houseLightsIntensity}
-                onChange={(e) => setHouseLightsIntensity(parseFloat(e.target.value))}
-              />
-              <SliderRow
-                label="Stage Key & Spotlights"
-                value={`${Math.round(stageLightsIntensity * 100)}%`}
-                min="0.2"
-                max="2.5"
-                step="0.05"
-                inputValue={stageLightsIntensity}
-                onChange={(e) => setStageLightsIntensity(parseFloat(e.target.value))}
-              />
-
-              {/* Ceiling Fixtures Toggle */}
-              {venueSource === 'default-ballroom' && (
-                <label className="pt-2.5 border-t border-ink/[0.12] flex items-center justify-between cursor-pointer">
-                  <span className="text-[11px]">Ceiling Lighting Trusses</span>
-                  <input
-                    type="checkbox"
-                    checked={showCeilingFixtures}
-                    onChange={(e) => setShowCeilingFixtures(e.target.checked)}
-                    className="w-4 h-4 cursor-pointer"
-                  />
-                </label>
-              )}
-            </Section>
+                {uvCropMode === 'manual' && (
+                  <div className="space-y-2.5 pt-2.5 border-t border-ink/[0.12]">
+                    <SliderRow
+                      label="Repeat Y (Height Crop)"
+                      value={manualUvRepeatY.toFixed(2)}
+                      min="0.1"
+                      max="1.0"
+                      step="0.01"
+                      inputValue={manualUvRepeatY}
+                      onChange={(e) => setManualUvRepeatY(parseFloat(e.target.value))}
+                    />
+                    <SliderRow
+                      label="Offset Y (Vertical Shift)"
+                      value={manualUvOffsetY.toFixed(2)}
+                      min="0.0"
+                      max="0.9"
+                      step="0.01"
+                      inputValue={manualUvOffsetY}
+                      onChange={(e) => setManualUvOffsetY(parseFloat(e.target.value))}
+                    />
+                  </div>
+                )}
+              </Section>
+            )}
           </>
         )}
       </div>

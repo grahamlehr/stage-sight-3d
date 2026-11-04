@@ -26,6 +26,7 @@ import {
 export type VenueSource = 'default-ballroom' | 'custom-glb';
 export type SourceType = 'test-pattern' | 'pdf' | 'hdmi-capture' | 'screen-share';
 export type UvCropMode = 'auto-letterbox' | 'top-aligned' | 'fill-1-to-1' | 'manual';
+export type SidebarTab = 'venue' | 'screens' | 'stage' | 'content';
 export type NavigationMode = 'orbit' | 'seated';
 export type FovMode = 'room-context' | 'eye-focus';
 
@@ -297,6 +298,8 @@ export interface StageState {
   // Content Source & UV Crop State
   sourceType: SourceType;
   slides: HTMLCanvasElement[];
+  /** Name of the loaded slides (file name or 'Sample deck'); null when none are loaded. */
+  contentLabel: string | null;
   currentSlideIndex: number;
   activeVideoStream: MediaStream | null;
   selectedVideoDeviceId: string;
@@ -349,8 +352,10 @@ export interface StageState {
   roomBaseline: string;
 
   // UI State
-  activeSidebarTab: 'source' | 'screen' | 'venue';
+  activeSidebarTab: SidebarTab;
   isSidebarOpen: boolean;
+  /** Top-bar room menu (name, notes, save and open). */
+  isRoomMenuOpen: boolean;
   isGuideOpen: boolean;
 
   // Actions
@@ -361,7 +366,7 @@ export interface StageState {
   setCustomVenueBounds: (bounds: VenueBounds | null) => void;
   setIsFloorPlanOpen: (open: boolean) => void;
   setFloorPlanSlot: (slot: number) => void;
-  /** Shows the Venue tab with the floor plan open on the first unplaced view, ready to place one. */
+  /** Opens the floor plan on the first unplaced view, ready to place one (waits for the model to load). */
   openFloorPlanToPlaceViews: () => void;
   setFloorPlanCutHeight: (height: number | null) => void;
   setSeatView: (position: [number, number, number], yaw: number | null, pitch?: number | null) => void;
@@ -396,7 +401,8 @@ export interface StageState {
   setIsTransformDragging: (dragging: boolean) => void;
 
   setSourceType: (type: SourceType) => void;
-  setSlides: (slides: HTMLCanvasElement[]) => void;
+  /** Loads slides; `label` is what the Now showing row calls them (file name or 'Sample deck'). */
+  setSlides: (slides: HTMLCanvasElement[], label?: string | null) => void;
   setCurrentSlideIndex: (index: number) => void;
   setActiveVideoStream: (stream: MediaStream | null) => void;
   setSelectedVideoDeviceId: (id: string) => void;
@@ -450,7 +456,8 @@ export interface StageState {
   loadRoom: (
     file: Blob
   ) => Promise<{ ok: true; name: string; notes: string } | { ok: false; message: string }>;
-  setActiveSidebarTab: (tab: 'source' | 'screen' | 'venue') => void;
+  setActiveSidebarTab: (tab: SidebarTab) => void;
+  setIsRoomMenuOpen: (open: boolean) => void;
   setIsSidebarOpen: (open: boolean) => void;
   setIsGuideOpen: (open: boolean) => void;
 }
@@ -546,6 +553,7 @@ export const useStageStore = create<StageState>((set, get) => ({
   // Content Source Defaults
   sourceType: 'test-pattern',
   slides: [],
+  contentLabel: null,
   currentSlideIndex: 0,
   activeVideoStream: null,
   selectedVideoDeviceId: '',
@@ -604,8 +612,9 @@ export const useStageStore = create<StageState>((set, get) => ({
   roomBaseline: '',
 
   // UI State
-  activeSidebarTab: 'source',
+  activeSidebarTab: 'content',
   isSidebarOpen: true,
+  isRoomMenuOpen: false,
   // First-run tour: open until the user dismisses it with "Don't show again"
   isGuideOpen: !hasDismissedGuide(),
 
@@ -715,8 +724,6 @@ export const useStageStore = create<StageState>((set, get) => ({
     set((state) => {
       const firstUnplaced = state.customSeatViews.findIndex((view) => view === null);
       return {
-        isSidebarOpen: true,
-        activeSidebarTab: 'venue',
         // The floor plan needs the model's bounds, so it waits for the model to load
         isFloorPlanOpen: state.venueSource === 'custom-glb' && state.customVenueBounds !== null,
         floorPlanSlot: firstUnplaced === -1 ? state.floorPlanSlot : firstUnplaced,
@@ -840,7 +847,7 @@ export const useStageStore = create<StageState>((set, get) => ({
   setIsTransformDragging: (isTransformDragging) => set({ isTransformDragging }),
 
   setSourceType: (sourceType) => set({ sourceType }),
-  setSlides: (slides) => set({ slides, currentSlideIndex: 0 }),
+  setSlides: (slides, label = null) => set({ slides, contentLabel: label, currentSlideIndex: 0 }),
   setCurrentSlideIndex: (currentSlideIndex) => set({ currentSlideIndex }),
   setActiveVideoStream: (activeVideoStream) => set({ activeVideoStream }),
   setSelectedVideoDeviceId: (selectedVideoDeviceId) => set({ selectedVideoDeviceId }),
@@ -1128,6 +1135,7 @@ export const useStageStore = create<StageState>((set, get) => ({
     return { ok: true, name: room.name, notes: room.notes };
   },
   setActiveSidebarTab: (activeSidebarTab) => set({ activeSidebarTab }),
+  setIsRoomMenuOpen: (isRoomMenuOpen) => set({ isRoomMenuOpen }),
   setIsSidebarOpen: (isSidebarOpen) => set({ isSidebarOpen }),
   setIsGuideOpen: (isGuideOpen) => set({ isGuideOpen }),
 }));

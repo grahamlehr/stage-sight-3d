@@ -14,6 +14,7 @@ import {
   Clapperboard,
 } from 'lucide-react';
 import { useStageStore, getActiveSeatPresets } from '../../store/useStageStore';
+import { RoomMenu } from './RoomMenu';
 import { Logo } from './Logo';
 import { AboutModal } from './AboutModal';
 import { describeWorstScreen } from '../../utils/worstScreenFlag';
@@ -45,13 +46,16 @@ export const TelemetryHUD: React.FC = () => {
   const customSeatViews = useStageStore((s) => s.customSeatViews);
   const seatPresets = getActiveSeatPresets({ venueSource, customSeatViews });
   const openFloorPlanToPlaceViews = useStageStore((s) => s.openFloorPlanToPlaceViews);
-  const noViewsPlaced = venueSource === 'custom-glb' && seatPresets.every((p) => !p.placed);
+  const isCustomVenue = venueSource === 'custom-glb';
+  const noViewsPlaced = isCustomVenue && seatPresets.every((p) => !p.placed);
   const isSidebarOpen = useStageStore((s) => s.isSidebarOpen);
   const setIsSidebarOpen = useStageStore((s) => s.setIsSidebarOpen);
   const lightingPreset = useStageStore((s) => s.lightingPreset);
   const setLightingPreset = useStageStore((s) => s.setLightingPreset);
   const houseLightsIntensity = useStageStore((s) => s.houseLightsIntensity);
   const setHouseLightsIntensity = useStageStore((s) => s.setHouseLightsIntensity);
+  const stageLightsIntensity = useStageStore((s) => s.stageLightsIntensity);
+  const setStageLightsIntensity = useStageStore((s) => s.setStageLightsIntensity);
   const isVrSupported = useStageStore((s) => s.isVrSupported);
   const isVrPresenting = useStageStore((s) => s.isVrPresenting);
   const toggleVrSession = useStageStore((s) => s.toggleVrSession);
@@ -84,8 +88,9 @@ export const TelemetryHUD: React.FC = () => {
     { id: 'keynote-dark', label: 'Dark' },
   ] as const;
 
+  // z-30, above the sidebar (z-20), so the room menu's popover opens over it
   return (
-    <header className="absolute top-3 left-3 right-3 z-20 pointer-events-none flex items-center justify-between gap-3">
+    <header className="absolute top-3 left-3 right-3 z-30 pointer-events-none flex items-center justify-between gap-3">
       {/* Left: Sidebar Toggle & Branding */}
       <div className="pointer-events-auto flex items-center gap-2">
         <button
@@ -106,6 +111,8 @@ export const TelemetryHUD: React.FC = () => {
           <Logo variant="icon" className="w-5 h-5 group-hover:scale-110 transition-transform" />
           <span className="text-sm tracking-tight">StageSight 3D</span>
         </button>
+
+        <RoomMenu />
 
         {/* Storyboard review tray. In the left group, which never overflows: the
             right-hand group runs off-screen below about 1760px */}
@@ -229,6 +236,22 @@ export const TelemetryHUD: React.FC = () => {
                   onChange={(e) => setHouseLightsIntensity(parseFloat(e.target.value))}
                 />
               </div>
+
+              {/* Stage Key & Spotlights Slider */}
+              <div>
+                <div className="flex justify-between text-[11px] text-ink/60 mb-1">
+                  <span>Stage Key &amp; Spotlights</span>
+                  <span className="font-extrabold text-ink tabular-nums">{Math.round(stageLightsIntensity * 100)}%</span>
+                </div>
+                <input
+                  type="range"
+                  min="0.2"
+                  max="2.5"
+                  step="0.05"
+                  value={stageLightsIntensity}
+                  onChange={(e) => setStageLightsIntensity(parseFloat(e.target.value))}
+                />
+              </div>
             </div>
           </div>
         </div>
@@ -259,16 +282,16 @@ export const TelemetryHUD: React.FC = () => {
                         ? preset.description
                         : noViewsPlaced
                         ? 'Not placed yet'
-                        : 'Not placed yet — open the floor plan on the Venue tab'}
+                        : 'Not placed yet — use Place camera views below'}
                     </span>
                   </span>
                 </button>
               ))}
-              {noViewsPlaced && (
+              {isCustomVenue && (
                 <div className="px-3 pt-2 pb-1 border-t border-ink/[0.12]">
                   <button onClick={openFloorPlanToPlaceViews} className="btn btn-secondary w-full">
                     <MapIcon size={14} />
-                    Open floor plan to place views
+                    Place camera views
                   </button>
                 </div>
               )}

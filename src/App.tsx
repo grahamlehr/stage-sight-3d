@@ -4,6 +4,7 @@ import { TelemetryHUD } from './components/ui/TelemetryHUD';
 import { Sidebar } from './components/ui/Sidebar';
 import { TransportBar } from './components/ui/TransportBar';
 import { StoryboardTray } from './components/ui/StoryboardTray';
+import { CameraViewsPanel } from './components/ui/CameraViewsPanel';
 import { FirstRunGuide } from './components/ui/FirstRunGuide';
 import { hasUnsavedRoomChanges, useStageStore } from './store/useStageStore';
 import { openRoomFromFile } from './utils/openRoomFile';
@@ -12,6 +13,9 @@ export const App: React.FC = () => {
   const isGuideOpen = useStageStore((s) => s.isGuideOpen);
   const isStoryboardOpen = useStageStore((s) => s.isStoryboardOpen);
   const isVrPresenting = useStageStore((s) => s.isVrPresenting);
+  const showFloorPlan = useStageStore(
+    (s) => s.venueSource === 'custom-glb' && s.isFloorPlanOpen && !s.isVrPresenting
+  );
 
   // Warn before the tab closes with unsaved room edits
   useEffect(() => {
@@ -47,6 +51,9 @@ export const App: React.FC = () => {
 
       {/* Left Collapsible Setup & Ingestion Panel */}
       <Sidebar />
+
+      {/* Camera views editor, docked while the floor plan is open */}
+      {showFloorPlan && <CameraViewsPanel />}
 
       {/* Bottom PDF / Presentation Deck Scrubber */}
       <TransportBar />

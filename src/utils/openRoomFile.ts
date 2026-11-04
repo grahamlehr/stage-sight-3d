@@ -17,6 +17,6 @@ export async function openRoomFromFile(file: Blob): Promise<boolean> {
     return false;
   }
   // Show the name and notes that came with the room
-  useStageStore.setState({ isSidebarOpen: true, activeSidebarTab: 'venue' });
+  useStageStore.getState().setIsRoomMenuOpen(true);
   return true;
 }
