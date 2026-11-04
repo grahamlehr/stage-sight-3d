@@ -64,7 +64,7 @@ export const TelemetryHUD: React.FC = () => {
   const isStoryboardOpen = useStageStore((s) => s.isStoryboardOpen);
   const setIsStoryboardOpen = useStageStore((s) => s.setIsStoryboardOpen);
 
-  // Sightline status follows CueSmith's signal rules: an outlined tag with a go
+  // Sightline status follows Signal's status rules: an outlined tag with a go
   // dot passes, a warn fill is marginal, and a solid ink tag fails. Fill carries
   // the meaning, so it still reads without color.
   const statusTag = (level: 'go' | 'warn' | 'fail') =>
@@ -141,7 +141,7 @@ export const TelemetryHUD: React.FC = () => {
         {/* Viewing Distance */}
         <div className="flex items-baseline gap-2">
           <span className="label">Dist (D)</span>
-          <span className="text-base font-extrabold tabular-nums">{telemetry.viewingDistance}m</span>
+          <span className="text-base readout">{telemetry.viewingDistance}m</span>
         </div>
 
         {/* D / H Ratio */}
@@ -150,7 +150,7 @@ export const TelemetryHUD: React.FC = () => {
           title={`AVIXA DISCAS Distance-to-Height Ratio: ${telemetry.dhLabel}`}
         >
           <span className="label">D/H</span>
-          <span className="text-base font-extrabold tabular-nums">{telemetry.dhRatio}x H</span>
+          <span className="text-base readout">{telemetry.dhRatio}x H</span>
           <span className={`tag ${statusTag(dhLevel)}`}>
             {dhLevel === 'go' && <span className="signal-dot bg-signal-go" />}
             <span className="normal-case font-semibold hidden 2xl:inline">{telemetry.dhLabel}</span>
@@ -164,7 +164,7 @@ export const TelemetryHUD: React.FC = () => {
           title={`Horizontal Off-Axis Angle: ${telemetry.angleLabel}`}
         >
           <Compass size={14} strokeWidth={1.5} className="text-ink/60" />
-          <span className="text-base font-extrabold tabular-nums">{telemetry.offAxisAngle}°</span>
+          <span className="text-base readout">{telemetry.offAxisAngle}°</span>
           <span className={`tag ${statusTag(angleLevel)}`}>
             {angleLevel === 'go' && <span className="signal-dot bg-signal-go" />}
             <span className="normal-case font-semibold hidden 2xl:inline">{telemetry.angleLabel}</span>
@@ -225,7 +225,7 @@ export const TelemetryHUD: React.FC = () => {
               <div className="pt-2 border-t border-ink/20">
                 <div className="flex justify-between text-[11px] text-ink/60 mb-1">
                   <span>House lights</span>
-                  <span className="font-extrabold text-ink tabular-nums">{Math.round(houseLightsIntensity * 100)}%</span>
+                  <span className="readout text-ink">{Math.round(houseLightsIntensity * 100)}%</span>
                 </div>
                 <input
                   type="range"
@@ -241,7 +241,7 @@ export const TelemetryHUD: React.FC = () => {
               <div>
                 <div className="flex justify-between text-[11px] text-ink/60 mb-1">
                   <span>Stage key and spotlights</span>
-                  <span className="font-extrabold text-ink tabular-nums">{Math.round(stageLightsIntensity * 100)}%</span>
+                  <span className="readout text-ink">{Math.round(stageLightsIntensity * 100)}%</span>
                 </div>
                 <input
                   type="range"
@@ -274,7 +274,7 @@ export const TelemetryHUD: React.FC = () => {
                   disabled={!preset.placed}
                   className="w-full text-left px-3 py-2 border-t border-ink/[0.12] hover:bg-ink/[0.07] text-xs transition flex items-start gap-2.5 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-transparent"
                 >
-                  <span className="font-extrabold tabular-nums text-ink/60">{i + 1}</span>
+                  <span className="readout text-ink/60">{i + 1}</span>
                   <span className="flex flex-col">
                     <span className="font-semibold">{preset.name}</span>
                     <span className="text-[10px] text-ink/60">
@@ -368,7 +368,7 @@ export const TelemetryHUD: React.FC = () => {
             <span>
               {isVrPresenting ? 'Exit VR' : isVrSupported ? 'Enter VR' : 'VR Preview'}
             </span>
-            {isVrPresenting && <span className="tag bg-white text-accent-700 px-1.5">Live</span>}
+            {isVrPresenting && <span className="tag bg-white text-live-press px-1.5">Live</span>}
             {isVrSupported && !isVrPresenting && (
               <span className="signal-dot bg-signal-go" title="Headset detected" />
             )}
@@ -378,7 +378,7 @@ export const TelemetryHUD: React.FC = () => {
           {isVrHelpOpen && !isVrPresenting && (
             <div className="panel absolute right-0 top-full mt-2 w-80 p-4 z-30 text-xs space-y-3">
               <div className="flex items-center justify-between border-b-2 border-ink/20 pb-2">
-                <div className="flex items-center gap-1.5 font-extrabold">
+                <div className="flex items-center gap-1.5 font-semibold">
                   <Glasses size={14} />
                   <span>Meta Quest PCVR + HDMI Workflow</span>
                 </div>

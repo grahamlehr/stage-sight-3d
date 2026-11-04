@@ -322,18 +322,19 @@ export const VrControllerRig: React.FC = () => {
 
     ctx.clearRect(0, 0, W, H);
 
-    // CueSmith Backstage palette: ink on ground, signal colors for health, red only for live
-    const INK = '#f2f5f9';
-    const MUTED = 'rgba(242, 245, 249, 0.62)';
-    const RULE = 'rgba(242, 245, 249, 0.2)';
-    const GROUND = '#0d121b';
-    const SURFACE = '#151c28';
-    const SIGNAL = { go: '#399d57', warn: '#f0b135' };
-    const LIVE = '#ec3013';
-    const font = (weight: 400 | 600 | 800, size: number) => `${weight} ${size}px Archivo, system-ui, sans-serif`;
+    // Signal dark palette (mirrors src/index.css): ink on ground, signal colours
+    // for health, red only for live
+    const INK = '#f5f5f2';
+    const MUTED = 'rgba(245, 245, 242, 0.62)';
+    const RULE = 'rgba(245, 245, 242, 0.2)';
+    const GROUND = '#0e0e0c';
+    const SURFACE = '#22221f';
+    const SIGNAL = { go: '#1fe070', warn: '#ffb000' };
+    const LIVE = '#ff3b1f';
+    const font = (weight: 400 | 600 | 700, size: number) => `${weight} ${size}px Geist, "Helvetica Neue", Arial, sans-serif`;
 
     // Square panel with a hairline edge
-    ctx.fillStyle = 'rgba(13, 18, 27, 0.94)';
+    ctx.fillStyle = 'rgba(14, 14, 12, 0.94)';
     ctx.fillRect(8, 8, W - 16, H - 16);
     ctx.strokeStyle = RULE;
     ctx.lineWidth = 2;
@@ -341,7 +342,7 @@ export const VrControllerRig: React.FC = () => {
 
     // Top Header Bar
     ctx.fillStyle = INK;
-    ctx.font = font(800, 20);
+    ctx.font = font(700, 20);
     ctx.textAlign = 'left';
     ctx.fillText('STAGESIGHT 3D · VR SIGHTLINE HUD', 40, 48);
 
@@ -357,7 +358,7 @@ export const VrControllerRig: React.FC = () => {
       : `SEAT (${seatPosition[0].toFixed(1)}m, ${seatPosition[2].toFixed(1)}m)`;
 
     ctx.fillStyle = MUTED;
-    ctx.font = font(800, 20);
+    ctx.font = font(700, 20);
     ctx.textAlign = 'right';
     ctx.fillText(seatLabel, W - 40, 48);
 
@@ -408,7 +409,7 @@ export const VrControllerRig: React.FC = () => {
       ctx.fillStyle = worstFlag.level === 'fail' ? LIVE : SIGNAL.warn;
       ctx.fillRect(40, 232, 12, 12);
       ctx.fillStyle = INK;
-      ctx.font = font(800, 18);
+      ctx.font = font(700, 18);
       ctx.textAlign = 'left';
       ctx.fillText(worstFlag.text, 62, 243);
     }
@@ -434,7 +435,7 @@ export const VrControllerRig: React.FC = () => {
       ctx.fillText(c.label, cx + 20, cardY + 32);
 
       ctx.fillStyle = failed ? GROUND : INK;
-      ctx.font = font(800, 42);
+      ctx.font = font(700, 42);
       ctx.fillText(c.value, cx + 20, cardY + 84);
 
       let subX = cx + 20;
@@ -469,7 +470,7 @@ export const VrControllerRig: React.FC = () => {
     );
 
     ctx.fillStyle = isLiveSource ? LIVE : INK;
-    ctx.font = font(800, 16);
+    ctx.font = font(700, 16);
     ctx.textAlign = 'right';
     ctx.fillText(sourceLabel, W - 40, H - 30);
 

@@ -38,7 +38,7 @@ import {
 import { Switch } from './Switch';
 import { NoticeBanner } from './NoticeBanner';
 
-// Sections are divided by rules rather than boxed, after the CueSmith grid.
+// Sections are divided by rules rather than boxed, after Signal's grid.
 const Section: React.FC<{ title: React.ReactNode; meta?: React.ReactNode; children: React.ReactNode }> = ({
   title,
   meta,
@@ -61,7 +61,7 @@ const SliderRow: React.FC<
   <div>
     <div className="flex justify-between text-[11px] text-ink/60 mb-1">
       <span>{label}</span>
-      <span className="ml-auto font-extrabold text-ink tabular-nums">{value}</span>
+      <span className="ml-auto readout text-ink">{value}</span>
     </div>
     <input type="range" value={inputValue} {...inputProps} />
   </div>
@@ -396,7 +396,7 @@ export const Sidebar: React.FC = () => {
             onClick={() => setActiveSidebarTab(id)}
             className={`flex items-center justify-center gap-1 px-1 py-2.5 -mb-[2px] border-b-2 text-xs transition ${
               activeSidebarTab === id
-                ? 'border-ink text-ink font-extrabold'
+                ? 'border-accent text-ink font-semibold'
                 : 'border-transparent text-ink/60 hover:text-ink'
             }`}
           >
@@ -537,7 +537,7 @@ export const Sidebar: React.FC = () => {
                       onClick={() => setSelectedScreen(screen.id)}
                       aria-current={isSelected ? 'true' : undefined}
                       className={`space-y-1.5 p-2 border cursor-pointer ${
-                        isSelected ? 'border-ink bg-ink/[0.07]' : 'border-ink/20 hover:border-ink/45'
+                        isSelected ? 'border-accent bg-standby' : 'border-ink/20 hover:border-ink/45'
                       }`}
                     >
                       <div className="flex items-center gap-1.5">
@@ -989,7 +989,7 @@ export const Sidebar: React.FC = () => {
                 </div>
                 <div className="w-full h-0.5 bg-ink/20">
                   <div
-                    className="h-full bg-ink transition-all duration-200"
+                    className="h-full bg-accent transition-all duration-200"
                     style={{
                       width: `${(rasterProgress.current / Math.max(1, rasterProgress.total)) * 100}%`,
                     }}

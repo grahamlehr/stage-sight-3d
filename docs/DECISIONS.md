@@ -9,6 +9,11 @@ Decisions recorded here are settled. Raise a concern once, briefly, rather than 
 **Alternatives:** what we didn't choose, and why.
 -->
 
+## 2026-11-04: Use the Signal design system, with the logo's cyan as the highlight
+**Context:** Graham wants StageSight to match his other tools, which use his Signal design system (`~/Documents/Signal Design System`). The app had used a CueSmith-derived palette.
+**Decision:** Signal's dark theme, mapped onto the existing Tailwind tokens and component classes in `src/index.css` rather than copying the `.sg-*` layer, so components keep their class names. The highlight is the electric cyan from the StageSight logo (`#06e5f7`) in place of Signal green: a fill with ink-dark text on it for primary buttons, pressed and selected states, the active tab and focus. Red stays reserved for the live state, and green and amber for sightline health. Geist and Geist Mono are self-hosted through `@fontsource` so the app still makes no third-party requests. Panels drop soft shadows; dialogs and popovers get Signal's 2px rule and hard offset shadow.
+**Alternatives:** Signal's light theme (fights the dark 3D scene). The logo's royal blue `#183ead` (too dark to read as a fill on an ink ground). Loading Geist from Google Fonts, as Signal ships it (a third-party request from a client-only app).
+
 ## 2026-10-25: Stay on React 18 / R3F 8 and take majors by hand
 **Context:** Dependabot opened separate React 19, React DOM 19 and R3F 9 PRs. Each failed `npm ci` because drei 9 pins React 18 and R3F 8, so none can land alone.
 **Decision:** Stay on React 18, React DOM 18, R3F 8 and drei 9 for now. `dependabot.yml` ignores major bumps for `react`, `react-dom`, their `@types` and `@react-three/*`; minor and patch updates still arrive. Do the React 19 upgrade as one hand-made branch when there's a reason to.

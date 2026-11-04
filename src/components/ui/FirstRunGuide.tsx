@@ -325,7 +325,7 @@ export const FirstRunGuide: React.FC = () => {
       {rects.map((r, i) => (
         <div
           key={i}
-          className="absolute border-2 border-ink transition-all duration-200"
+          className="absolute border-2 border-accent transition-all duration-200"
           style={{ top: r.top, left: r.left, width: r.width, height: r.height }}
         />
       ))}
@@ -338,7 +338,7 @@ export const FirstRunGuide: React.FC = () => {
           if (e.key === 'Escape') close();
           e.stopPropagation();
         }}
-        className={`pointer-events-auto absolute left-1/2 -translate-x-1/2 w-[calc(100vw-2rem)] max-w-md panel text-ink/80 text-xs ${
+        className={`pointer-events-auto absolute left-1/2 -translate-x-1/2 w-[calc(100vw-2rem)] max-w-md dialog text-ink/80 text-xs ${
           isFirst ? 'top-1/2 -translate-y-1/2' : 'bottom-24'
         }`}
       >
@@ -389,7 +389,7 @@ export const FirstRunGuide: React.FC = () => {
               {STEPS.map((_, i) => (
                 <span
                   key={i}
-                  className={`h-0.5 transition-all ${i === stepIndex ? 'w-4 bg-ink' : 'w-2 bg-ink/25'}`}
+                  className={`h-0.5 transition-all ${i === stepIndex ? 'w-4 bg-accent' : 'w-2 bg-ink/25'}`}
                 />
               ))}
             </div>
