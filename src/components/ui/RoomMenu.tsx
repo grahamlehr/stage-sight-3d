@@ -2,6 +2,14 @@ import React, { useEffect, useRef } from 'react';
 import { FolderOpen, ChevronDown } from 'lucide-react';
 import { hasUnsavedRoomChanges, useStageStore } from '../../store/useStageStore';
 import { openRoomFromFile } from '../../utils/openRoomFile';
+import { NoticeBanner } from './NoticeBanner';
+
+/** Closing also drops a room error, so it doesn't greet the next opening. */
+function closeMenu() {
+  const { setIsRoomMenuOpen, notice, clearNotice } = useStageStore.getState();
+  setIsRoomMenuOpen(false);
+  if (notice?.area === 'room') clearNotice();
+}
 
 /** Top-bar room menu: the room's name and notes, and the Save and Open buttons for the `.stagesight` file. */
 export const RoomMenu: React.FC = () => {
@@ -20,7 +28,7 @@ export const RoomMenu: React.FC = () => {
     if (!isOpen) return;
     const onPointerDown = (e: PointerEvent) => {
       if (rootRef.current && !rootRef.current.contains(e.target as Node)) {
-        useStageStore.getState().setIsRoomMenuOpen(false);
+        closeMenu();
       }
     };
     document.addEventListener('pointerdown', onPointerDown);
@@ -29,7 +37,8 @@ export const RoomMenu: React.FC = () => {
 
   const handleSave = async () => {
     const result = await useStageStore.getState().saveRoom();
-    if (!result.ok) alert(result.message);
+    if (!result.ok) useStageStore.getState().showNotice({ tone: 'error', area: 'room', text: result.message });
+    else useStageStore.getState().clearNotice();
   };
 
   const handleOpen = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -49,12 +58,12 @@ export const RoomMenu: React.FC = () => {
       onKeyDown={(e) => {
         if (e.key === 'Escape' && isOpen) {
           e.stopPropagation();
-          setIsOpen(false);
+          closeMenu();
         }
       }}
     >
       <button
-        onClick={() => setIsOpen(!isOpen)}
+        onClick={() => (isOpen ? closeMenu() : setIsOpen(true))}
         aria-expanded={isOpen}
         aria-haspopup="dialog"
         className={`btn h-9 gap-2 max-w-[11rem] ${isOpen ? 'btn-primary' : 'btn-secondary'}`}
@@ -88,6 +97,7 @@ export const RoomMenu: React.FC = () => {
             rows={3}
             className="input w-full resize-y"
           />
+          <NoticeBanner area="room" />
           <div className="grid grid-cols-2 gap-2">
             <button onClick={handleSave} className="btn btn-secondary">
               Save room

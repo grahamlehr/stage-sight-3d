@@ -189,14 +189,14 @@ export const TelemetryHUD: React.FC = () => {
       <div className="pointer-events-auto flex items-center gap-1.5">
         {/* Venue Lighting Quick Selector */}
         <div data-guide="lighting" className="relative group">
-          <button className="btn btn-secondary" aria-label="Venue Lighting Rig & House Lights">
+          <button className="btn btn-secondary" aria-label="Room lighting">
             <Sun size={14} />
             <span className="hidden min-[1440px]:inline">
               {lightingPreset === 'conference-bright'
                 ? 'Bright'
                 : lightingPreset === 'ballroom-standard'
                 ? 'Standard'
-                : 'Keynote Dark'}
+                : 'Keynote dark'}
             </span>
           </button>
           {/* The padding, not a margin, makes the gap: it is part of the hover area, so
@@ -204,7 +204,7 @@ export const TelemetryHUD: React.FC = () => {
           <div className="absolute right-0 top-full pt-1.5 hidden group-hover:block z-30">
             <div className="panel w-64 p-3 animate-in fade-in duration-100 space-y-3">
               <span className="label flex items-center gap-1">
-                <Sun size={11} /> Room Lighting Rig
+                <Sun size={11} /> Room lighting
               </span>
 
               {/* Presets */}
@@ -224,7 +224,7 @@ export const TelemetryHUD: React.FC = () => {
               {/* House Lights Slider */}
               <div className="pt-2 border-t border-ink/20">
                 <div className="flex justify-between text-[11px] text-ink/60 mb-1">
-                  <span>Audience House Lights</span>
+                  <span>House lights</span>
                   <span className="font-extrabold text-ink tabular-nums">{Math.round(houseLightsIntensity * 100)}%</span>
                 </div>
                 <input
@@ -240,7 +240,7 @@ export const TelemetryHUD: React.FC = () => {
               {/* Stage Key & Spotlights Slider */}
               <div>
                 <div className="flex justify-between text-[11px] text-ink/60 mb-1">
-                  <span>Stage Key &amp; Spotlights</span>
+                  <span>Stage key and spotlights</span>
                   <span className="font-extrabold text-ink tabular-nums">{Math.round(stageLightsIntensity * 100)}%</span>
                 </div>
                 <input
@@ -258,14 +258,14 @@ export const TelemetryHUD: React.FC = () => {
 
         {/* Seat Presets Dropdown */}
         <div data-guide="seat-presets" className="relative group">
-          <button className="btn btn-secondary" aria-label="Seat Presets">
+          <button className="btn btn-secondary" aria-label="Seat presets">
             <Armchair size={14} />
-            <span className="hidden min-[1440px]:inline">Seat Presets</span>
+            <span className="hidden min-[1440px]:inline">Seat presets</span>
           </button>
           <div className="absolute right-0 top-full pt-1.5 hidden group-hover:block z-30">
             <div className="panel w-64 py-1.5 animate-in fade-in duration-100">
               <span className="label px-3 py-1 flex items-center gap-1">
-                <Info size={11} /> Quick Sightline Tests
+                <Info size={11} /> Quick sightline tests
               </span>
               {seatPresets.map((preset, i) => (
                 <button
