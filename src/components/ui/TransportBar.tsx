@@ -73,7 +73,9 @@ export const TransportBar: React.FC = () => {
   };
 
   return (
-    <footer className="panel absolute bottom-3 left-1/2 -translate-x-1/2 z-20 flex items-center gap-3 px-3 py-2 max-w-[90vw]">
+    <footer className="panel absolute bottom-3 left-1/2 -translate-x-1/2 z-20 flex items-center gap-3 px-3 py-2 max-w-[90vw] xl:max-w-[calc(100vw-39rem)]">
+      {/* From 1280px the bar stays clear of the 18rem sightline card bottom right
+          (centred, so it leaves that width plus gutters on both sides) */}
       {/* Slide Navigation Controls */}
       <div className="flex items-center gap-2 pr-3 border-r border-ink/20">
         <button
@@ -100,7 +102,7 @@ export const TransportBar: React.FC = () => {
       </div>
 
       {/* Horizontal Thumbnail Tray */}
-      <div className="flex items-center gap-2 overflow-x-auto py-1 max-w-[60vw]">
+      <div className="flex min-w-0 items-center gap-2 overflow-x-auto py-1 max-w-[60vw]">
         {thumbnails.map((thumb, index) => {
           const isSelected = index === currentSlideIndex;
           return (

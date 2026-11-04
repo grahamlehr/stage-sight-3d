@@ -106,7 +106,7 @@ Then open http://localhost:5173.
 src/
   components/
     canvas/   3D scene: venue, screen, occlusion props, camera, VR rig and storyboard renderer
-    ui/       Sidebar (four tabs), top HUD and room menu, camera views panel, slide transport bar, storyboard panel, first-run tour, about modal
+    ui/       Sidebar (four tabs), top bar and room menu, sightlines card, camera views panel, slide transport bar, storyboard panel, first-run tour, about modal
   store/      Single Zustand store holding all app state
   utils/      DISCAS and UV-crop math, screen layout, PDF rasterising, room files, storyboard shots and PDF
 docs/         Guides, reference and architecture (see docs/README.md)
