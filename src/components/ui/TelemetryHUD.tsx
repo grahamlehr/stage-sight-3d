@@ -88,11 +88,15 @@ export const TelemetryHUD: React.FC = () => {
     { id: 'keynote-dark', label: 'Dark' },
   ] as const;
 
-  // z-30, above the sidebar (z-20), so the room menu's popover opens over it
+  // z-30, above the sidebar (z-20), so the room menu's popover opens over it.
+  // One row from 1280px: each group drops its labels step by step as the window
+  // narrows (full labels from 2200px), and the worst-screen tag is the one item
+  // that truncates. Below 1280px the telemetry wraps onto a second row,
+  // right-aligned clear of the sidebar.
   return (
-    <header className="absolute top-3 left-3 right-3 z-30 pointer-events-none flex items-center justify-between gap-3">
+    <header className="absolute top-3 left-3 right-3 z-30 pointer-events-none flex flex-wrap xl:flex-nowrap items-center justify-between gap-x-3 gap-y-2">
       {/* Left: Sidebar Toggle & Branding */}
-      <div className="pointer-events-auto flex items-center gap-2">
+      <div className="pointer-events-auto flex shrink-0 items-center gap-1.5 xl:gap-2">
         <button
           data-guide="sidebar-toggle"
           onClick={() => setIsSidebarOpen(!isSidebarOpen)}
@@ -107,15 +111,15 @@ export const TelemetryHUD: React.FC = () => {
           onClick={() => setIsAboutOpen(true)}
           className="btn btn-secondary h-9 gap-2.5 group"
           title="About StageSight 3D (Click for details)"
+          aria-label="About StageSight 3D"
         >
           <Logo variant="icon" className="w-5 h-5 group-hover:scale-110 transition-transform" />
-          <span className="text-sm tracking-tight">StageSight 3D</span>
+          <span className="text-sm tracking-tight hidden min-[1440px]:inline">StageSight 3D</span>
         </button>
 
         <RoomMenu />
 
-        {/* Storyboard review tray. In the left group, which never overflows: the
-            right-hand group runs off-screen below about 1760px */}
+        {/* Storyboard review tray */}
         <button
           onClick={() => {
             if (isStoryboardOpen) {
@@ -128,19 +132,20 @@ export const TelemetryHUD: React.FC = () => {
           aria-pressed={isStoryboardOpen}
           className={`btn h-9 gap-2 ${isStoryboardOpen ? 'btn-primary' : 'btn-secondary'}`}
           title="Capture camera views and export a client storyboard PDF"
+          aria-label="Storyboard"
         >
           <Clapperboard size={14} />
-          <span className="text-sm">Storyboard</span>
+          <span className="text-sm hidden 2xl:inline">Storyboard</span>
         </button>
       </div>
 
       {/* Center: Live DISCAS Telemetry Badges */}
       <div
         data-guide="telemetry"
-        className="panel pointer-events-auto flex items-center gap-3 px-3 py-2 whitespace-nowrap">
+        className="panel pointer-events-auto flex min-w-0 items-center gap-3 px-3 py-2 whitespace-nowrap order-last xl:order-none ml-auto xl:ml-0">
         {/* Viewing Distance */}
-        <div className="flex items-baseline gap-2">
-          <span className="label">Dist (D)</span>
+        <div className="flex items-baseline gap-2" title="Viewing distance (D) to the primary screen">
+          <span className="label">D<span className="hidden min-[1920px]:inline">ist (D)</span></span>
           <span className="text-base readout">{telemetry.viewingDistance}m</span>
         </div>
 
@@ -153,8 +158,8 @@ export const TelemetryHUD: React.FC = () => {
           <span className="text-base readout">{telemetry.dhRatio}x H</span>
           <span className={`tag ${statusTag(dhLevel)}`}>
             {dhLevel === 'go' && <span className="signal-dot bg-signal-go" />}
-            <span className="normal-case font-semibold hidden 2xl:inline">{telemetry.dhLabel}</span>
-            <span className="2xl:hidden">{DH_SHORT_LABEL[telemetry.dhStatus] ?? telemetry.dhStatus}</span>
+            <span className="normal-case font-semibold hidden min-[2200px]:inline">{telemetry.dhLabel}</span>
+            <span className="min-[2200px]:hidden">{DH_SHORT_LABEL[telemetry.dhStatus] ?? telemetry.dhStatus}</span>
           </span>
         </div>
 
@@ -167,31 +172,33 @@ export const TelemetryHUD: React.FC = () => {
           <span className="text-base readout">{telemetry.offAxisAngle}°</span>
           <span className={`tag ${statusTag(angleLevel)}`}>
             {angleLevel === 'go' && <span className="signal-dot bg-signal-go" />}
-            <span className="normal-case font-semibold hidden 2xl:inline">{telemetry.angleLabel}</span>
-            <span className="2xl:hidden">{ANGLE_SHORT_LABEL[telemetry.angleStatus] ?? telemetry.angleStatus}</span>
+            <span className="normal-case font-semibold hidden min-[2200px]:inline">{telemetry.angleLabel}</span>
+            <span className="min-[2200px]:hidden">{ANGLE_SHORT_LABEL[telemetry.angleStatus] ?? telemetry.angleStatus}</span>
           </span>
         </div>
 
-        {/* Worst other screen, when it reads worse than the primary */}
+        {/* Worst other screen, when it reads worse than the primary. The one item in
+            the top bar that gives way: it truncates rather than push the bar off-screen. */}
         {worstFlag && (
-          <div className="flex items-center pl-3 border-l border-ink/20">
+          <div className="flex min-w-[4.5rem] items-center pl-3 border-l border-ink/20">
             <span
-              className={`tag ${statusTag(worstFlag.level)}`}
-              title="The screen that reads worst from this seat. The numbers beside it are for the primary screen."
+              className={`tag ${statusTag(worstFlag.level)} max-w-full`}
+              title={`${worstFlag.text}. The screen that reads worst from this seat; the numbers beside it are for the primary screen.`}
             >
-              {worstFlag.text}
+              <span className="truncate hidden min-[2200px]:inline">{worstFlag.text}</span>
+              <span className="truncate min-[2200px]:hidden">{worstFlag.shortText}</span>
             </span>
           </div>
         )}
       </div>
 
       {/* Right: Camera Mode, Dual-FOV, Seat Presets & Lighting */}
-      <div className="pointer-events-auto flex items-center gap-1.5">
+      <div className="pointer-events-auto flex shrink-0 items-center gap-1.5 ml-auto xl:ml-0">
         {/* Venue Lighting Quick Selector */}
         <div data-guide="lighting" className="relative group">
           <button className="btn btn-secondary" aria-label="Room lighting">
             <Sun size={14} />
-            <span className="hidden min-[1440px]:inline">
+            <span className="hidden min-[1920px]:inline">
               {lightingPreset === 'conference-bright'
                 ? 'Bright'
                 : lightingPreset === 'ballroom-standard'
@@ -260,7 +267,7 @@ export const TelemetryHUD: React.FC = () => {
         <div data-guide="seat-presets" className="relative group">
           <button className="btn btn-secondary" aria-label="Seat presets">
             <Armchair size={14} />
-            <span className="hidden min-[1440px]:inline">Seat presets</span>
+            <span className="hidden min-[1920px]:inline">Seat presets</span>
           </button>
           <div className="absolute right-0 top-full pt-1.5 hidden group-hover:block z-30">
             <div className="panel w-64 py-1.5 animate-in fade-in duration-100">
@@ -308,7 +315,9 @@ export const TelemetryHUD: React.FC = () => {
             title="50° Vertical FOV: Stage framing and peripheral room sightlines"
           >
             <Maximize2 size={13} />
-            <span className="hidden sm:inline">50° Room</span>
+            <span>
+              50°<span className="hidden min-[1680px]:inline"> Room</span>
+            </span>
           </button>
           <button
             onClick={() => setFovMode('eye-focus')}
@@ -317,7 +326,9 @@ export const TelemetryHUD: React.FC = () => {
             title="25° Vertical FOV: Simulates human foveal focus for text legibility"
           >
             <Eye size={13} />
-            <span className="hidden sm:inline">25° Eye Focus</span>
+            <span>
+              25°<span className="hidden min-[1680px]:inline"> Eye focus</span>
+            </span>
           </button>
         </div>
 
@@ -327,9 +338,13 @@ export const TelemetryHUD: React.FC = () => {
           onClick={() => setNavigationMode(navigationMode === 'orbit' ? 'seated' : 'orbit')}
           aria-pressed={navigationMode === 'seated'}
           className={`btn ${navigationMode === 'seated' ? 'btn-primary' : 'btn-secondary'}`}
+          title={navigationMode === 'seated' ? 'Seated at 1.2m eye height: switch to orbit' : 'Orbit camera: switch to seated'}
         >
           <Armchair size={14} />
-          <span>{navigationMode === 'seated' ? 'Seated @ 1.2m' : 'Orbit Camera'}</span>
+          <span className="hidden 2xl:inline">
+            {navigationMode === 'seated' ? 'Seated' : 'Orbit'}
+            <span className="hidden min-[1920px]:inline">{navigationMode === 'seated' ? ' @ 1.2m' : ' camera'}</span>
+          </span>
         </button>
 
         {/* Meta Quest / PCVR WebXR Controls */}
@@ -365,7 +380,7 @@ export const TelemetryHUD: React.FC = () => {
             }
           >
             <Glasses size={15} />
-            <span>
+            <span className={isVrPresenting ? '' : 'hidden 2xl:inline'}>
               {isVrPresenting ? 'Exit VR' : isVrSupported ? 'Enter VR' : 'VR Preview'}
             </span>
             {isVrPresenting && <span className="tag bg-white text-live-press px-1.5">Live</span>}
