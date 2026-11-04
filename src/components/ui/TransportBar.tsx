@@ -86,8 +86,8 @@ export const TransportBar: React.FC = () => {
 
         <div className="px-2 text-xs whitespace-nowrap tabular-nums">
           <span className="text-ink/60">Slide</span>{' '}
-          <span className="font-extrabold text-accent-400">{currentSlideIndex + 1}</span>{' '}
-          <span className="text-ink/60">of</span> <span className="font-extrabold">{slides.length}</span>
+          <span className="font-semibold text-live-text">{currentSlideIndex + 1}</span>{' '}
+          <span className="text-ink/60">of</span> <span className="font-semibold">{slides.length}</span>
         </div>
 
         <button
@@ -110,7 +110,7 @@ export const TransportBar: React.FC = () => {
               aria-current={isSelected ? 'true' : undefined}
               className={`relative shrink-0 h-11 overflow-hidden border-2 transition ${
                 isSelected
-                  ? 'border-accent'
+                  ? 'border-live'
                   : 'border-transparent opacity-50 hover:opacity-100 hover:border-ink/45'
               }`}
               style={{
@@ -125,8 +125,8 @@ export const TransportBar: React.FC = () => {
                 className="w-full h-full object-cover"
               />
               <span
-                className={`absolute bottom-0 right-0 px-1 text-[9px] font-extrabold tabular-nums ${
-                  isSelected ? 'bg-accent text-white' : 'bg-ground text-ink'
+                className={`absolute bottom-0 right-0 px-1 text-[9px] readout ${
+                  isSelected ? 'bg-live text-white' : 'bg-ground text-ink'
                 }`}
               >
                 {index + 1}

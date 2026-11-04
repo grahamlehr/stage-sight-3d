@@ -71,7 +71,7 @@ export const CameraViewsPanel: React.FC = () => {
         <div className="space-y-1">
           <div className="flex justify-between text-[11px] text-ink/60">
             <span>Cut height</span>
-            <span className="font-extrabold text-ink tabular-nums">
+            <span className="readout text-ink">
               {((floorPlanCutHeight ?? defaultCutHeight(customVenueBounds)) - customVenueBounds.min[1]).toFixed(1)}m
             </span>
           </div>

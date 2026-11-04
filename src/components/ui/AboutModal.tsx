@@ -1,4 +1,5 @@
 import React, { useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { X, ExternalLink, Presentation, Ratio, Building2, Users, PlayCircle } from 'lucide-react';
 import { Logo } from './Logo';
 
@@ -29,10 +30,18 @@ export const AboutModal: React.FC<AboutModalProps> = ({ isOpen, onClose, onStart
     { icon: Users, title: 'Content Masking', body: 'Two presenters, lectern and 4-person panel check' },
   ];
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 animate-in fade-in duration-150">
+  // Portalled to <body>: the modal is opened from the top bar, whose
+  // pointer-events-none would otherwise make every click fall through to the scene.
+  return createPortal(
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-overlay pointer-events-auto"
+      onClick={onClose}
+    >
       <div
-        className="panel relative w-full max-w-lg overflow-hidden"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="about-title"
+        className="dialog relative w-full max-w-lg overflow-hidden"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Close Button */}
@@ -40,19 +49,20 @@ export const AboutModal: React.FC<AboutModalProps> = ({ isOpen, onClose, onStart
           onClick={onClose}
           className="btn btn-ghost btn-icon absolute top-3 right-3 z-10 text-ink/60 hover:text-ink"
           title="Close (Esc)"
+          aria-label="Close"
         >
           <X size={16} />
         </button>
 
         {/* Hero Artwork Banner */}
-        <div className="relative w-full bg-ground p-6 flex flex-col items-center justify-center border-b-2 border-ink/20">
-          <Logo variant="full" className="w-56 h-auto" />
-          <div className="mt-3 text-center">
-            <h2 className="text-xl flex items-center justify-center gap-2">
+        <div className="relative w-full bg-ground p-6 flex flex-col items-start border-b-2 border-ink">
+          <Logo variant="full" className="w-48 h-auto -ml-2" />
+          <div className="mt-3">
+            <h2 id="about-title" className="text-xl flex items-center gap-2">
               StageSight 3D
               <span className="tag tag-outline">v{__APP_VERSION__}</span>
             </h2>
-            <p className="text-xs text-ink/60 mt-1 max-w-sm">
+            <p className="label mt-1.5">
               Screen, Content &amp; Sightline Previewer
             </p>
           </div>
@@ -122,6 +132,7 @@ export const AboutModal: React.FC<AboutModalProps> = ({ isOpen, onClose, onStart
           </p>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 };

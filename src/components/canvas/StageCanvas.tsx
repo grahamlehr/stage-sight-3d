@@ -156,21 +156,21 @@ export const StageCanvas: React.FC = () => {
         )}
         {isVrPresenting ? (
           <span>
-            <strong className="font-extrabold text-ink">Meta Quest VR Active:</strong> Keys <kbd className="kbd">1–4</kbd> or <kbd className="kbd">A/X</kbd> Seat Presets &bull; <kbd className="kbd">R</kbd> or <kbd className="kbd">B/Y</kbd> Recenter &bull; <kbd className="kbd">L</kbd> Lighting &bull; <kbd className="kbd">H</kbd> Toggle VR HUD
+            <strong className="font-semibold text-ink">Meta Quest VR Active:</strong> Keys <kbd className="kbd">1–4</kbd> or <kbd className="kbd">A/X</kbd> Seat Presets &bull; <kbd className="kbd">R</kbd> or <kbd className="kbd">B/Y</kbd> Recenter &bull; <kbd className="kbd">L</kbd> Lighting &bull; <kbd className="kbd">H</kbd> Toggle VR HUD
           </span>
         ) : showFloorPlan ? (
           <span>
-            <strong className="font-extrabold text-ink">Floor Plan:</strong> click the floor to place View {floorPlanSlot + 1}, drag to aim it &bull; <kbd className="kbd">Esc</kbd> to close
+            <strong className="font-semibold text-ink">Floor Plan:</strong> click the floor to place View {floorPlanSlot + 1}, drag to aim it &bull; <kbd className="kbd">Esc</kbd> to close
           </span>
         ) : isPickingMesh ? (
           <span className="font-semibold text-ink">Click a mesh in the 3D model to make it a screen &bull; <kbd className="kbd">Shift + Click</kbd> to add several</span>
         ) : navigationMode === 'seated' ? (
           <span>
-            <strong className="font-extrabold text-ink">Seated View:</strong> Click & drag to look around &bull; Click any floor area to change seats &bull; Keys <kbd className="kbd">1–4</kbd> Seat Presets
+            <strong className="font-semibold text-ink">Seated View:</strong> Click & drag to look around &bull; Click any floor area to change seats &bull; Keys <kbd className="kbd">1–4</kbd> Seat Presets
           </span>
         ) : (
           <span>
-            <strong className="font-extrabold text-ink">Orbit View:</strong> Left-drag to rotate &bull; Right-drag to pan &bull; <kbd className="kbd">Shift + Click</kbd> floor to sit &bull; Keys <kbd className="kbd">1–4</kbd> Seat Presets
+            <strong className="font-semibold text-ink">Orbit View:</strong> Left-drag to rotate &bull; Right-drag to pan &bull; <kbd className="kbd">Shift + Click</kbd> floor to sit &bull; Keys <kbd className="kbd">1–4</kbd> Seat Presets
           </span>
         )}
       </div>

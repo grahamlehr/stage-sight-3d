@@ -17,7 +17,7 @@ export const Logo: React.FC<LogoProps> = ({
   variant = 'icon',
   className = 'w-6 h-6',
   withText = false,
-  textClassName = 'text-sm font-extrabold',
+  textClassName = 'text-sm font-bold',
   badge,
   onClick,
 }) => {

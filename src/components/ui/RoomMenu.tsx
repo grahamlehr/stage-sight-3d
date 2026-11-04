@@ -78,7 +78,7 @@ export const RoomMenu: React.FC = () => {
       </button>
 
       {isOpen && (
-        <div role="dialog" aria-label="Room file" className="panel absolute left-0 top-full mt-1.5 w-80 p-3 z-30 space-y-2.5 text-xs">
+        <div role="dialog" aria-label="Room file" className="dialog absolute left-0 top-full mt-1.5 w-80 p-3 z-30 space-y-2.5 text-xs">
           <span className="label">Room file</span>
           <input
             type="text"

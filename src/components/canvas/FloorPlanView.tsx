@@ -18,8 +18,8 @@ const MIN_ZOOM_SCALE = 0.25;
 const MAX_ZOOM_SCALE = 8;
 const MARKER_RADIUS = 0.4;
 
-const SLOT_COLOUR = '#38bdf8';
-const ACTIVE_COLOUR = '#f0b135';
+const SLOT_COLOUR = '#06e5f7'; // Signal accent (logo cyan)
+const ACTIVE_COLOUR = '#ffb000'; // Signal amber
 
 const roundCm = (v: number) => Math.round(v * 100) / 100;
 
@@ -45,8 +45,8 @@ const ViewMarker: React.FC<{ view: CustomSeatView; label: number; active: boolea
       </group>
       <Html center zIndexRange={[20, 0]} style={{ pointerEvents: 'none' }}>
         <div
-          className="pointer-events-none select-none text-[11px] font-extrabold leading-none w-5 h-5 flex items-center justify-center"
-          style={{ background: '#0d121b', color: colour, border: `1px solid ${colour}` }}
+          className="pointer-events-none select-none text-[11px] font-semibold leading-none w-5 h-5 flex items-center justify-center"
+          style={{ background: '#0e0e0c', color: colour, border: `1px solid ${colour}` }}
         >
           {label}
         </div>
@@ -247,7 +247,7 @@ export const FloorPlanView: React.FC = () => {
             </mesh>
             <Html center zIndexRange={[20, 0]} style={{ pointerEvents: 'none' }} position={[0, 0, -0.8]}>
               <div
-                className={`pointer-events-none select-none text-[10px] font-extrabold uppercase tracking-wider whitespace-nowrap ${
+                className={`pointer-events-none select-none text-[10px] font-semibold uppercase tracking-wider whitespace-nowrap ${
                   isPrimary ? 'text-ink' : 'text-ink/60'
                 }`}
               >

@@ -6,13 +6,21 @@ All notable changes to StageSight 3D are listed here. The format follows [Keep a
 
 ## [Unreleased]
 
+## [2.0.0] - 2026-11-04
+
 ### Changed
+
+- **Signal design.** The interface moves to Graham's Signal design system in its dark theme: warm ink greys, square corners, 2px rules, Geist with Geist Mono for labels, tags and readouts, and no soft shadows. The highlight is the cyan from the StageSight logo, used for primary buttons, selected options, the active tab, switches and focus. Red still means live; green and amber still mean sightline pass and marginal. The VR HUD and floor plan markers use the same palette.
 
 - **Consistent switches, wording and tabs.** Every on/off setting (side screens, gizmo, ceiling trusses, presenters, lectern, panel) is now one switch control. Labels are in sentence case with British spelling, for example **Size (metres)**, **Centre position (X)** and **Stage props**; the 16:9 cropper becomes **Fit a 16:9 feed** with **Show whole picture**, **Align to top**, **Stretch to fill** and **Custom**; the source tiles say what they take. The sidebar tabs are keyboard accessible (Left, Right, Home and End move between them). File, capture and room-file errors show as dismissible inline messages instead of pop-up alerts.
 - **Sidebar in setup order.** The three tabs (Source, Screen, Venue) become four numbered tabs: 1 Venue, 2 Screens, 3 Stage, 4 Content. It opens on Content. Stage holds one **Stage height** slider (the ballroom's, or a custom venue's stage floor) and the presenters, lectern and panel. Screens ends with a **Selected screen** card for aspect ratio, dimensions, the gizmo and **Pick screen mesh**. Content gains a **Now showing** row, the sample deck and **Upload new file** links under the source tiles, and the PDF/Image tile returns to loaded slides instead of reopening the picker.
 - **Lighting moves to the top bar.** The lighting menu now has the presets, house lights and the stage key light and spotlights; the sidebar no longer has a lighting section.
 - **Room file moves to a room menu in the top bar.** The button shows the room name, with a dot for unsaved changes, and holds the name, notes, **Save room** and **Open room**. Opening a room, by button or drag-and-drop, opens the menu.
 - **Camera views get their own panel.** While the floor plan is open, a **Camera views** panel docks on the right (select, rename, clear, set from camera, cut height) with a **Done** button. The floor plan opens from **Place camera views** on the Venue tab or from **Seat Presets**, which now offers it in any custom venue.
+
+### Fixed
+
+- **About dialogue works again.** The close button, **Take the tour** and the website link did nothing, because the dialogue sat inside the top bar, which lets clicks through to the 3D view. It now opens over the whole page, and clicking outside it or pressing Escape closes it.
 
 ### Added
 
@@ -96,5 +104,6 @@ First stable release. It covers everything built since the MVP on 2026-10-15.
 - **VR entry height.** VR now starts at a 1.2m seated eye height, and the view no longer drops through the floor (2026-10-16).
 - **Panel chairs.** The tub chairs in the panel prop were rotated so they face the right way (2026-10-15).
 
-[Unreleased]: https://github.com/grahamlehr/stage-sight-3d/compare/v1.0.0...HEAD
+[Unreleased]: https://github.com/grahamlehr/stage-sight-3d/compare/v2.0.0...HEAD
+[2.0.0]: https://github.com/grahamlehr/stage-sight-3d/compare/v1.0.0...v2.0.0
 [1.0.0]: https://github.com/grahamlehr/stage-sight-3d/releases/tag/v1.0.0

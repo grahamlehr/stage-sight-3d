@@ -35,7 +35,7 @@ const Block: React.FC<{ title: React.ReactNode; meta?: React.ReactNode; children
 
 const ErrorLine: React.FC<{ message: string | null }> = ({ message }) =>
   message ? (
-    <p role="alert" className="text-[11px] text-accent-400">
+    <p role="alert" className="text-[11px] text-live-text">
       {message}
     </p>
   ) : null;
@@ -363,7 +363,7 @@ export const StoryboardTray: React.FC = () => {
   return (
     <aside className="panel absolute right-3 top-16 bottom-3 w-[23rem] max-w-[calc(100vw-1.5rem)] z-20 flex flex-col overflow-hidden" aria-label="Storyboard">
       <div className="flex items-center justify-between gap-2 px-4 py-3 border-b border-ink/20">
-        <span className="flex items-center gap-2 text-sm font-extrabold">
+        <span className="flex items-center gap-2 text-sm font-semibold">
           <Clapperboard size={16} /> Storyboard
         </span>
         <button className="btn btn-ghost btn-icon" onClick={close} aria-label="Close storyboard" title="Close storyboard">

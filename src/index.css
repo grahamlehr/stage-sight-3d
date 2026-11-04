@@ -1,8 +1,9 @@
 @import "tailwindcss";
 
-/* CueSmith design language, Backstage (dark) theme: ink on ground with one red.
-   Ground, surface and ink are cooled from CueSmith's warm neutrals to a dark
-   blue and a cool white; the red and signal colours are CueSmith's own.
+/* Signal, Graham's design system (~/Documents/Signal Design System), dark theme:
+   ink ground, warm greys, 2px rules, zero radius, Geist and Geist Mono.
+   StageSight swaps Signal's green highlight for the electric cyan from its logo.
+   Red stays reserved for the live state (VR session, live feed, slide on screen).
    The palette, corners, type and weights replace Tailwind's defaults on purpose
    (the `initial` resets), so stray zinc/cyan utilities fail to build into anything. */
 @theme {
@@ -12,30 +13,44 @@
   --color-black: #000000;
   --color-white: #ffffff;
 
-  --color-ground: #0d121b;
-  --color-surface: #151c28;
-  --color-ink: #f2f5f9;
+  /* Signal neutrals, dark theme */
+  --color-ground: #0e0e0c; /* neutral-900 */
+  --color-surface: #22221f; /* neutral-800 */
+  --color-surface-2: #3a3a36; /* neutral-700, hover fills */
+  --color-hairline: #3a3a36;
+  --color-ink: #f5f5f2; /* neutral-50 */
+  --color-overlay: rgb(0 0 0 / 0.7); /* the only translucent layer */
 
-  /* One red means now: only the live state (VR session, live feed, slide on screen). */
-  --color-accent: #ec3013;
-  --color-accent-400: #ff9783; /* accent text on dark */
-  --color-accent-600: #dd2b0f;
-  --color-accent-700: #ae1800;
+  /* The highlight: StageSight logo cyan in place of Signal green. A fill, with
+     ink-dark text on it: primary buttons, pressed and selected states, active
+     tab bar, focus ring. */
+  --color-accent: #06e5f7;
+  --color-accent-hover: #6ff0fa;
+  --color-accent-press: #04b8c7;
+  --color-accent-text: #6ff0fa; /* cyan words on dark */
+  --color-on-accent: #0e0e0c;
 
-  /* Armed / up-next states, CueSmith's standby fill. */
-  --color-standby: #1e2c44;
+  /* Live: red means now, and only now. Signal's red. */
+  --color-live: #ff3b1f;
+  --color-live-text: #ff8a75;
+  --color-live-hover: #e62f12;
+  --color-live-press: #c22408;
 
-  /* Health signals only: sightline pass and marginal. */
-  --color-signal-go: #399d57; /* oklch(0.62 0.14 150) */
-  --color-signal-warn: #f0b135; /* oklch(0.8 0.15 80) */
-  --color-signal-warn-fg: #151c28;
+  /* Armed / up-next states: an opaque cyan tint on the surface */
+  --color-standby: #1e4142;
+
+  /* Health signals only: sightline pass and marginal. Signal green and amber. */
+  --color-signal-go: #1fe070;
+  --color-signal-warn: #ffb000;
+  --color-signal-warn-fg: #0e0e0c;
 
   /* Square corners everywhere; only rounded-full survives */
   --radius-*: initial;
   --radius: 0;
 
   --font-*: initial;
-  --font-sans: Archivo, system-ui, sans-serif;
+  --font-sans: Geist, "Helvetica Neue", Helvetica, Arial, sans-serif;
+  --font-mono: "Geist Mono", ui-monospace, "SF Mono", Menlo, monospace;
 
   /* Tailwind 3's fixed line heights. Tailwind 4 makes them ratios, which shrinks
      rows wherever text-xs is paired with a smaller arbitrary size (text-[11px]). */
@@ -46,10 +61,14 @@
   --text-xl--line-height: 1.75rem;
   --text-2xl--line-height: 2rem;
 
+  /* Signal tops out at bold; headings and emphasis are semibold */
   --font-weight-*: initial;
   --font-weight-normal: 400;
+  --font-weight-medium: 500;
   --font-weight-semibold: 600;
-  --font-weight-extrabold: 800;
+  --font-weight-bold: 700;
+
+  --ease-signal: cubic-bezier(0.2, 0, 0, 1);
 }
 
 :root {
@@ -64,16 +83,19 @@
     overflow: hidden;
     user-select: none;
     font-size: 13.5px;
-    line-height: 1.55;
+    line-height: 1.5;
+    letter-spacing: -0.005em;
+    -webkit-font-smoothing: antialiased;
   }
 
   h1,
   h2,
   h3,
   h4 {
-    @apply font-extrabold;
-    line-height: 1.15;
-    letter-spacing: -0.015em;
+    @apply font-semibold;
+    line-height: 1.08;
+    letter-spacing: -0.025em;
+    text-wrap: balance;
   }
 
   /* Tailwind 4 dropped the pointer cursor on buttons; keep it */
@@ -87,16 +109,16 @@
   }
 
   :focus-visible {
-    outline: 2px solid var(--color-ink);
+    outline: 2px solid var(--color-accent);
     outline-offset: 2px;
   }
 
   ::selection {
-    background: --alpha(var(--color-ink) / 18%);
+    background: --alpha(var(--color-accent) / 40%);
   }
 
   input[type='checkbox'] {
-    accent-color: var(--color-ink);
+    accent-color: var(--color-accent);
   }
 
   /* Square thumb on a 2px rule, so sliders read as part of the grid */
@@ -124,14 +146,14 @@
     width: 12px;
     height: 12px;
     margin-top: -5px;
-    background: var(--color-ink);
+    background: var(--color-accent);
     border: 0;
   }
 
   input[type='range']::-moz-range-thumb {
     width: 12px;
     height: 12px;
-    background: var(--color-ink);
+    background: var(--color-accent);
     border: 0;
     border-radius: 0;
   }
@@ -147,158 +169,181 @@
   }
 
   ::-webkit-scrollbar-thumb {
-    background: --alpha(var(--color-ink) / 20%);
+    background: var(--color-surface-2);
   }
 
   ::-webkit-scrollbar-thumb:hover {
-    background: --alpha(var(--color-ink) / 35%);
+    background: --alpha(var(--color-ink) / 45%);
+  }
+
+  code,
+  kbd,
+  pre {
+    @apply font-mono;
   }
 }
 
 @layer components {
-  /* Floating chrome over the 3D view: a hairline edge plus ambient darkness */
+  /* Floating chrome over the 3D view: flat surface, hairline box hung from a 2px
+     ink rule (Signal's boxed card). No soft shadows. */
   .panel {
-    @apply bg-surface text-ink border border-ink/20;
-    box-shadow: 0 12px 32px rgb(0 0 0 / 0.45);
+    @apply bg-surface text-ink border border-hairline border-t-2 border-t-ink;
   }
 
-  /* Column label: 11 / 400 / +0.1em, uppercase */
+  /* Dialogs and popovers: 2px ink rule all round and Signal's hard offset shadow */
+  .dialog {
+    @apply bg-surface text-ink border-2 border-ink;
+    box-shadow: 6px 6px 0 #000000;
+  }
+
+  /* Mono label: 11 / 500 / +0.06em, uppercase */
   .label {
-    @apply block text-[11px] font-normal uppercase text-ink/60;
-    letter-spacing: 0.1em;
+    @apply block font-mono text-[11px] font-medium uppercase text-ink/60;
+    letter-spacing: 0.06em;
   }
 
   /* — buttons — */
   .btn {
-    @apply inline-flex items-center justify-center gap-1.5 px-2.5 py-1.5 text-xs font-extrabold text-ink border border-transparent whitespace-nowrap;
+    @apply inline-flex items-center justify-center gap-1.5 px-2.5 py-1.5 text-xs font-medium text-ink border border-transparent whitespace-nowrap;
     line-height: 1.25;
-    transition: opacity 120ms ease, background-color 120ms ease, border-color 120ms ease;
+    transition: background-color 100ms var(--ease-signal), color 100ms var(--ease-signal),
+      border-color 100ms var(--ease-signal);
   }
   .btn:disabled {
-    @apply opacity-[0.45] cursor-not-allowed;
+    @apply opacity-40 cursor-not-allowed;
   }
+  /* Primary: the cyan fill, ink text */
   .btn-primary {
-    @apply bg-ink text-ground font-semibold hover:opacity-90 active:opacity-80;
+    @apply bg-accent text-on-accent border-accent font-semibold hover:bg-accent-hover hover:border-accent-hover active:bg-accent-press active:border-accent-press;
   }
-  /* Hover and press mix ink into the surface rather than replacing it with a
-     translucent tint, so the button stays opaque over the 3D view */
+  /* Secondary stays an opaque surface over the 3D view; hover lifts to surface-2,
+     press flashes the highlight */
   .btn-secondary {
-    @apply bg-surface border-ink/20;
+    @apply bg-surface border-ink/30;
   }
   .btn-secondary:hover:not(:disabled) {
-    background-color: color-mix(in oklab, var(--color-surface), var(--color-ink) 7%);
+    @apply bg-surface-2 border-ink;
   }
   .btn-secondary:active:not(:disabled) {
-    background-color: color-mix(in oklab, var(--color-surface), var(--color-ink) 14%);
+    @apply bg-accent text-on-accent border-accent;
   }
   .btn-ghost {
-    @apply px-2 hover:bg-ink/[0.08] active:bg-ink/[0.14];
+    @apply px-2 hover:bg-surface-2 active:bg-standby;
   }
   .btn-icon {
     @apply w-8 h-8 p-0;
   }
   /* The live state, and only the live state */
   .btn-live {
-    @apply bg-accent text-white border-accent hover:bg-accent-600 active:bg-accent-700;
+    @apply bg-live text-white border-live hover:bg-live-hover active:bg-live-press;
   }
 
-  /* — segmented controls and option tiles — pressed is a solid ink fill — */
+  /* — segmented controls and option tiles — pressed is a solid cyan fill — */
   .seg {
-    @apply inline-flex border border-ink/20;
+    @apply inline-flex border border-ink/30;
   }
   .seg > * + * {
-    @apply border-l border-ink/20;
+    @apply border-l border-ink/30;
   }
   .seg-opt {
-    @apply inline-flex items-center justify-center gap-1.5 px-2.5 py-1 text-xs text-ink/70 whitespace-nowrap hover:bg-ink/[0.07] hover:text-ink;
-    transition: background-color 120ms ease, color 120ms ease;
+    @apply inline-flex items-center justify-center gap-1.5 px-2.5 py-1 text-xs text-ink/70 whitespace-nowrap hover:bg-surface-2 hover:text-ink;
+    transition: background-color 100ms var(--ease-signal), color 100ms var(--ease-signal);
   }
   .seg-opt[aria-pressed='true'] {
-    @apply bg-ink text-ground font-semibold hover:bg-ink hover:text-ground;
+    @apply bg-accent text-on-accent font-semibold hover:bg-accent hover:text-on-accent;
   }
 
   .option {
-    @apply flex items-center gap-2 p-2.5 text-left text-xs bg-ground text-ink border border-ink/20 hover:border-ink/45;
-    transition: background-color 120ms ease, color 120ms ease, border-color 120ms ease;
+    @apply flex items-center gap-2 p-2.5 text-left text-xs bg-ground text-ink border border-ink/20 hover:border-ink/60;
+    transition: background-color 100ms var(--ease-signal), color 100ms var(--ease-signal),
+      border-color 100ms var(--ease-signal);
   }
   .option[aria-pressed='true'] {
-    @apply bg-ink text-ground border-ink font-semibold;
+    @apply bg-accent text-on-accent border-accent font-semibold;
   }
-  /* — on/off switch — a row with a square track and thumb; on is a solid ink fill, like a pressed option — */
+  /* — on/off switch — square track and thumb with a 2px rule; on is a cyan fill — */
   .switch {
     @apply flex w-full items-center justify-between gap-3 py-1 text-left text-xs text-ink;
   }
   .switch-track {
-    @apply relative flex-none w-8 h-4 border border-ink/45 bg-ground;
-    transition: background-color 120ms ease, border-color 120ms ease;
+    @apply relative flex-none w-8 h-4 border-2 border-ink/60 bg-ground;
+    transition: background-color 180ms var(--ease-signal), border-color 180ms var(--ease-signal);
   }
   .switch-thumb {
-    @apply absolute top-[2px] left-[2px] w-2.5 h-2.5 bg-ink/60;
-    transition: transform 120ms ease, background-color 120ms ease;
+    @apply absolute top-[1px] left-[1px] w-2.5 h-2.5 bg-ink/70;
+    transition: transform 180ms var(--ease-signal), background-color 180ms var(--ease-signal);
   }
   .switch:hover .switch-track {
     @apply border-ink;
   }
   .switch[aria-checked='true'] .switch-track {
-    @apply bg-ink border-ink;
+    @apply bg-accent border-ink;
   }
   .switch[aria-checked='true'] .switch-thumb {
     @apply bg-ground;
-    transform: translateX(16px);
+    transform: translateX(14px);
   }
   .switch:disabled {
-    @apply opacity-50 cursor-not-allowed;
+    @apply opacity-40 cursor-not-allowed;
   }
 
-  /* Inline message: errors are outlined in the accent, information in plain ink */
+  /* Inline message: errors are outlined in live red, information in plain ink */
   .notice {
-    @apply flex items-start gap-2 p-2.5 text-xs border bg-standby border-ink/45;
+    @apply flex items-start gap-2 p-2.5 text-xs border bg-surface border-ink/45;
   }
   .notice[data-tone='error'] {
-    @apply border-accent;
+    @apply border-live;
   }
 
   /* Armed and waiting for input, like a cue on standby */
   .option[data-state='standby'] {
-    @apply bg-standby text-ink border-ink/45 font-semibold;
+    @apply bg-standby text-ink border-accent font-semibold;
   }
 
-  /* — tags — uppercase codes, state shown by fill so it survives monochrome — */
+  /* — tags — mono uppercase codes, state shown by fill so it survives monochrome — */
   .tag {
-    @apply inline-flex items-center gap-1.5 px-2 py-0.5 text-[10.5px] font-extrabold uppercase tabular-nums whitespace-nowrap;
-    letter-spacing: 0.03em;
+    @apply inline-flex items-center gap-1.5 px-2 py-0.5 font-mono text-[10.5px] font-medium uppercase tabular-nums whitespace-nowrap;
+    letter-spacing: 0.06em;
   }
   .tag-outline {
-    @apply border border-ink/20 text-ink;
+    @apply border border-ink/30 text-ink;
   }
   .tag-solid {
     @apply bg-ink text-ground;
   }
+  .tag-accent {
+    @apply bg-accent text-on-accent;
+  }
   .tag-live {
-    @apply bg-accent text-white;
+    @apply bg-live text-white;
   }
   .tag-go {
-    @apply border border-signal-go/60 text-ink;
+    @apply border border-signal-go/70 text-ink;
   }
   .tag-warn {
     @apply bg-signal-warn text-signal-warn-fg;
   }
 
-  /* Heartbeat-style square signal dot */
+  /* Square status dot */
   .signal-dot {
     @apply inline-block w-2 h-2 flex-none;
   }
 
-  /* — forms — */
+  /* Numbers and readouts in Geist Mono */
+  .readout {
+    @apply font-mono font-medium tabular-nums;
+  }
+
+  /* — forms — Signal inputs: a filled field with a 2px bottom rule — */
   .input {
-    @apply w-full px-2.5 py-1.5 text-xs bg-ground text-ink border border-ink/20 hover:border-ink/45 focus-visible:border-ink tabular-nums;
-    caret-color: var(--color-ink);
+    @apply w-full px-2.5 py-1.5 text-xs bg-ground text-ink border border-ink/20 border-b-2 border-b-ink/60 hover:bg-surface-2 focus-visible:border-b-accent tabular-nums;
+    caret-color: var(--color-accent);
   }
   .input:focus-visible {
-    outline-offset: 0;
+    outline: none;
   }
 
   .kbd {
-    @apply inline-block px-1.5 py-px text-[10px] font-semibold tabular-nums bg-ground text-ink border border-ink/20;
+    @apply inline-block px-1.5 py-px font-mono text-[10px] font-medium tabular-nums bg-ground text-ink border border-ink/30;
   }
 }
