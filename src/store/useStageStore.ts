@@ -27,6 +27,14 @@ export type VenueSource = 'default-ballroom' | 'custom-glb';
 export type SourceType = 'test-pattern' | 'pdf' | 'hdmi-capture' | 'screen-share';
 export type UvCropMode = 'auto-letterbox' | 'top-aligned' | 'fill-1-to-1' | 'manual';
 export type SidebarTab = 'venue' | 'screens' | 'stage' | 'content';
+
+/** A single dismissible message shown inline near the action that raised it (replaces alert()). */
+export interface Notice {
+  tone: 'error' | 'info';
+  text: string;
+  /** Where it is shown: the Content tab, or the room menu. */
+  area: 'content' | 'room';
+}
 export type NavigationMode = 'orbit' | 'seated';
 export type FovMode = 'room-context' | 'eye-focus';
 
@@ -357,6 +365,8 @@ export interface StageState {
   /** Top-bar room menu (name, notes, save and open). */
   isRoomMenuOpen: boolean;
   isGuideOpen: boolean;
+  /** The one message on show, or null. A new notice replaces the last. */
+  notice: Notice | null;
 
   // Actions
   setVenueSource: (source: VenueSource) => void;
@@ -457,6 +467,8 @@ export interface StageState {
     file: Blob
   ) => Promise<{ ok: true; name: string; notes: string } | { ok: false; message: string }>;
   setActiveSidebarTab: (tab: SidebarTab) => void;
+  showNotice: (notice: Notice) => void;
+  clearNotice: () => void;
   setIsRoomMenuOpen: (open: boolean) => void;
   setIsSidebarOpen: (open: boolean) => void;
   setIsGuideOpen: (open: boolean) => void;
@@ -615,6 +627,7 @@ export const useStageStore = create<StageState>((set, get) => ({
   activeSidebarTab: 'content',
   isSidebarOpen: true,
   isRoomMenuOpen: false,
+  notice: null,
   // First-run tour: open until the user dismisses it with "Don't show again"
   isGuideOpen: !hasDismissedGuide(),
 
@@ -1135,6 +1148,8 @@ export const useStageStore = create<StageState>((set, get) => ({
     return { ok: true, name: room.name, notes: room.notes };
   },
   setActiveSidebarTab: (activeSidebarTab) => set({ activeSidebarTab }),
+  showNotice: (notice) => set({ notice }),
+  clearNotice: () => set({ notice: null }),
   setIsRoomMenuOpen: (isRoomMenuOpen) => set({ isRoomMenuOpen }),
   setIsSidebarOpen: (isSidebarOpen) => set({ isSidebarOpen }),
   setIsGuideOpen: (isGuideOpen) => set({ isGuideOpen }),

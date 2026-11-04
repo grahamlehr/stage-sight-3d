@@ -18,7 +18,7 @@ Most DCC tools, including Blender, SketchUp and Revit through an exporter, can e
 
 ## Loading it
 
-1. Open the **Venue** tab and choose **Upload .GLB**.
+1. Open the **Venue** tab and choose **Upload .glb file**.
 2. The model replaces the ballroom. If it fails to parse, an alert appears and the app falls back to the ballroom.
 
 Uploading another model releases the previous one from memory.
@@ -69,9 +69,9 @@ Picking only works on a custom venue. Clicks on the demo ballroom don't bind. (T
 
 ## Camera views and the floor plan
 
-In a custom venue, keys <kbd>1</kbd>–<kbd>4</kbd>, the **Seat Presets** menu and the VR thumbstick all jump between four camera views that you place yourself. Until you place one it shows as **Not placed yet** and is skipped. In the ballroom they keep their fixed seats. While none are placed, the **Seat Presets** menu has an **Open floor plan to place views** button that takes you straight to step 1, with View 1 selected.
+In a custom venue, keys <kbd>1</kbd>–<kbd>4</kbd>, the **Seat presets** menu and the VR thumbstick all jump between four camera views that you place yourself. Until you place one it shows as **Not placed yet** and is skipped. In the ballroom they keep their fixed seats. While none are placed, the **Seat presets** menu has a **Place camera views** button that takes you straight to step 1, with View 1 selected.
 
-1. On the **Venue** tab, choose **Place camera views** (or **Open floor plan** in the **Seat Presets** menu, which is available in any custom venue). The 3D view is replaced by a top-down plan with the screen wall at the top, and the **Camera views** panel docks on the right. The mouse wheel zooms.
+1. On the **Venue** tab, choose **Place camera views** (or **Place camera views** in the **Seat presets** menu, which is available in any custom venue). The 3D view is replaced by a top-down plan with the screen wall at the top, and the **Camera views** panel docks on the right. The mouse wheel zooms.
 2. Set the **Cut height** slider so the plan slices through the model below its roof and upper floors. It starts 2.5m above the model's lowest point, and the slider shows metres above that point.
 3. Pick a slot (**View 1** to **View 4**), then **click a floor spot** to place it. **Drag** from that spot to point the view; release to confirm. A plain click without a drag aims the view at the screen centre. The next empty slot is selected for you.
 4. Close the plan with **Done** in the Camera views panel or <kbd>Esc</kbd>. The × beside a slot clears it.

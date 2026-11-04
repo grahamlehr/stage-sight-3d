@@ -41,6 +41,11 @@ export const TransportBar: React.FC = () => {
       // controls — these shortcuts are global and preventDefault here.
       const tag = (e.target as HTMLElement | null)?.tagName;
       if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
+      // Tabs use the arrow keys to move between themselves, and a focused switch uses Space to toggle.
+      // Plain buttons keep Space for the next slide, so a presenter who has just clicked one can still advance.
+      const target = e.target as HTMLElement | null;
+      if (target?.closest('[role="tab"]')) return;
+      if (e.key === ' ' && target?.closest('[role="switch"]')) return;
 
       if (e.key === 'ArrowRight' || e.key === 'PageDown' || e.key === ' ') {
         e.preventDefault();

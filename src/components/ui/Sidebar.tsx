@@ -35,6 +35,8 @@ import {
   rasterizeImageFile,
   generateSampleExecutiveDeck,
 } from '../../utils/pdfRasterizer';
+import { Switch } from './Switch';
+import { NoticeBanner } from './NoticeBanner';
 
 // Sections are divided by rules rather than boxed, after the CueSmith grid.
 const Section: React.FC<{ title: React.ReactNode; meta?: React.ReactNode; children: React.ReactNode }> = ({
@@ -52,14 +54,14 @@ const Section: React.FC<{ title: React.ReactNode; meta?: React.ReactNode; childr
 );
 
 const SliderRow: React.FC<
-  { label: string; value: string } & Omit<React.InputHTMLAttributes<HTMLInputElement>, 'type' | 'value'> & {
+  { label?: string; value: string } & Omit<React.InputHTMLAttributes<HTMLInputElement>, 'type' | 'value'> & {
       inputValue: number;
     }
 > = ({ label, value, inputValue, ...inputProps }) => (
   <div>
     <div className="flex justify-between text-[11px] text-ink/60 mb-1">
       <span>{label}</span>
-      <span className="font-extrabold text-ink tabular-nums">{value}</span>
+      <span className="ml-auto font-extrabold text-ink tabular-nums">{value}</span>
     </div>
     <input type="range" value={inputValue} {...inputProps} />
   </div>
@@ -95,6 +97,8 @@ export const Sidebar: React.FC = () => {
   const isSidebarOpen = useStageStore((s) => s.isSidebarOpen);
   const activeSidebarTab = useStageStore((s) => s.activeSidebarTab);
   const setActiveSidebarTab = useStageStore((s) => s.setActiveSidebarTab);
+  const showNotice = useStageStore((s) => s.showNotice);
+  const clearNotice = useStageStore((s) => s.clearNotice);
 
   // Store slices
   const sourceType = useStageStore((s) => s.sourceType);
@@ -208,6 +212,7 @@ export const Sidebar: React.FC = () => {
     const file = e.target.files?.[0];
     if (!file) return;
 
+    clearNotice();
     try {
       setIsRasterizing(true);
       if (file.type === 'application/pdf') {
@@ -224,7 +229,11 @@ export const Sidebar: React.FC = () => {
       }
     } catch (err) {
       console.error('File rasterization error:', err);
-      alert('Failed to parse file. Please verify it is a valid PDF or image file.');
+      showNotice({
+        tone: 'error',
+        area: 'content',
+        text: "That file couldn't be read. Check that it is a valid PDF, PNG or JPEG.",
+      });
     } finally {
       setIsRasterizing(false);
       if (fileInputRef.current) fileInputRef.current.value = '';
@@ -240,6 +249,7 @@ export const Sidebar: React.FC = () => {
 
   // Connect USB HDMI Capture Card via getUserMedia (requesting 4K/1080p60)
   const handleStartCaptureCard = async () => {
+    clearNotice();
     try {
       if (activeVideoStream) {
         activeVideoStream.getTracks().forEach((t) => t.stop());
@@ -259,7 +269,11 @@ export const Sidebar: React.FC = () => {
       setSourceType('hdmi-capture');
     } catch (err) {
       console.error('Error connecting to HDMI capture card:', err);
-      alert('Could not access HDMI capture device. Please check permissions or device connection.');
+      showNotice({
+        tone: 'error',
+        area: 'content',
+        text: "Couldn't open the capture device. Check the browser's camera permission and that the capture card is plugged in.",
+      });
     }
   };
 
@@ -313,10 +327,15 @@ export const Sidebar: React.FC = () => {
   ] as const satisfies readonly { id: SidebarTab; label: string; icon: unknown }[];
 
   const sourceTiles = [
-    { id: 'test-pattern', label: 'Test Pattern', sub: '4K Rulers & Ladder', icon: Grid },
-    { id: 'pdf', label: 'PDF / Image', sub: hasSlides ? 'Back to Slides' : 'Upload Slide Deck', icon: FileText },
-    { id: 'hdmi-capture', label: 'HDMI Capture', sub: 'USB Video In', icon: Video },
-    { id: 'screen-share', label: 'Window Share', sub: 'PowerPoint App', icon: Share2 },
+    { id: 'test-pattern', label: 'Test pattern', sub: 'Grid, rulers and text sizes', icon: Grid },
+    {
+      id: 'pdf',
+      label: 'PDF / Image',
+      sub: !hasSlides ? 'Upload a deck or image' : sourceType === 'pdf' ? 'Slides on screen' : 'Back to slides',
+      icon: FileText,
+    },
+    { id: 'hdmi-capture', label: 'HDMI capture', sub: 'USB capture card', icon: Video },
+    { id: 'screen-share', label: 'Screen share', sub: 'A window or whole screen', icon: Share2 },
   ] as const;
 
   const handleSourceTile = (id: (typeof sourceTiles)[number]['id']) => {
@@ -327,6 +346,21 @@ export const Sidebar: React.FC = () => {
       else if (!hasSlides) fileInputRef.current?.click();
     } else if (id === 'hdmi-capture') void handleStartCaptureCard();
     else void handleStartScreenShare();
+  };
+
+  // Arrow keys, Home and End move between tabs (local to the tablist, so the slide transport never sees them)
+  const handleTabKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
+    const current = tabs.findIndex((t) => t.id === activeSidebarTab);
+    let next = -1;
+    if (e.key === 'ArrowRight') next = (current + 1) % tabs.length;
+    else if (e.key === 'ArrowLeft') next = (current - 1 + tabs.length) % tabs.length;
+    else if (e.key === 'Home') next = 0;
+    else if (e.key === 'End') next = tabs.length - 1;
+    if (next < 0) return;
+    e.preventDefault();
+    e.stopPropagation();
+    setActiveSidebarTab(tabs[next].id);
+    document.getElementById(`sidebar-tab-${tabs[next].id}`)?.focus();
   };
 
   // What the screens are showing now, for the status row at the top of the Content tab
@@ -346,12 +380,19 @@ export const Sidebar: React.FC = () => {
       data-guide="sidebar"
       className="panel absolute left-3 top-16 bottom-16 w-[21rem] sm:w-[23rem] z-20 flex flex-col overflow-hidden">
       {/* Sidebar Tabs: numbered in setup order */}
-      <div role="tablist" className="grid grid-cols-4 border-b-2 border-ink/20">
+      <div
+        role="tablist"
+        aria-label="Sidebar sections"
+        onKeyDown={handleTabKeyDown}
+        className="grid grid-cols-4 border-b-2 border-ink/20">
         {tabs.map(({ id, label, icon: Icon }, i) => (
           <button
             key={id}
             role="tab"
+            id={`sidebar-tab-${id}`}
+            aria-controls="sidebar-tabpanel"
             aria-selected={activeSidebarTab === id}
+            tabIndex={activeSidebarTab === id ? 0 : -1}
             onClick={() => setActiveSidebarTab(id)}
             className={`flex items-center justify-center gap-1 px-1 py-2.5 -mb-[2px] border-b-2 text-xs transition ${
               activeSidebarTab === id
@@ -367,25 +408,29 @@ export const Sidebar: React.FC = () => {
       </div>
 
       {/* Tab Content Container */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-4 text-xs">
+      <div
+        role="tabpanel"
+        id="sidebar-tabpanel"
+        aria-labelledby={`sidebar-tab-${activeSidebarTab}`}
+        className="flex-1 overflow-y-auto p-4 space-y-4 text-xs">
         {/* ================= TAB 1: VENUE ================= */}
         {activeSidebarTab === 'venue' && (
           <>
-            <Section title="Venue Source">
+            <Section title="Venue source">
               <div className="grid grid-cols-2 gap-2">
                 <button
                   onClick={() => setVenueSource('default-ballroom')}
                   aria-pressed={venueSource === 'default-ballroom'}
                   className="option justify-center"
                 >
-                  Demo Ballroom
+                  Demo ballroom
                 </button>
                 <button
                   onClick={() => glbInputRef.current?.click()}
                   aria-pressed={venueSource === 'custom-glb'}
                   className="option justify-center"
                 >
-                  Upload .GLB
+                  Upload .glb file
                 </button>
                 <input
                   ref={glbInputRef}
@@ -399,9 +444,9 @@ export const Sidebar: React.FC = () => {
 
             {venueSource === 'default-ballroom' ? (
               <>
-                <Section title="Room Size">
+                <Section title="Room size">
                   <SliderRow
-                    label="Venue Length (Depth)"
+                    label="Length (depth)"
                     value={`${venueLength}m`}
                     min="15"
                     max="60"
@@ -410,7 +455,7 @@ export const Sidebar: React.FC = () => {
                     onChange={(e) => setVenueDimensions(venueWidth, parseInt(e.target.value, 10))}
                   />
                   <SliderRow
-                    label="Venue Width"
+                    label="Width"
                     value={`${venueWidth}m`}
                     min="12"
                     max="45"
@@ -421,23 +466,19 @@ export const Sidebar: React.FC = () => {
                 </Section>
 
                 <Section title="Ceiling">
-                  <label className="flex items-center justify-between cursor-pointer">
-                    <span className="text-[11px]">Ceiling Lighting Trusses</span>
-                    <input
-                      type="checkbox"
-                      checked={showCeilingFixtures}
-                      onChange={(e) => setShowCeilingFixtures(e.target.checked)}
-                      className="w-4 h-4 cursor-pointer"
-                    />
-                  </label>
+                  <Switch
+                    label="Ceiling lighting trusses"
+                    checked={showCeilingFixtures}
+                    onChange={setShowCeilingFixtures}
+                  />
                 </Section>
               </>
             ) : (
-              <Section title="Custom GLB Venue">
+              <Section title="Custom venue">
                 <div className="flex items-start gap-2.5">
                   <Upload size={18} strokeWidth={1.5} className="text-ink/60 flex-none mt-0.5" />
                   <div className="space-y-1">
-                    <p className="text-xs font-semibold">Custom GLB Venue Loaded</p>
+                    <p className="text-xs font-semibold">Custom venue loaded</p>
                     <p className="text-[10px] text-ink/60">
                       Next, pick the screen mesh on the Screens tab. Shift + click the floor to sit anywhere.
                     </p>
@@ -475,7 +516,7 @@ export const Sidebar: React.FC = () => {
                   )}
                 </div>
                 <button onClick={() => glbInputRef.current?.click()} className="btn btn-secondary">
-                  Change .GLB File
+                  Change .glb file
                 </button>
               </Section>
             )}
@@ -571,23 +612,18 @@ export const Sidebar: React.FC = () => {
               )}
 
               {venueSource === 'default-ballroom' && (
-                <button
-                  onClick={() => setDemoSideScreens(!demoSideScreens)}
-                  aria-pressed={demoSideScreens}
-                  className="option w-full justify-between"
-                >
-                  <span className="flex items-center gap-2">
-                    <Monitor size={15} />
-                    Side screens
-                  </span>
-                  <span className="text-[10px] font-extrabold">{demoSideScreens ? 'ON' : 'OFF'}</span>
-                </button>
+                <Switch
+                  label="Side screens"
+                  icon={<Monitor size={14} />}
+                  checked={demoSideScreens}
+                  onChange={setDemoSideScreens}
+                />
               )}
             </Section>
 
             {splitScreens.length >= 2 && (
               <Section
-                title="Split Order"
+                title="Split order"
                 meta={splitOrder ? 'Manual' : 'Auto: left to right'}
               >
                 <ol className="space-y-1">
@@ -649,7 +685,7 @@ export const Sidebar: React.FC = () => {
               <span className="label block truncate" title={selectedScreenName}>
                 {selectedScreenName}
               </span>
-              <Section title="Aspect Ratio Presets">
+              <Section title="Aspect ratio">
                 <div className="space-y-1">
                   {ASPECT_RATIO_PRESETS.map((p) => {
                     const isSelected =
@@ -673,7 +709,7 @@ export const Sidebar: React.FC = () => {
               </Section>
 
               {/* Manual Dimensions Input */}
-              <Section title="Custom Physical Dimensions (Meters)">
+              <Section title="Size (metres)">
                 <div className="grid grid-cols-2 gap-2">
                   <label>
                     <span className="text-[10px] text-ink/60 block mb-1">Width (m)</span>
@@ -707,17 +743,12 @@ export const Sidebar: React.FC = () => {
               </Section>
 
               <Section title="Placement">
-                <button
-                  onClick={() => setShowTransformGizmo(!showTransformGizmo)}
-                  aria-pressed={showTransformGizmo}
-                  className="option w-full justify-between"
-                >
-                  <span className="flex items-center gap-2">
-                    <Move size={15} />
-                    3D Transform Gizmo
-                  </span>
-                  <span className="text-[10px] font-extrabold">{showTransformGizmo ? 'ON' : 'OFF'}</span>
-                </button>
+                <Switch
+                  label="3D transform gizmo"
+                  icon={<Move size={14} />}
+                  checked={showTransformGizmo}
+                  onChange={setShowTransformGizmo}
+                />
 
                 {venueSource === 'custom-glb' && (
                   <div className="space-y-1">
@@ -729,7 +760,7 @@ export const Sidebar: React.FC = () => {
                       <span className="flex items-center gap-2">
                         <MousePointer size={15} />
                         {isPickingMesh
-                          ? 'Click Mesh in 3D View...'
+                          ? 'Click a mesh in the 3D view…'
                           : hasBoundScreen
                           ? 'Add screen from mesh'
                           : 'Pick screen mesh'}
@@ -747,11 +778,10 @@ export const Sidebar: React.FC = () => {
         {/* ================= TAB 3: STAGE ================= */}
         {activeSidebarTab === 'stage' && (
           <>
-            <Section title="Stage Height">
+            <Section title="Stage height">
               {venueSource === 'custom-glb' ? (
                 <div className="space-y-1">
                   <SliderRow
-                    label="Stage height"
                     value={`${customDeckHeight.toFixed(2)}m`}
                     min="0"
                     max="3"
@@ -765,7 +795,6 @@ export const Sidebar: React.FC = () => {
                 </div>
               ) : (
                 <SliderRow
-                  label="Stage height"
                   value={`${stageHeight.toFixed(2)}m`}
                   min="0.3"
                   max="2.5"
@@ -777,26 +806,20 @@ export const Sidebar: React.FC = () => {
             </Section>
 
             {/* ================= 3 Stage Occlusion Test Items ================= */}
-            <Section title="Stage Occlusion Items">
+            <Section title="Stage props">
               {/* 1. Presenters (Two Standing People) */}
               <div className="space-y-2.5">
-                <label className="flex items-center justify-between cursor-pointer">
-                  <span className="font-semibold flex items-center gap-1.5">
-                    <User size={14} strokeWidth={1.5} className="text-ink/60" />
-                    Presenters (1.8m, 1.68m)
-                  </span>
-                  <input
-                    type="checkbox"
-                    checked={showPresenter}
-                    onChange={(e) => setShowPresenter(e.target.checked)}
-                    className="w-4 h-4 cursor-pointer"
-                  />
-                </label>
+                <Switch
+                  label="Presenters (1.8m, 1.68m)"
+                  icon={<User size={14} strokeWidth={1.5} />}
+                  checked={showPresenter}
+                  onChange={setShowPresenter}
+                />
 
                 {showPresenter && (
                   <div className="space-y-2.5 pl-5">
                     <SliderRow
-                      label="Lateral Position (X)"
+                      label="Lateral position (X)"
                       value={`${presenterOffset[0].toFixed(1)}m`}
                       min="-7.5"
                       max="7.5"
@@ -807,7 +830,7 @@ export const Sidebar: React.FC = () => {
                       }
                     />
                     <SliderRow
-                      label="Distance in Front (Z)"
+                      label="Distance in front (Z)"
                       value={`${presenterOffset[1].toFixed(1)}m`}
                       min="0.5"
                       max="4.5"
@@ -823,23 +846,17 @@ export const Sidebar: React.FC = () => {
 
               {/* 2. Lectern / Podium */}
               <div className="space-y-2.5 pt-2.5 border-t border-ink/[0.12]">
-                <label className="flex items-center justify-between cursor-pointer">
-                  <span className="font-semibold flex items-center gap-1.5">
-                    <Mic size={14} strokeWidth={1.5} className="text-ink/60" />
-                    Lectern / Podium (1.15m)
-                  </span>
-                  <input
-                    type="checkbox"
-                    checked={showLectern}
-                    onChange={(e) => setShowLectern(e.target.checked)}
-                    className="w-4 h-4 cursor-pointer"
-                  />
-                </label>
+                <Switch
+                  label="Lectern / podium (1.15m)"
+                  icon={<Mic size={14} strokeWidth={1.5} />}
+                  checked={showLectern}
+                  onChange={setShowLectern}
+                />
 
                 {showLectern && (
                   <div className="space-y-2.5 pl-5">
                     <SliderRow
-                      label="Lateral Position (X)"
+                      label="Lateral position (X)"
                       value={`${lecternOffset[0].toFixed(1)}m`}
                       min="-7.5"
                       max="7.5"
@@ -850,7 +867,7 @@ export const Sidebar: React.FC = () => {
                       }
                     />
                     <SliderRow
-                      label="Distance in Front (Z)"
+                      label="Distance in front (Z)"
                       value={`${lecternOffset[1].toFixed(1)}m`}
                       min="0.5"
                       max="4.5"
@@ -866,26 +883,17 @@ export const Sidebar: React.FC = () => {
 
               {/* 3. Four-Person Panel in Tub Chairs */}
               <div className="space-y-2.5 pt-2.5 border-t border-ink/[0.12]">
-                <label className="flex items-center justify-between cursor-pointer">
-                  <span className="font-semibold flex items-center gap-1.5">
-                    <Users size={14} strokeWidth={1.5} className="text-ink/60" />
-                    Four-Person Panel (Tub Chairs)
-                  </span>
-                  <input
-                    type="checkbox"
-                    checked={showPanel}
-                    onChange={(e) => setShowPanel(e.target.checked)}
-                    className="w-4 h-4 cursor-pointer"
-                  />
-                </label>
-                <p className="text-[10px] text-ink/60 pl-5">
-                  4 seated panelists in modern curved club chairs with coffee tables on stage.
-                </p>
+                <Switch
+                  label="Four-person panel (tub chairs)"
+                  icon={<Users size={14} strokeWidth={1.5} />}
+                  checked={showPanel}
+                  onChange={setShowPanel}
+                />
 
                 {showPanel && (
                   <div className="space-y-2.5 pl-5">
                     <SliderRow
-                      label="Center Position (X)"
+                      label="Centre position (X)"
                       value={`${panelOffset[0].toFixed(1)}m`}
                       min="-5.0"
                       max="5.0"
@@ -896,7 +904,7 @@ export const Sidebar: React.FC = () => {
                       }
                     />
                     <SliderRow
-                      label="Distance in Front (Z)"
+                      label="Distance in front (Z)"
                       value={`${panelOffset[1].toFixed(1)}m`}
                       min="1.0"
                       max="4.5"
@@ -916,6 +924,8 @@ export const Sidebar: React.FC = () => {
         {/* ================= TAB 4: CONTENT ================= */}
         {activeSidebarTab === 'content' && (
           <>
+            <NoticeBanner area="content" />
+
             {/* Now showing status row */}
             <div className="flex items-center justify-between gap-2 p-2.5 border border-ink/20 bg-ink/[0.04]">
               <div className="min-w-0">
@@ -957,14 +967,14 @@ export const Sidebar: React.FC = () => {
               </div>
               <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px]">
                 <button onClick={handleLoadSampleDeck} className="underline underline-offset-2 text-ink/70 hover:text-ink">
-                  or load the sample 32:9 deck
+                  Load the sample 32:9 deck
                 </button>
                 {hasSlides && (
                   <button
                     onClick={() => fileInputRef.current?.click()}
                     className="underline underline-offset-2 text-ink/70 hover:text-ink"
                   >
-                    Upload new file
+                    Upload a new file
                   </button>
                 )}
               </div>
@@ -974,7 +984,7 @@ export const Sidebar: React.FC = () => {
             {isRasterizing && (
               <div className="p-3 bg-standby border border-ink/20 space-y-1.5">
                 <div className="flex items-center justify-between text-xs font-semibold">
-                  <span>Rasterizing slides at 4096px...</span>
+                  <span>Rasterising slides at 4096px…</span>
                   <span className="tabular-nums">{rasterProgress.current} / {rasterProgress.total}</span>
                 </div>
                 <div className="w-full h-0.5 bg-ink/20">
@@ -991,9 +1001,9 @@ export const Sidebar: React.FC = () => {
             {/* HDMI Capture Device Settings */}
             {sourceType === 'hdmi-capture' && (
               <Section
-                title="Video Device"
+                title="Video device"
                 meta={
-                  <button onClick={refreshDevices} className="btn btn-ghost p-1 text-ink/60 hover:text-ink" title="Refresh Devices">
+                  <button onClick={refreshDevices} className="btn btn-ghost p-1 text-ink/60 hover:text-ink" title="Refresh devices" aria-label="Refresh devices">
                     <RefreshCw size={12} />
                   </button>
                 }
@@ -1018,18 +1028,20 @@ export const Sidebar: React.FC = () => {
                 title={
                   <>
                     <Sliders size={12} />
-                    Ultra-Wide Letterbox Cropper
+                    Fit a 16:9 feed
                   </>
                 }
-                meta="16:9 EDID Fix"
               >
+                <p className="text-[10px] text-ink/60">
+                  Capture cards send 16:9. The cropper fits that picture to the wide screen.
+                </p>
                 <div className="grid grid-cols-2 gap-1.5">
                   {(
                     [
-                      { id: 'auto-letterbox', label: 'Centered (Show)' },
-                      { id: 'top-aligned', label: 'Top-Aligned' },
-                      { id: 'fill-1-to-1', label: 'Fill 1-to-1' },
-                      { id: 'manual', label: 'Manual' },
+                      { id: 'auto-letterbox', label: 'Show whole picture' },
+                      { id: 'top-aligned', label: 'Align to top' },
+                      { id: 'fill-1-to-1', label: 'Stretch to fill' },
+                      { id: 'manual', label: 'Custom' },
                     ] as { id: UvCropMode; label: string }[]
                   ).map((m) => (
                     <button
@@ -1046,7 +1058,7 @@ export const Sidebar: React.FC = () => {
                 {uvCropMode === 'manual' && (
                   <div className="space-y-2.5 pt-2.5 border-t border-ink/[0.12]">
                     <SliderRow
-                      label="Repeat Y (Height Crop)"
+                      label="Height used"
                       value={manualUvRepeatY.toFixed(2)}
                       min="0.1"
                       max="1.0"
@@ -1055,7 +1067,7 @@ export const Sidebar: React.FC = () => {
                       onChange={(e) => setManualUvRepeatY(parseFloat(e.target.value))}
                     />
                     <SliderRow
-                      label="Offset Y (Vertical Shift)"
+                      label="Vertical offset"
                       value={manualUvOffsetY.toFixed(2)}
                       min="0.0"
                       max="0.9"

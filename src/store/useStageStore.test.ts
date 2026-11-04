@@ -858,3 +858,23 @@ describe('storyboard frames', () => {
     expect(useStageStore.getState().storyboardSets).toEqual([]);
   });
 });
+
+describe('notice', () => {
+  beforeEach(() => useStageStore.setState({ notice: null }));
+
+  it('starts empty', () => {
+    expect(useStageStore.getState().notice).toBeNull();
+  });
+
+  it('shows a notice and replaces the previous one', () => {
+    useStageStore.getState().showNotice({ tone: 'error', text: 'First', area: 'content' });
+    useStageStore.getState().showNotice({ tone: 'info', text: 'Second', area: 'room' });
+    expect(useStageStore.getState().notice).toEqual({ tone: 'info', text: 'Second', area: 'room' });
+  });
+
+  it('clears the notice', () => {
+    useStageStore.getState().showNotice({ tone: 'error', text: 'Oops', area: 'content' });
+    useStageStore.getState().clearNotice();
+    expect(useStageStore.getState().notice).toBeNull();
+  });
+});

@@ -60,7 +60,7 @@ The 3D scene, media capture, storyboard rendering and VR have no automated tests
 - Content pipeline: load a PDF, an image and the sample deck; use the transport bar and arrow keys.
 - Capture or crop: test a screen share at least, and each crop mode.
 - Room files: save, reload and reopen a room, in the ballroom and an uploaded venue, using the room menu in the top bar (name, notes, unsaved dot).
-- Camera views: in an uploaded venue, open the floor plan from the Venue tab and from Seat Presets, then place, rename, clear and set a view in the Camera views panel and press Done.
+- Camera views: in an uploaded venue, open the floor plan from the Venue tab and from Seat presets, then place, rename, clear and set a view in the Camera views panel and press Done.
 - Storyboard: capture two sets, retake a frame and export the PDF.
 - VR: test on a headset if possible. If not, say so in the PR; reasoning about WebXR code is not the same as running it.
 
