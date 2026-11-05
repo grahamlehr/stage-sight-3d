@@ -6,6 +6,14 @@ All notable changes to StageSight 3D are listed here. The format follows [Keep a
 
 ## [Unreleased]
 
+### Changed
+
+- **Sightlines card, bottom right.** Distance, D/H ratio and off-axis angle move from the top bar to a **Sightlines** card in the bottom-right corner, one row each with the full DISCAS band description underneath and the worst-screen flag at the foot. It moves beside the storyboard panel while that's open, and sits above the slide bar on windows narrower than 1280px.
+
+### Fixed
+
+- **Top bar fits narrower windows.** Below about 1760px the right-hand buttons (camera mode and VR) ran off-screen. The sightline readout has moved out of the top bar, leaving it for controls only; below 1280px the right-hand buttons drop to icons with tooltips.
+
 ## [2.0.0] - 2026-11-04
 
 ### Changed

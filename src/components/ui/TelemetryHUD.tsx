@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import {
   Eye,
   Maximize2,
-  Compass,
   Armchair,
   PanelLeftClose,
   PanelLeftOpen,
@@ -17,26 +16,10 @@ import { useStageStore, getActiveSeatPresets } from '../../store/useStageStore';
 import { RoomMenu } from './RoomMenu';
 import { Logo } from './Logo';
 import { AboutModal } from './AboutModal';
-import { describeWorstScreen } from '../../utils/worstScreenFlag';
-
-// Tag text below 2xl, where the full DISCAS labels don't fit beside the controls
-const DH_SHORT_LABEL: Record<string, string> = {
-  detail: 'Detail',
-  reading: 'Reading',
-  marginal: 'Marginal',
-  fail: 'Too far',
-};
-
-const ANGLE_SHORT_LABEL: Record<string, string> = {
-  optimal: 'On-axis',
-  steep: 'Steep',
-  extreme: 'Extreme',
-};
 
 export const TelemetryHUD: React.FC = () => {
   const [isAboutOpen, setIsAboutOpen] = useState(false);
   const [isVrHelpOpen, setIsVrHelpOpen] = useState(false);
-  const telemetry = useStageStore((s) => s.telemetry);
   const navigationMode = useStageStore((s) => s.navigationMode);
   const setNavigationMode = useStageStore((s) => s.setNavigationMode);
   const fovMode = useStageStore((s) => s.fovMode);
@@ -64,35 +47,21 @@ export const TelemetryHUD: React.FC = () => {
   const isStoryboardOpen = useStageStore((s) => s.isStoryboardOpen);
   const setIsStoryboardOpen = useStageStore((s) => s.setIsStoryboardOpen);
 
-  // Sightline status follows Signal's status rules: an outlined tag with a go
-  // dot passes, a warn fill is marginal, and a solid ink tag fails. Fill carries
-  // the meaning, so it still reads without color.
-  const statusTag = (level: 'go' | 'warn' | 'fail') =>
-    level === 'go' ? 'tag-go' : level === 'warn' ? 'tag-warn' : 'tag-solid';
-
-  const dhLevel =
-    telemetry.dhStatus === 'detail' || telemetry.dhStatus === 'reading'
-      ? 'go'
-      : telemetry.dhStatus === 'marginal'
-      ? 'warn'
-      : 'fail';
-
-  const angleLevel =
-    telemetry.angleStatus === 'optimal' ? 'go' : telemetry.angleStatus === 'steep' ? 'warn' : 'fail';
-
-  const worstFlag = describeWorstScreen(telemetry.worst);
-
   const lightingPresets = [
     { id: 'conference-bright', label: 'Bright' },
     { id: 'ballroom-standard', label: 'Standard' },
     { id: 'keynote-dark', label: 'Dark' },
   ] as const;
 
-  // z-30, above the sidebar (z-20), so the room menu's popover opens over it
+  // Controls only: the sightline numbers live in the SightlinePanel, bottom right.
+  // z-30, above the sidebar (z-20), so the room menu's popover opens over it.
+  // The right group drops to icons (with tooltips) below 1280px, the left group
+  // below 1024px; the right group wraps
+  // under the left on phones.
   return (
-    <header className="absolute top-3 left-3 right-3 z-30 pointer-events-none flex items-center justify-between gap-3">
+    <header className="absolute top-3 left-3 right-3 z-30 pointer-events-none flex flex-wrap items-center justify-between gap-x-3 gap-y-2">
       {/* Left: Sidebar Toggle & Branding */}
-      <div className="pointer-events-auto flex items-center gap-2">
+      <div className="pointer-events-auto flex shrink-0 items-center gap-2">
         <button
           data-guide="sidebar-toggle"
           onClick={() => setIsSidebarOpen(!isSidebarOpen)}
@@ -107,15 +76,15 @@ export const TelemetryHUD: React.FC = () => {
           onClick={() => setIsAboutOpen(true)}
           className="btn btn-secondary h-9 gap-2.5 group"
           title="About StageSight 3D (Click for details)"
+          aria-label="About StageSight 3D"
         >
           <Logo variant="icon" className="w-5 h-5 group-hover:scale-110 transition-transform" />
-          <span className="text-sm tracking-tight">StageSight 3D</span>
+          <span className="text-sm tracking-tight hidden lg:inline">StageSight 3D</span>
         </button>
 
         <RoomMenu />
 
-        {/* Storyboard review tray. In the left group, which never overflows: the
-            right-hand group runs off-screen below about 1760px */}
+        {/* Storyboard review tray */}
         <button
           onClick={() => {
             if (isStoryboardOpen) {
@@ -128,70 +97,20 @@ export const TelemetryHUD: React.FC = () => {
           aria-pressed={isStoryboardOpen}
           className={`btn h-9 gap-2 ${isStoryboardOpen ? 'btn-primary' : 'btn-secondary'}`}
           title="Capture camera views and export a client storyboard PDF"
+          aria-label="Storyboard"
         >
           <Clapperboard size={14} />
-          <span className="text-sm">Storyboard</span>
+          <span className="text-sm hidden lg:inline">Storyboard</span>
         </button>
       </div>
 
-      {/* Center: Live DISCAS Telemetry Badges */}
-      <div
-        data-guide="telemetry"
-        className="panel pointer-events-auto flex items-center gap-3 px-3 py-2 whitespace-nowrap">
-        {/* Viewing Distance */}
-        <div className="flex items-baseline gap-2">
-          <span className="label">Dist (D)</span>
-          <span className="text-base readout">{telemetry.viewingDistance}m</span>
-        </div>
-
-        {/* D / H Ratio */}
-        <div
-          className="flex items-center gap-2 pl-3 border-l border-ink/20"
-          title={`AVIXA DISCAS Distance-to-Height Ratio: ${telemetry.dhLabel}`}
-        >
-          <span className="label">D/H</span>
-          <span className="text-base readout">{telemetry.dhRatio}x H</span>
-          <span className={`tag ${statusTag(dhLevel)}`}>
-            {dhLevel === 'go' && <span className="signal-dot bg-signal-go" />}
-            <span className="normal-case font-semibold hidden 2xl:inline">{telemetry.dhLabel}</span>
-            <span className="2xl:hidden">{DH_SHORT_LABEL[telemetry.dhStatus] ?? telemetry.dhStatus}</span>
-          </span>
-        </div>
-
-        {/* Off-Axis Angle */}
-        <div
-          className="flex items-center gap-2 pl-3 border-l border-ink/20"
-          title={`Horizontal Off-Axis Angle: ${telemetry.angleLabel}`}
-        >
-          <Compass size={14} strokeWidth={1.5} className="text-ink/60" />
-          <span className="text-base readout">{telemetry.offAxisAngle}°</span>
-          <span className={`tag ${statusTag(angleLevel)}`}>
-            {angleLevel === 'go' && <span className="signal-dot bg-signal-go" />}
-            <span className="normal-case font-semibold hidden 2xl:inline">{telemetry.angleLabel}</span>
-            <span className="2xl:hidden">{ANGLE_SHORT_LABEL[telemetry.angleStatus] ?? telemetry.angleStatus}</span>
-          </span>
-        </div>
-
-        {/* Worst other screen, when it reads worse than the primary */}
-        {worstFlag && (
-          <div className="flex items-center pl-3 border-l border-ink/20">
-            <span
-              className={`tag ${statusTag(worstFlag.level)}`}
-              title="The screen that reads worst from this seat. The numbers beside it are for the primary screen."
-            >
-              {worstFlag.text}
-            </span>
-          </div>
-        )}
-      </div>
-
       {/* Right: Camera Mode, Dual-FOV, Seat Presets & Lighting */}
-      <div className="pointer-events-auto flex items-center gap-1.5">
+      <div className="pointer-events-auto flex shrink-0 items-center gap-1.5 ml-auto">
         {/* Venue Lighting Quick Selector */}
         <div data-guide="lighting" className="relative group">
           <button className="btn btn-secondary" aria-label="Room lighting">
             <Sun size={14} />
-            <span className="hidden min-[1440px]:inline">
+            <span className="hidden xl:inline">
               {lightingPreset === 'conference-bright'
                 ? 'Bright'
                 : lightingPreset === 'ballroom-standard'
@@ -260,7 +179,7 @@ export const TelemetryHUD: React.FC = () => {
         <div data-guide="seat-presets" className="relative group">
           <button className="btn btn-secondary" aria-label="Seat presets">
             <Armchair size={14} />
-            <span className="hidden min-[1440px]:inline">Seat presets</span>
+            <span className="hidden xl:inline">Seat presets</span>
           </button>
           <div className="absolute right-0 top-full pt-1.5 hidden group-hover:block z-30">
             <div className="panel w-64 py-1.5 animate-in fade-in duration-100">
@@ -308,7 +227,9 @@ export const TelemetryHUD: React.FC = () => {
             title="50° Vertical FOV: Stage framing and peripheral room sightlines"
           >
             <Maximize2 size={13} />
-            <span className="hidden sm:inline">50° Room</span>
+            <span>
+              50°<span className="hidden xl:inline"> Room</span>
+            </span>
           </button>
           <button
             onClick={() => setFovMode('eye-focus')}
@@ -317,7 +238,9 @@ export const TelemetryHUD: React.FC = () => {
             title="25° Vertical FOV: Simulates human foveal focus for text legibility"
           >
             <Eye size={13} />
-            <span className="hidden sm:inline">25° Eye Focus</span>
+            <span>
+              25°<span className="hidden xl:inline"> Eye focus</span>
+            </span>
           </button>
         </div>
 
@@ -327,9 +250,12 @@ export const TelemetryHUD: React.FC = () => {
           onClick={() => setNavigationMode(navigationMode === 'orbit' ? 'seated' : 'orbit')}
           aria-pressed={navigationMode === 'seated'}
           className={`btn ${navigationMode === 'seated' ? 'btn-primary' : 'btn-secondary'}`}
+          title={navigationMode === 'seated' ? 'Seated at 1.2m eye height: switch to orbit' : 'Orbit camera: switch to seated'}
         >
           <Armchair size={14} />
-          <span>{navigationMode === 'seated' ? 'Seated @ 1.2m' : 'Orbit Camera'}</span>
+          <span className="hidden xl:inline">
+            {navigationMode === 'seated' ? 'Seated @ 1.2m' : 'Orbit camera'}
+          </span>
         </button>
 
         {/* Meta Quest / PCVR WebXR Controls */}
@@ -365,7 +291,7 @@ export const TelemetryHUD: React.FC = () => {
             }
           >
             <Glasses size={15} />
-            <span>
+            <span className={isVrPresenting ? '' : 'hidden xl:inline'}>
               {isVrPresenting ? 'Exit VR' : isVrSupported ? 'Enter VR' : 'VR Preview'}
             </span>
             {isVrPresenting && <span className="tag bg-white text-live-press px-1.5">Live</span>}
