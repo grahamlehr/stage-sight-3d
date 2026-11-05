@@ -6,11 +6,18 @@ All notable changes to StageSight 3D are listed here. The format follows [Keep a
 
 ## [Unreleased]
 
+### Changed
+
+- **Sightlines card, bottom right.** Distance, D/H ratio and off-axis angle move from the top bar to a **Sightlines** card in the bottom-right corner, one row each with the full DISCAS band description underneath and the worst-screen flag at the foot. It moves beside the storyboard panel while that's open, and sits above the slide bar on windows narrower than 1280px.
+
+### Fixed
+
+- **Top bar fits narrower windows.** Below about 1760px the right-hand buttons (camera mode and VR) ran off-screen. The sightline readout has moved out of the top bar, leaving it for controls only; below 1280px the right-hand buttons drop to icons with tooltips.
+
 ## [2.0.0] - 2026-11-04
 
 ### Changed
 
-- **Sightlines card, bottom right.** Distance, D/H ratio and off-axis angle move from the top bar to a **Sightlines** card in the bottom-right corner, one row each with the full DISCAS band description underneath and the worst-screen flag at the foot. It moves beside the storyboard panel while that's open, and sits above the slide bar on windows narrower than 1280px.
 - **Signal design.** The interface moves to Graham's Signal design system in its dark theme: warm ink greys, square corners, 2px rules, Geist with Geist Mono for labels, tags and readouts, and no soft shadows. The highlight is the cyan from the StageSight logo, used for primary buttons, selected options, the active tab, switches and focus. Red still means live; green and amber still mean sightline pass and marginal. The VR HUD and floor plan markers use the same palette.
 
 - **Consistent switches, wording and tabs.** Every on/off setting (side screens, gizmo, ceiling trusses, presenters, lectern, panel) is now one switch control. Labels are in sentence case with British spelling, for example **Size (metres)**, **Centre position (X)** and **Stage props**; the 16:9 cropper becomes **Fit a 16:9 feed** with **Show whole picture**, **Align to top**, **Stretch to fill** and **Custom**; the source tiles say what they take. The sidebar tabs are keyboard accessible (Left, Right, Home and End move between them). File, capture and room-file errors show as dismissible inline messages instead of pop-up alerts.
@@ -21,7 +28,6 @@ All notable changes to StageSight 3D are listed here. The format follows [Keep a
 
 ### Fixed
 
-- **Top bar fits narrower windows.** Below about 1760px the right-hand buttons (camera mode and VR) ran off-screen. The sightline readout has moved out of the top bar, leaving it for controls only; below 1280px the right-hand buttons drop to icons with tooltips.
 - **About dialogue works again.** The close button, **Take the tour** and the website link did nothing, because the dialogue sat inside the top bar, which lets clicks through to the 3D view. It now opens over the whole page, and clicking outside it or pressing Escape closes it.
 
 ### Added
